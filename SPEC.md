@@ -10,7 +10,7 @@
 - [x] Typed env with `environment.ts` pattern
 
 ## Phase 2 — State & Data
-- [ ] NgRx Signal Store for global state (auth slice)
+- [x] NgRx Signal Store for global state (auth slice)
 - [ ] Angular 22 `HttpClient` typed service layer with interceptors
 - [ ] JWT interceptor: attach Bearer token, handle 401 → refresh
 - [ ] TanStack Query Angular adapter for server state
