@@ -12,7 +12,7 @@ import {
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { EMPTY, exhaustMap, pipe, switchMap, tap } from 'rxjs';
 import { AuthService } from './auth.service';
-import type { AuthState, LoginCredentials, RegisterCredentials } from './auth.models';
+import type { AuthState, AuthTokens, LoginCredentials, RegisterCredentials } from './auth.models';
 
 const ACCESS_TOKEN_KEY = 'auth_access_token';
 const REFRESH_TOKEN_KEY = 'auth_refresh_token';
@@ -87,6 +87,12 @@ export const AuthStore = signalStore(
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
       patchState(store, initialState);
+    },
+
+    updateTokens({ accessToken, refreshToken }: AuthTokens): void {
+      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      patchState(store, { accessToken, refreshToken });
     },
 
     refreshAccessToken: rxMethod<void>(
