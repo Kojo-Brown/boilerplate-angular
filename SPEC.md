@@ -12,7 +12,7 @@
 ## Phase 2 — State & Data
 - [x] NgRx Signal Store for global state (auth slice)
 - [x] Angular 22 `HttpClient` typed service layer with interceptors
-- [ ] JWT interceptor: attach Bearer token, handle 401 → refresh
+- [x] JWT interceptor: attach Bearer token, handle 401 → refresh
 - [ ] TanStack Query Angular adapter for server state
 
 ## Phase 3 — Routing & Auth
