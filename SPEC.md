@@ -16,7 +16,7 @@
 - [x] TanStack Query Angular adapter for server state
 
 ## Phase 3 — Routing & Auth
-- [ ] Functional route guards: `authGuard`, `roleGuard`
+- [x] Functional route guards: `authGuard`, `roleGuard`
 - [ ] Lazy-loaded feature routes with `loadComponent`
 - [ ] Auth pages: login, register with Angular Reactive Forms + Zod
 - [ ] Route title strategy
