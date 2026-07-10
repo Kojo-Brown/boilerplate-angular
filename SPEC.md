@@ -17,7 +17,7 @@
 
 ## Phase 3 — Routing & Auth
 - [x] Functional route guards: `authGuard`, `roleGuard`
-- [ ] Lazy-loaded feature routes with `loadComponent`
+- [x] Lazy-loaded feature routes with `loadComponent`
 - [ ] Auth pages: login, register with Angular Reactive Forms + Zod
 - [ ] Route title strategy
 
