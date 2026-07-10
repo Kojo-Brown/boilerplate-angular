@@ -7,15 +7,11 @@ export const routes: Routes = [
     redirectTo: 'dashboard',
     pathMatch: 'full',
   },
+  // Auth feature: /login, /register
   {
-    path: 'login',
-    loadComponent: () =>
-      import('@/app/features/auth/login.component').then((m) => m.LoginComponent),
-  },
-  {
-    path: 'register',
-    loadComponent: () =>
-      import('@/app/features/auth/register.component').then((m) => m.RegisterComponent),
+    path: '',
+    loadChildren: () =>
+      import('@/app/features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
   },
   {
     path: 'unauthorized',
@@ -23,20 +19,21 @@ export const routes: Routes = [
       import('@/app/features/errors/unauthorized.component').then(
         (m) => m.UnauthorizedComponent
       ),
+    title: 'Unauthorized',
   },
+  // Dashboard feature: /dashboard, /dashboard/posts, /dashboard/posts/:id
   {
     path: 'dashboard',
     canActivate: [authGuard],
-    loadComponent: () =>
-      import('@/app/features/dashboard/dashboard.component').then(
-        (m) => m.DashboardComponent
-      ),
+    loadChildren: () =>
+      import('@/app/features/dashboard/dashboard.routes').then((m) => m.DASHBOARD_ROUTES),
   },
+  // Admin feature: /admin
   {
     path: 'admin',
     canActivate: [authGuard, roleGuard('admin')],
-    loadComponent: () =>
-      import('@/app/features/admin/admin.component').then((m) => m.AdminComponent),
+    loadChildren: () =>
+      import('@/app/features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
   },
   {
     path: '**',
