@@ -1,4 +1,5 @@
 import type { Routes } from '@angular/router';
+import { postTitleResolver } from '@/app/core/routing/post-title.resolver';
 
 export const DASHBOARD_ROUTES: Routes = [
   {
@@ -22,7 +23,7 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'posts/:id',
         loadComponent: () =>
           import('../posts/post-detail.component').then((m) => m.PostDetailComponent),
-        title: 'Post Detail',
+        title: postTitleResolver,
       },
     ],
   },
