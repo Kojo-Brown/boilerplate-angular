@@ -19,7 +19,7 @@
 - [x] Functional route guards: `authGuard`, `roleGuard`
 - [x] Lazy-loaded feature routes with `loadComponent`
 - [x] Auth pages: login, register with Angular Reactive Forms + Zod
-- [ ] Route title strategy
+- [x] Route title strategy
 
 ## Phase 4 — UI System
 - [ ] Angular CDK + CSS variables component library: Button, Input, Dialog, Toast
