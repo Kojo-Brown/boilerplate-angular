@@ -22,7 +22,7 @@
 - [x] Route title strategy
 
 ## Phase 4 — UI System
-- [ ] Angular CDK + CSS variables component library: Button, Input, Dialog, Toast
+- [x] Angular CDK + CSS variables component library: Button, Input, Dialog, Toast
 - [ ] Dark mode via class strategy + Angular service
 - [ ] Responsive layout shell with sidebar + mobile drawer
 
