@@ -23,7 +23,7 @@
 
 ## Phase 4 — UI System
 - [x] Angular CDK + CSS variables component library: Button, Input, Dialog, Toast
-- [ ] Dark mode via class strategy + Angular service
+- [x] Dark mode via class strategy + Angular service
 - [ ] Responsive layout shell with sidebar + mobile drawer
 
 ## Phase 5 — Testing & DevOps

@@ -10,3 +10,5 @@ export type { AppDialogConfig } from './dialog/dialog.service';
 export { ToastItemComponent, ToastContainerComponent } from './toast/toast.component';
 export { ToastService } from './toast/toast.service';
 export type { Toast, ToastOptions, ToastType } from './toast/toast.service';
+
+export { ThemeToggleComponent } from './theme-toggle/theme-toggle.component';
