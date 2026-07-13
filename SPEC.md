@@ -24,7 +24,7 @@
 ## Phase 4 — UI System
 - [x] Angular CDK + CSS variables component library: Button, Input, Dialog, Toast
 - [x] Dark mode via class strategy + Angular service
-- [ ] Responsive layout shell with sidebar + mobile drawer
+- [x] Responsive layout shell with sidebar + mobile drawer
 
 ## Phase 5 — Testing & DevOps
 - [ ] Jasmine + Karma unit tests with Angular TestBed
