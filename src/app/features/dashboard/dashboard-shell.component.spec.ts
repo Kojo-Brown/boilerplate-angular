@@ -37,8 +37,12 @@ describe('DashboardShellComponent', () => {
   it('calls authStore.logout() when sign-out button is clicked', () => {
     const fixture = TestBed.createComponent(DashboardShellComponent);
     fixture.detectChanges();
-    const btn = fixture.debugElement.query(By.css('button'));
-    btn.triggerEventHandler('click', null);
+    const btns = fixture.debugElement.queryAll(By.css('button'));
+    const logoutBtn = btns.find(
+      (b) => (b.nativeElement as HTMLButtonElement).textContent?.trim() === 'Sign out'
+    );
+    expect(logoutBtn).toBeTruthy();
+    logoutBtn!.triggerEventHandler('click', null);
     expect(mockAuthStore.logout).toHaveBeenCalled();
   });
 
