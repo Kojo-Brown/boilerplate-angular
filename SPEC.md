@@ -27,7 +27,7 @@
 - [x] Responsive layout shell with sidebar + mobile drawer
 
 ## Phase 5 — Testing & DevOps
-- [ ] Jasmine + Karma unit tests with Angular TestBed
+- [x] Jasmine + Karma unit tests with Angular TestBed
 - [ ] Playwright E2E: login flow, route guard, form validation
 - [ ] GitHub Actions: lint → typecheck → test → build
 - [ ] Dockerfile (multi-stage nginx)
