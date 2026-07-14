@@ -1,8 +1,4 @@
-export interface Environment {
-  production: boolean;
-  apiUrl: string;
-  googleClientId: string;
-}
+import type { Environment } from './environment.model';
 
 export const environment: Environment = {
   production: false,

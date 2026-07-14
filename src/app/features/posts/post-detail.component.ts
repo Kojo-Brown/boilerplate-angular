@@ -1,3 +1,4 @@
+import { SlicePipe } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { injectPostQuery } from './posts.queries';
@@ -5,7 +6,7 @@ import { injectPostQuery } from './posts.queries';
 @Component({
   selector: 'app-post-detail',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, SlicePipe],
   template: `
     <div class="p-6">
       <a
@@ -26,7 +27,9 @@ import { injectPostQuery } from './posts.queries';
           </div>
         </div>
       } @else if (post.isError()) {
-        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+        <div
+          class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+        >
           Post not found or failed to load.
         </div>
       } @else {

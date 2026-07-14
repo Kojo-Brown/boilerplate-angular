@@ -1,2 +1,2 @@
-export { createQueryClient } from './query-client.config';
-export { queryKeys } from './query-keys';
+export * from './query-client.config';
+export * from './query-keys';

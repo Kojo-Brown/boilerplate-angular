@@ -1,5 +1,7 @@
-import { Injectable, inject, InjectionToken, Type } from '@angular/core';
-import { Dialog, DialogConfig, DialogRef } from '@angular/cdk/dialog';
+import type { Type } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import type { DialogConfig, DialogRef } from '@angular/cdk/dialog';
+import { Dialog } from '@angular/cdk/dialog';
 
 export interface AppDialogConfig<D = unknown> {
   data?: D;
@@ -14,7 +16,7 @@ export class DialogService {
 
   open<C, D = unknown, R = unknown>(
     component: Type<C>,
-    config: AppDialogConfig<D> = {},
+    config: AppDialogConfig<D> = {}
   ): DialogRef<R, C> {
     const cdkConfig: DialogConfig<D, DialogRef<R, C>> = {
       data: config.data,
