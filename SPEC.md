@@ -28,6 +28,6 @@
 
 ## Phase 5 — Testing & DevOps
 - [x] Jasmine + Karma unit tests with Angular TestBed
-- [ ] Playwright E2E: login flow, route guard, form validation
+- [x] Playwright E2E: login flow, route guard, form validation
 - [ ] GitHub Actions: lint → typecheck → test → build
 - [ ] Dockerfile (multi-stage nginx)
