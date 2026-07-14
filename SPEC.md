@@ -30,4 +30,4 @@
 - [x] Jasmine + Karma unit tests with Angular TestBed
 - [x] Playwright E2E: login flow, route guard, form validation
 - [x] GitHub Actions: lint → typecheck → test → build
-- [ ] Dockerfile (multi-stage nginx)
+- [x] Dockerfile (multi-stage nginx)
