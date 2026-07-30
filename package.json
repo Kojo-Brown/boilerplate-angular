@@ -35,6 +35,7 @@
     "@angular-devkit/build-angular": "^22.0.0",
     "@angular/cli": "^22.0.0",
     "@angular/compiler-cli": "^22.0.0",
+    "@eslint/js": "^9.0.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/jasmine": "~5.1.0",
     "autoprefixer": "^10.4.0",
@@ -52,5 +53,24 @@
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.0",
     "typescript-eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [],
+    "ignoredBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild",
+      "lmdb",
+      "msgpackr-extract"
+    ],
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@ngrx/signals>@angular/core": "22"
+      }
+    }
   }
 }
