@@ -1,14 +1,15 @@
+import type { OnInit } from '@angular/core';
 import {
   Component,
   Input,
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
-  OnInit,
   inject,
 } from '@angular/core';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
-import { Toast, ToastType, ToastService } from './toast.service';
+import type { Toast, ToastType } from './toast.service';
+import { ToastService } from './toast.service';
 
 const TYPE_STYLES: Record<ToastType, string> = {
   success:
@@ -44,17 +45,20 @@ const TYPE_STYLES: Record<ToastType, string> = {
             <path d="M20 6L9 17l-5-5" />
           }
           @case ('error') {
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           }
           @case ('warning') {
             <path
               d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
             />
-            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
           }
           @default {
             <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
           }
         }
       </svg>
@@ -80,7 +84,8 @@ const TYPE_STYLES: Record<ToastType, string> = {
           stroke-linejoin="round"
           aria-hidden="true"
         >
-          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
       </button>
     </div>

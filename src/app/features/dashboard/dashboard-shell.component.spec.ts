@@ -18,10 +18,7 @@ describe('DashboardShellComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [DashboardShellComponent],
-      providers: [
-        provideRouter([]),
-        { provide: AuthStore, useValue: mockAuthStore },
-      ],
+      providers: [provideRouter([]), { provide: AuthStore, useValue: mockAuthStore }],
     }).compileComponents();
   });
 
@@ -41,8 +38,10 @@ describe('DashboardShellComponent', () => {
     const logoutBtn = btns.find(
       (b) => (b.nativeElement as HTMLButtonElement).textContent?.trim() === 'Sign out'
     );
-    expect(logoutBtn).toBeTruthy();
-    logoutBtn!.triggerEventHandler('click', null);
+    if (!logoutBtn) {
+      throw new Error('Expected the dashboard shell to render a "Sign out" button.');
+    }
+    logoutBtn.triggerEventHandler('click', null);
     expect(mockAuthStore.logout).toHaveBeenCalled();
   });
 

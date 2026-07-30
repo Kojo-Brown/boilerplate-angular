@@ -1,25 +1,31 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import type { ComponentFixture } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { InputComponent } from './input.component';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
+/**
+ * Host state is held in signals, not plain fields. TestBed runs zoneless by default in
+ * Angular 22, so `fixture.detectChanges()` only refreshes views that something marked
+ * dirty — writing a signal does that, assigning to a field does not.
+ */
 @Component({
   standalone: true,
   imports: [InputComponent, ReactiveFormsModule],
   template: `
     <app-input
-      [label]="label"
-      [error]="error"
-      [placeholder]="placeholder"
+      [label]="label()"
+      [error]="error()"
+      [placeholder]="placeholder()"
       [formControl]="control"
     />
   `,
 })
 class HostComponent {
-  label = 'Email';
-  error = '';
-  placeholder = 'Enter value';
-  control = new FormControl('');
+  readonly label = signal('Email');
+  readonly error = signal('');
+  readonly placeholder = signal('Enter value');
+  readonly control = new FormControl('');
 }
 
 describe('InputComponent', () => {
@@ -50,21 +56,21 @@ describe('InputComponent', () => {
   });
 
   it('displays error message', () => {
-    host.error = 'Required';
+    host.error.set('Required');
     fixture.detectChanges();
     const error = fixture.nativeElement.querySelector('[role="alert"]') as HTMLElement;
     expect(error.textContent?.trim()).toBe('Required');
   });
 
   it('marks input invalid when error present', () => {
-    host.error = 'Invalid';
+    host.error.set('Invalid');
     fixture.detectChanges();
     const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
     expect(input.getAttribute('aria-invalid')).toBe('true');
   });
 
   it('does not render label element when label is empty', () => {
-    host.label = '';
+    host.label.set('');
     fixture.detectChanges();
     const label = fixture.nativeElement.querySelector('label');
     expect(label).toBeNull();

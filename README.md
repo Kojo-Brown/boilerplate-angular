@@ -31,6 +31,58 @@ cp src/environments/environment.example.ts src/environments/environment.ts
 pnpm start  # http://localhost:4200
 ```
 
+## Scripts
+
+| Script             | What it does                                              |
+| ------------------ | --------------------------------------------------------- |
+| `pnpm start`       | Dev server on http://localhost:4200                        |
+| `pnpm build`       | Production bundle into `dist/`                             |
+| `pnpm typecheck`   | `tsc --noEmit` against `tsconfig.app.json`                  |
+| `pnpm lint`        | ESLint over `src/`                                          |
+| `pnpm format:check`| Prettier check (use `pnpm format` to rewrite)               |
+| `pnpm test`        | Karma unit tests, single run                                |
+| `pnpm test:ci`     | Same, pinned to the sandboxed `ChromeHeadlessCI` launcher   |
+| `pnpm e2e`         | Playwright end-to-end tests                                 |
+
+CI runs lint, typecheck, and tests in parallel, then builds once all three are
+green — see [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+
+Use `pnpm test:ci` rather than `pnpm test -- --browsers=…` in scripted contexts:
+the extra `--` makes the Angular CLI read `--no-watch`/`--no-progress` as unknown
+positional arguments and abort before Karma starts.
+
+## Testing notes
+
+**TestBed is zoneless by default in Angular 22.** `fixture.detectChanges()` only
+refreshes views that something has marked dirty, so assigning to a plain field on
+a host component does *not* re-render the component under test — the assertion
+then sees stale DOM and fails in a way that looks like a component bug. Hold host
+state in **signals**:
+
+```ts
+class HostComponent {
+  readonly variant = signal<ButtonVariant>('primary');
+}
+// host.variant.set('secondary') marks the view dirty; host.variant = … does not.
+```
+
+Shared helpers live in `src/testing` (re-exported from `@/testing`):
+
+- `host(fixture)` — `fixture.nativeElement` typed as `HTMLElement`. The raw
+  property is `any`, so `fixture.nativeElement.querySelector<T>()` is a TS2347
+  compile error under this repo's `strict` config.
+- `requireEl(root, selector)` / `fillInput(root, selector, value)` — query or fill
+  an element the spec depends on, throwing with the selector when it is missing
+  instead of returning `null`.
+- `loadChildRoutes(route)` / `loadRouteComponent(route)` — **invoke** a lazy route
+  loader and return what it resolves to. Asserting only that `loadChildren` is
+  defined passes even when the dynamic import points at a moved file or renamed
+  export; that failure would otherwise surface in production, on navigation.
+
+Prefer a real `provideRouter([])` over a stubbed `Router` for any component whose
+template uses `routerLink` — the directive calls `createUrlTree`/`serializeUrl`
+and injects `ActivatedRoute`, none of which a spy object provides.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:

@@ -30,6 +30,27 @@ describe('queryKeys', () => {
   it('posts.detail(id) includes id', () => {
     expect(queryKeys.posts.detail('abc')).toEqual(['posts', 'detail', 'abc']);
   });
+
+  it('users.all() returns base key', () => {
+    expect(queryKeys.users.all()).toEqual(['users']);
+  });
+
+  it('users.me() returns the current-user key', () => {
+    expect(queryKeys.users.me()).toEqual(['users', 'me']);
+  });
+
+  it('users.detail(id) includes id', () => {
+    expect(queryKeys.users.detail('u1')).toEqual(['users', 'detail', 'u1']);
+  });
+
+  it('nests list and detail keys under their base key so invalidation cascades', () => {
+    // `invalidateQueries({ queryKey: posts.all() })` must also match list/detail entries;
+    // that only holds while the base key stays a prefix of the more specific ones.
+    expect(queryKeys.posts.lists().slice(0, 1)).toEqual([...queryKeys.posts.all()]);
+    expect(queryKeys.posts.detail('abc').slice(0, 1)).toEqual([...queryKeys.posts.all()]);
+    expect(queryKeys.users.me().slice(0, 1)).toEqual([...queryKeys.users.all()]);
+    expect(queryKeys.users.detail('u1').slice(0, 1)).toEqual([...queryKeys.users.all()]);
+  });
 });
 
 describe('PostsService', () => {
@@ -55,7 +76,9 @@ describe('PostsService', () => {
 
   it('getAll() calls GET /posts', async () => {
     const mockResponse = {
-      data: [{ id: '1', title: 'Hello', body: 'World', authorId: 'u1', createdAt: '', updatedAt: '' }],
+      data: [
+        { id: '1', title: 'Hello', body: 'World', authorId: 'u1', createdAt: '', updatedAt: '' },
+      ],
       total: 1,
       page: 1,
       pageSize: 10,
@@ -72,7 +95,14 @@ describe('PostsService', () => {
   });
 
   it('getById() calls GET /posts/:id', async () => {
-    const mockPost = { id: '1', title: 'Test', body: 'Body', authorId: 'u1', createdAt: '', updatedAt: '' };
+    const mockPost = {
+      id: '1',
+      title: 'Test',
+      body: 'Body',
+      authorId: 'u1',
+      createdAt: '',
+      updatedAt: '',
+    };
     const promise = service.getById('1');
     const req = httpMock.expectOne((r) => r.url.includes('/posts/1'));
     req.flush(mockPost);
@@ -94,7 +124,14 @@ describe('PostsService', () => {
 
   it('update() calls PATCH /posts/:id', async () => {
     const dto = { title: 'Updated' };
-    const mockPost = { id: '1', title: 'Updated', body: 'Body', authorId: 'u1', createdAt: '', updatedAt: '' };
+    const mockPost = {
+      id: '1',
+      title: 'Updated',
+      body: 'Body',
+      authorId: 'u1',
+      createdAt: '',
+      updatedAt: '',
+    };
     const promise = service.update('1', dto);
     const req = httpMock.expectOne((r) => r.url.includes('/posts/1') && r.method === 'PATCH');
     req.flush(mockPost);

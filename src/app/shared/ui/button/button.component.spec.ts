@@ -1,17 +1,29 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import type { ComponentFixture } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { ButtonComponent } from './button.component';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 
+/**
+ * Host state is held in signals, not plain fields. TestBed runs zoneless by default in
+ * Angular 22, so `fixture.detectChanges()` only refreshes views that something marked
+ * dirty — writing a signal does that, assigning to a field does not.
+ */
 @Component({
   standalone: true,
   imports: [ButtonComponent],
-  template: `<app-button [variant]="variant" [size]="size" [loading]="loading" [disabled]="disabled">Click</app-button>`,
+  template: `<app-button
+    [variant]="variant()"
+    [size]="size()"
+    [loading]="loading()"
+    [disabled]="disabled()"
+    >Click</app-button
+  >`,
 })
 class HostComponent {
-  variant: ButtonComponent['variant'] = 'primary';
-  size: ButtonComponent['size'] = 'md';
-  loading = false;
-  disabled = false;
+  readonly variant = signal<ButtonComponent['variant']>('primary');
+  readonly size = signal<ButtonComponent['size']>('md');
+  readonly loading = signal(false);
+  readonly disabled = signal(false);
 }
 
 describe('ButtonComponent', () => {
@@ -36,21 +48,21 @@ describe('ButtonComponent', () => {
   });
 
   it('disables button when disabled=true', () => {
-    host.disabled = true;
+    host.disabled.set(true);
     fixture.detectChanges();
     const btn = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     expect(btn.disabled).toBeTrue();
   });
 
   it('disables button when loading=true', () => {
-    host.loading = true;
+    host.loading.set(true);
     fixture.detectChanges();
     const btn = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     expect(btn.disabled).toBeTrue();
   });
 
   it('shows spinner when loading', () => {
-    host.loading = true;
+    host.loading.set(true);
     fixture.detectChanges();
     const spinner = fixture.nativeElement.querySelector('[aria-hidden="true"]') as HTMLElement;
     expect(spinner).toBeTruthy();
@@ -62,21 +74,21 @@ describe('ButtonComponent', () => {
   });
 
   it('applies secondary variant classes', () => {
-    host.variant = 'secondary';
+    host.variant.set('secondary');
     fixture.detectChanges();
     const btn = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     expect(btn.className).toContain('bg-[var(--color-secondary)]');
   });
 
   it('applies destructive variant classes', () => {
-    host.variant = 'destructive';
+    host.variant.set('destructive');
     fixture.detectChanges();
     const btn = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     expect(btn.className).toContain('bg-[var(--color-destructive)]');
   });
 
   it('applies size classes', () => {
-    host.size = 'lg';
+    host.size.set('lg');
     fixture.detectChanges();
     const btn = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     expect(btn.className).toContain('h-12');

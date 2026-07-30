@@ -1,4 +1,9 @@
 import { routes } from './app.routes';
+import { AUTH_ROUTES } from '@/app/features/auth/auth.routes';
+import { ADMIN_ROUTES } from '@/app/features/admin/admin.routes';
+import { DASHBOARD_ROUTES } from '@/app/features/dashboard/dashboard.routes';
+import { UnauthorizedComponent } from '@/app/features/errors/unauthorized.component';
+import { loadChildRoutes, loadRouteComponent } from '@/testing';
 
 describe('app routes', () => {
   it('redirects root path to dashboard', () => {
@@ -37,5 +42,27 @@ describe('app routes', () => {
     const wildcard = routes.find((r) => r.path === '**');
     expect(wildcard).toBeDefined();
     expect(wildcard?.redirectTo).toBe('dashboard');
+  });
+
+  describe('lazy loaders actually resolve', () => {
+    it('auth loadChildren resolves to AUTH_ROUTES', async () => {
+      const auth = routes.find((r) => r.path === '' && r.pathMatch !== 'full');
+      await expectAsync(loadChildRoutes(auth)).toBeResolvedTo(AUTH_ROUTES);
+    });
+
+    it('dashboard loadChildren resolves to DASHBOARD_ROUTES', async () => {
+      const dashboard = routes.find((r) => r.path === 'dashboard');
+      await expectAsync(loadChildRoutes(dashboard)).toBeResolvedTo(DASHBOARD_ROUTES);
+    });
+
+    it('admin loadChildren resolves to ADMIN_ROUTES', async () => {
+      const admin = routes.find((r) => r.path === 'admin');
+      await expectAsync(loadChildRoutes(admin)).toBeResolvedTo(ADMIN_ROUTES);
+    });
+
+    it('unauthorized loadComponent resolves to UnauthorizedComponent', async () => {
+      const unauth = routes.find((r) => r.path === 'unauthorized');
+      await expectAsync(loadRouteComponent(unauth)).toBeResolvedTo(UnauthorizedComponent);
+    });
   });
 });

@@ -1,15 +1,21 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import type { ComponentFixture } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { DialogComponent } from './dialog.component';
 import { DialogRef } from '@angular/cdk/dialog';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 
+/**
+ * Host state is held in a signal, not a plain field. TestBed runs zoneless by default in
+ * Angular 22, so `fixture.detectChanges()` only refreshes views that something marked
+ * dirty — writing a signal does that, assigning to a field does not.
+ */
 @Component({
   standalone: true,
   imports: [DialogComponent],
-  template: `<app-dialog [title]="title"><p>Dialog content</p></app-dialog>`,
+  template: `<app-dialog [title]="title()"><p>Dialog content</p></app-dialog>`,
 })
 class HostComponent {
-  title = 'Test Dialog';
+  readonly title = signal('Test Dialog');
 }
 
 describe('DialogComponent', () => {
@@ -39,7 +45,7 @@ describe('DialogComponent', () => {
   });
 
   it('does not render title element when title is empty', () => {
-    host.title = '';
+    host.title.set('');
     fixture.detectChanges();
     const title = fixture.nativeElement.querySelector('#dialog-title');
     expect(title).toBeNull();
@@ -51,12 +57,16 @@ describe('DialogComponent', () => {
   });
 
   it('renders close button', () => {
-    const btn = fixture.nativeElement.querySelector('[aria-label="Close dialog"]') as HTMLButtonElement;
+    const btn = fixture.nativeElement.querySelector(
+      '[aria-label="Close dialog"]'
+    ) as HTMLButtonElement;
     expect(btn).toBeTruthy();
   });
 
   it('calls dialogRef.close() when close button clicked', () => {
-    const btn = fixture.nativeElement.querySelector('[aria-label="Close dialog"]') as HTMLButtonElement;
+    const btn = fixture.nativeElement.querySelector(
+      '[aria-label="Close dialog"]'
+    ) as HTMLButtonElement;
     btn.click();
     expect(mockDialogRef.close).toHaveBeenCalled();
   });
