@@ -3,10 +3,17 @@
 > Spec-driven. Mark `[x]` only after pushing.
 
 ## Phase 0 — Green Baseline (blocks all feature work)
-- [ ] Verify every dependency version actually exists on the registry and fix the ones that do not, then commit a lockfile
-- [ ] Get `install`, `typecheck`, `lint`, `test`, and `build` all passing locally from a clean clone
-- [ ] Promote `workflow-templates/ci.yml` to `.github/workflows/ci.yml` and confirm it runs green on a PR
+- [x] Verify every dependency version actually exists on the registry and fix the ones that do not, then commit a lockfile — all 30 ranges resolve; `@eslint/js` was undeclared, so `pnpm lint` had never run (PR #16)
+- [x] Get `install`, `typecheck`, `lint`, `test`, and `build` all passing locally from a clean clone — the spec files did not compile, so the unit suite had never run either (PR #16)
+- [x] Promote `workflow-templates/ci.yml` to `.github/workflows/ci.yml` and confirm it runs green on a PR — green on run #1 (PR #16)
 - [ ] Add a CI job matrix covering the supported Node version and fail the build on any warning
+
+Phase 0 items 1–3 complete as of PR #16 (2026-07-30): install (frozen lockfile,
+no warnings), typecheck, lint (0 errors, 0 warnings), 220 unit tests, and build
+all green in CI on Node 22. Coverage 89.20% statements / 80.99% branches /
+84.53% functions / 89.18% lines against unchanged `karma.conf.js` thresholds.
+Playwright E2E is not wired into CI yet, and `prettier --check` still fails on
+25 pre-existing files (`format:check` script added but not gated).
 
 ## Phase 1 — Foundation
 - [x] Angular 22 + TypeScript 6 + standalone components (no NgModules)
