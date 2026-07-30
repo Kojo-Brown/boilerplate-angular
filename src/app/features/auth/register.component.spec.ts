@@ -1,8 +1,10 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
+import type { ComponentFixture } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { RegisterComponent } from './register.component';
 import { AuthStore } from '@/app/store/auth/auth.store';
+import { fillInput, host, requireEl } from '@/testing';
 
 describe('RegisterComponent', () => {
   let fixture: ComponentFixture<RegisterComponent>;
@@ -16,22 +18,25 @@ describe('RegisterComponent', () => {
     clearError: jasmine.createSpy('clearError'),
   };
 
-  const mockRouter = { navigate: jasmine.createSpy('navigate') };
+  // A real Router (not a stub) so `routerLink` can build hrefs, and so `ActivatedRoute`
+  // — which RouterLink injects — is present. A spy object supplies neither.
+  let navigate: jasmine.Spy;
+
+  const submitButton = (): HTMLButtonElement =>
+    requireEl<HTMLButtonElement>(host(fixture), 'button[type="submit"]');
 
   beforeEach(async () => {
     mockAuthStore.register.calls.reset();
-    mockRouter.navigate.calls.reset();
     mockAuthStore.isAuthenticated.set(false);
     mockAuthStore.isLoading.set(false);
     mockAuthStore.error.set(null);
 
     await TestBed.configureTestingModule({
       imports: [RegisterComponent],
-      providers: [
-        { provide: AuthStore, useValue: mockAuthStore },
-        { provide: Router, useValue: mockRouter },
-      ],
+      providers: [{ provide: AuthStore, useValue: mockAuthStore }, provideRouter([])],
     }).compileComponents();
+
+    navigate = spyOn(TestBed.inject(Router), 'navigate');
 
     fixture = TestBed.createComponent(RegisterComponent);
     component = fixture.componentInstance;
@@ -43,7 +48,7 @@ describe('RegisterComponent', () => {
   });
 
   it('should render all form fields', () => {
-    const el: HTMLElement = fixture.nativeElement;
+    const el = host(fixture);
     expect(el.querySelector('#name')).toBeTruthy();
     expect(el.querySelector('#email')).toBeTruthy();
     expect(el.querySelector('#password')).toBeTruthy();
@@ -51,48 +56,47 @@ describe('RegisterComponent', () => {
   });
 
   it('should render a submit button', () => {
-    const btn = fixture.nativeElement.querySelector<HTMLButtonElement>('button[type="submit"]');
-    expect(btn?.textContent?.trim()).toBe('Create account');
+    expect(submitButton().textContent?.trim()).toBe('Create account');
   });
 
   it('should show validation errors on empty form submit', () => {
-    fixture.nativeElement.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
+    submitButton().click();
     fixture.detectChanges();
-    const errors = fixture.nativeElement.querySelectorAll('p.text-xs.text-red-600');
+    const errors = host(fixture).querySelectorAll('p.text-xs.text-red-600');
     expect(errors.length).toBeGreaterThan(0);
   });
 
   it('should show password mismatch error', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    fillField(el, '#name', 'Jane Smith');
-    fillField(el, '#email', 'jane@example.com');
-    fillField(el, '#password', 'Password1');
-    fillField(el, '#confirmPassword', 'DifferentPass1');
+    const el = host(fixture);
+    fillInput(el, '#name', 'Jane Smith');
+    fillInput(el, '#email', 'jane@example.com');
+    fillInput(el, '#password', 'Password1');
+    fillInput(el, '#confirmPassword', 'DifferentPass1');
     fixture.detectChanges();
 
-    el.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
+    submitButton().click();
     fixture.detectChanges();
 
     const errors = el.querySelectorAll('p.text-xs.text-red-600');
-    const texts = Array.from(errors).map((e) => (e as HTMLElement).textContent?.trim());
+    const texts = Array.from(errors).map((e) => e.textContent?.trim());
     expect(texts.some((t) => t?.includes("Passwords don't match"))).toBeTrue();
   });
 
   it('should not call register when form is invalid', () => {
-    fixture.nativeElement.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
+    submitButton().click();
     fixture.detectChanges();
     expect(mockAuthStore.register).not.toHaveBeenCalled();
   });
 
   it('should call authStore.register without confirmPassword on valid submit', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    fillField(el, '#name', 'Jane Smith');
-    fillField(el, '#email', 'jane@example.com');
-    fillField(el, '#password', 'Password1');
-    fillField(el, '#confirmPassword', 'Password1');
+    const el = host(fixture);
+    fillInput(el, '#name', 'Jane Smith');
+    fillInput(el, '#email', 'jane@example.com');
+    fillInput(el, '#password', 'Password1');
+    fillInput(el, '#confirmPassword', 'Password1');
     fixture.detectChanges();
 
-    el.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
+    submitButton().click();
     fixture.detectChanges();
 
     expect(mockAuthStore.register).toHaveBeenCalledWith({
@@ -105,40 +109,41 @@ describe('RegisterComponent', () => {
   it('should display API error from store', () => {
     mockAuthStore.error.set('Email already in use');
     fixture.detectChanges();
-    const alert = fixture.nativeElement.querySelector('[role="alert"]');
+    const alert = host(fixture).querySelector('[role="alert"]');
     expect(alert?.textContent?.trim()).toContain('Email already in use');
   });
 
   it('should disable button while loading', () => {
     mockAuthStore.isLoading.set(true);
     fixture.detectChanges();
-    const btn = fixture.nativeElement.querySelector<HTMLButtonElement>('button[type="submit"]');
-    expect(btn?.disabled).toBeTrue();
-    expect(btn?.textContent?.trim()).toBe('Creating account…');
+    const btn = submitButton();
+    expect(btn.disabled).toBeTrue();
+    expect(btn.textContent?.trim()).toBe('Creating account…');
   });
 
   it('should have a link to the login page', () => {
-    const link = fixture.nativeElement.querySelector<HTMLAnchorElement>('a[href="/login"]');
+    const link = host(fixture).querySelector<HTMLAnchorElement>('a[href="/login"]');
     expect(link).toBeTruthy();
   });
 
+  it('should navigate to the dashboard once registration authenticates', () => {
+    expect(navigate).not.toHaveBeenCalled();
+    mockAuthStore.isAuthenticated.set(true);
+    fixture.detectChanges();
+    expect(navigate).toHaveBeenCalledWith(['/dashboard']);
+  });
+
   it('should enforce password complexity rules', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    fillField(el, '#name', 'Jane Smith');
-    fillField(el, '#email', 'jane@example.com');
-    fillField(el, '#password', 'weakpassword');
-    fillField(el, '#confirmPassword', 'weakpassword');
+    const el = host(fixture);
+    fillInput(el, '#name', 'Jane Smith');
+    fillInput(el, '#email', 'jane@example.com');
+    fillInput(el, '#password', 'weakpassword');
+    fillInput(el, '#confirmPassword', 'weakpassword');
     fixture.detectChanges();
 
-    el.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
+    submitButton().click();
     fixture.detectChanges();
 
     expect(mockAuthStore.register).not.toHaveBeenCalled();
   });
 });
-
-function fillField(el: HTMLElement, selector: string, value: string): void {
-  const input = el.querySelector<HTMLInputElement>(selector)!;
-  input.value = value;
-  input.dispatchEvent(new Event('input'));
-}
