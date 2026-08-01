@@ -6,14 +6,28 @@
 - [x] Verify every dependency version actually exists on the registry and fix the ones that do not, then commit a lockfile — all 30 ranges resolve; `@eslint/js` was undeclared, so `pnpm lint` had never run (PR #16)
 - [x] Get `install`, `typecheck`, `lint`, `test`, and `build` all passing locally from a clean clone — the spec files did not compile, so the unit suite had never run either (PR #16)
 - [x] Promote `workflow-templates/ci.yml` to `.github/workflows/ci.yml` and confirm it runs green on a PR — green on run #1 (PR #16)
-- [ ] Add a CI job matrix covering the supported Node version and fail the build on any warning
+- [x] Add a CI job matrix covering the supported Node version and fail the build on any warning — every gate runs on Node 22, 24, and 26; `engines.node` narrowed from `>=26.0.0` to `^26.0.0` so the declared range matches the matrix (PR #17)
 
-Phase 0 items 1–3 complete as of PR #16 (2026-07-30): install (frozen lockfile,
-no warnings), typecheck, lint (0 errors, 0 warnings), 220 unit tests, and build
-all green in CI on Node 22. Coverage 89.20% statements / 80.99% branches /
-84.53% functions / 89.18% lines against unchanged `karma.conf.js` thresholds.
-Playwright E2E is not wired into CI yet, and `prettier --check` still fails on
-25 pre-existing files (`format:check` script added but not gated).
+Phase 0 complete as of PR #17 (2026-08-01): install (frozen lockfile,
+`--strict-peer-dependencies`, 0 WARN lines), lint, typecheck, format check, 220
+unit tests, and build all green in CI on Node 22, 24, and 26. Coverage 89.20%
+statements / 80.99% branches / 84.53% functions / 89.18% lines against unchanged
+`karma.conf.js` thresholds.
+
+Warnings are now failures, not log noise: `--max-warnings=0` for ESLint,
+`engine-strict=true` for an unsupported Node, `--throw-deprecation` for Node
+runtime deprecations, and `scripts/ci/assert-no-warnings.sh` for esbuild and the
+Angular CLI, neither of which signals a warning through its exit code. That last
+one is what exposed a standing 500 kB budget overrun that had been passing CI —
+`angular.json` budgets now carry `maximumError` only (initial 600 kB,
+anyComponentStyle 4 kB), both tighter than the 1 MB / 8 kB they replaced.
+`prettier --check` was gated for the first time, which reformatted 18 files.
+`workflow-templates/ci.yml` was deleted as the stale pre-promotion copy.
+
+Known gaps carried into Phase 1: Playwright E2E is still not wired into CI;
+`format:check` covers `src/**/*.{ts,html,css}` only, so root configs and `e2e/`
+are unformatted; and nothing in CI builds the Dockerfile, whose `node:22-alpine`
+tag satisfies the engine range today only by luck of what `22` resolves to.
 
 ## Phase 1 — Foundation
 - [x] Angular 22 + TypeScript 6 + standalone components (no NgModules)
