@@ -40,8 +40,7 @@ export function injectUpdatePostMutation() {
   const postsService = inject(PostsService);
   const queryClient = injectQueryClient();
   return injectMutation(() => ({
-    mutationFn: ({ id, dto }: { id: string; dto: UpdatePostDto }) =>
-      postsService.update(id, dto),
+    mutationFn: ({ id, dto }: { id: string; dto: UpdatePostDto }) => postsService.update(id, dto),
     onSuccess: (_data, { id }) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.posts.detail(id) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.posts.lists() });

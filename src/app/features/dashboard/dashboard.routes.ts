@@ -9,8 +9,7 @@ export const DASHBOARD_ROUTES: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () =>
-          import('./dashboard.component').then((m) => m.DashboardComponent),
+        loadComponent: () => import('./dashboard.component').then((m) => m.DashboardComponent),
         title: 'Dashboard',
       },
       {

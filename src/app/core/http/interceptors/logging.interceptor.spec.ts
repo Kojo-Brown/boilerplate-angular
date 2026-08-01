@@ -69,8 +69,6 @@ describe('loggingInterceptor', () => {
         done();
       },
     });
-    controller
-      .expectOne('/api/gone')
-      .flush({}, { status: 410, statusText: 'Gone' });
+    controller.expectOne('/api/gone').flush({}, { status: 410, statusText: 'Gone' });
   });
 });

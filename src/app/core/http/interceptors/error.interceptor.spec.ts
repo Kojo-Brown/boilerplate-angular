@@ -39,10 +39,9 @@ describe('errorInterceptor', () => {
         done();
       },
     });
-    controller.expectOne('/api/items').flush(
-      { message: 'Not found' },
-      { status: 404, statusText: 'Not Found' }
-    );
+    controller
+      .expectOne('/api/items')
+      .flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
   });
 
   it('maps HttpErrorResponse without body message using statusText', (done) => {
@@ -53,10 +52,9 @@ describe('errorInterceptor', () => {
         done();
       },
     });
-    controller.expectOne('/api/items').flush(
-      {},
-      { status: 500, statusText: 'Internal Server Error' }
-    );
+    controller
+      .expectOne('/api/items')
+      .flush({}, { status: 500, statusText: 'Internal Server Error' });
   });
 
   it('includes validation errors from body.errors', (done) => {
@@ -67,10 +65,12 @@ describe('errorInterceptor', () => {
         done();
       },
     });
-    controller.expectOne('/api/items').flush(
-      { message: 'Validation failed', errors: { title: ['is required'] } },
-      { status: 422, statusText: 'Unprocessable Entity' }
-    );
+    controller
+      .expectOne('/api/items')
+      .flush(
+        { message: 'Validation failed', errors: { title: ['is required'] } },
+        { status: 422, statusText: 'Unprocessable Entity' }
+      );
   });
 
   it('maps a 401 response to ApiError with status 401', (done) => {
@@ -80,9 +80,8 @@ describe('errorInterceptor', () => {
         done();
       },
     });
-    controller.expectOne('/api/protected').flush(
-      { message: 'Unauthorized' },
-      { status: 401, statusText: 'Unauthorized' }
-    );
+    controller
+      .expectOne('/api/protected')
+      .flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
   });
 });

@@ -10,9 +10,13 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
   template: `
-    <div class="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4 py-8">
+    <div
+      class="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4 py-8"
+    >
       <div class="w-full max-w-md">
-        <div class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900">
+        <div
+          class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900"
+        >
           <div class="mb-8">
             <h1 class="text-2xl font-bold text-[var(--color-foreground)]">Create an account</h1>
             <p class="mt-1 text-sm text-[var(--color-muted-foreground)]">
@@ -140,10 +144,7 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
 
           <p class="mt-6 text-center text-sm text-[var(--color-muted-foreground)]">
             Already have an account?
-            <a
-              routerLink="/login"
-              class="font-medium text-[var(--color-primary)] hover:underline"
-            >
+            <a routerLink="/login" class="font-medium text-[var(--color-primary)] hover:underline">
               Sign in
             </a>
           </p>

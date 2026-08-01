@@ -3,9 +3,7 @@ import { catchError, throwError } from 'rxjs';
 import type { ApiError } from '../models/api.models';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) =>
-  next(req).pipe(
-    catchError((err: unknown) => throwError(() => toApiError(err)))
-  );
+  next(req).pipe(catchError((err: unknown) => throwError(() => toApiError(err))));
 
 function toApiError(err: unknown): ApiError {
   if (err instanceof HttpErrorResponse) {

@@ -92,10 +92,9 @@ describe('AuthStore', () => {
 
     it('sets server error message on 401', () => {
       store.login({ email: 'test@example.com', password: 'wrong' });
-      httpTesting.expectOne(`${API}/login`).flush(
-        { message: 'Invalid credentials' },
-        { status: 401, statusText: 'Unauthorized' }
-      );
+      httpTesting
+        .expectOne(`${API}/login`)
+        .flush({ message: 'Invalid credentials' }, { status: 401, statusText: 'Unauthorized' });
 
       expect(store.error()).toBe('Invalid credentials');
       expect(store.isLoading()).toBeFalse();
@@ -104,10 +103,9 @@ describe('AuthStore', () => {
 
     it('falls back to default message when server body has no message', () => {
       store.login({ email: 'test@example.com', password: 'wrong' });
-      httpTesting.expectOne(`${API}/login`).flush(
-        {},
-        { status: 500, statusText: 'Internal Server Error' }
-      );
+      httpTesting
+        .expectOne(`${API}/login`)
+        .flush({}, { status: 500, statusText: 'Internal Server Error' });
 
       expect(store.error()).toBe('Login failed');
     });
@@ -218,10 +216,9 @@ describe('AuthStore', () => {
   describe('clearError', () => {
     it('sets error to null', () => {
       store.login({ email: 'x', password: 'y' });
-      httpTesting.expectOne(`${API}/login`).flush(
-        { message: 'Error' },
-        { status: 400, statusText: 'Bad Request' }
-      );
+      httpTesting
+        .expectOne(`${API}/login`)
+        .flush({ message: 'Error' }, { status: 400, statusText: 'Bad Request' });
 
       store.clearError();
       expect(store.error()).toBeNull();

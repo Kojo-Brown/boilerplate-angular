@@ -10,15 +10,12 @@ export const routes: Routes = [
   // Auth feature: /login, /register
   {
     path: '',
-    loadChildren: () =>
-      import('@/app/features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
+    loadChildren: () => import('@/app/features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
   },
   {
     path: 'unauthorized',
     loadComponent: () =>
-      import('@/app/features/errors/unauthorized.component').then(
-        (m) => m.UnauthorizedComponent
-      ),
+      import('@/app/features/errors/unauthorized.component').then((m) => m.UnauthorizedComponent),
     title: 'Unauthorized',
   },
   // Dashboard feature: /dashboard, /dashboard/posts, /dashboard/posts/:id
@@ -32,8 +29,7 @@ export const routes: Routes = [
   {
     path: 'admin',
     canActivate: [authGuard, roleGuard('admin')],
-    loadChildren: () =>
-      import('@/app/features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
+    loadChildren: () => import('@/app/features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
   },
   {
     path: '**',

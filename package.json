@@ -7,7 +7,7 @@
     "start": "ng serve",
     "build": "ng build",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "lint": "eslint src/",
+    "lint": "eslint src/ --max-warnings=0",
     "test": "ng test --no-watch --no-progress",
     "test:ci": "ng test --no-watch --no-progress --browsers=ChromeHeadlessCI",
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
@@ -58,7 +58,7 @@
     "typescript-eslint": "^8.0.0"
   },
   "engines": {
-    "node": "^22.22.3 || ^24.15.0 || >=26.0.0",
+    "node": "^22.22.3 || ^24.15.0 || ^26.0.0",
     "pnpm": ">=10"
   },
   "packageManager": "pnpm@10.33.0",

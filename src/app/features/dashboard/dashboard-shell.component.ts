@@ -16,7 +16,6 @@ const NAV_LINK_ACTIVE = 'bg-[var(--color-muted)] text-[var(--color-primary)]';
   imports: [RouterLink, RouterLinkActive, LayoutShellComponent],
   template: `
     <app-layout-shell brandName="Dashboard">
-
       <ul sidebar-nav class="space-y-1">
         <li>
           <a
@@ -29,11 +28,7 @@ const NAV_LINK_ACTIVE = 'bg-[var(--color-muted)] text-[var(--color-primary)]';
           </a>
         </li>
         <li>
-          <a
-            routerLink="/dashboard/posts"
-            [routerLinkActive]="navLinkActive"
-            [class]="navLink"
-          >
+          <a routerLink="/dashboard/posts" [routerLinkActive]="navLinkActive" [class]="navLink">
             Posts
           </a>
         </li>
@@ -49,7 +44,6 @@ const NAV_LINK_ACTIVE = 'bg-[var(--color-muted)] text-[var(--color-primary)]';
           Sign out
         </button>
       </div>
-
     </app-layout-shell>
   `,
 })

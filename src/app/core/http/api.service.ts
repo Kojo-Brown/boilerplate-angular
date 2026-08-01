@@ -35,13 +35,8 @@ export class ApiService {
     return `${this.baseUrl}${path}`;
   }
 
-  private buildParams(
-    params?: Record<string, string | number | boolean>
-  ): HttpParams | undefined {
+  private buildParams(params?: Record<string, string | number | boolean>): HttpParams | undefined {
     if (!params) return undefined;
-    return Object.entries(params).reduce(
-      (acc, [k, v]) => acc.set(k, String(v)),
-      new HttpParams()
-    );
+    return Object.entries(params).reduce((acc, [k, v]) => acc.set(k, String(v)), new HttpParams());
   }
 }

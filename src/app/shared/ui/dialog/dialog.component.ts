@@ -1,10 +1,4 @@
-import {
-  Component,
-  Input,
-  ChangeDetectionStrategy,
-  inject,
-  InjectionToken,
-} from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy, inject, InjectionToken } from '@angular/core';
 import { DialogRef } from '@angular/cdk/dialog';
 
 export const DIALOG_DATA = new InjectionToken<unknown>('DIALOG_DATA');
