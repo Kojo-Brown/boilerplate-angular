@@ -38,9 +38,7 @@ describe('LayoutShellComponent', () => {
 
   it('opens drawer when hamburger button is clicked', () => {
     const fixture = createFixture();
-    const hamburger = fixture.debugElement.query(
-      By.css('[aria-label="Toggle navigation menu"]')
-    );
+    const hamburger = fixture.debugElement.query(By.css('[aria-label="Toggle navigation menu"]'));
     hamburger.triggerEventHandler('click', null);
     fixture.detectChanges();
     expect(fixture.componentInstance.isMobileDrawerOpen()).toBeTrue();
@@ -106,9 +104,7 @@ describe('LayoutShellComponent', () => {
 
   it('renders the close button inside the sidebar on mobile', () => {
     const fixture = createFixture();
-    const closeBtn = fixture.debugElement.query(
-      By.css('[aria-label="Close navigation menu"]')
-    );
+    const closeBtn = fixture.debugElement.query(By.css('[aria-label="Close navigation menu"]'));
     expect(closeBtn).toBeTruthy();
   });
 });

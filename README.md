@@ -17,9 +17,15 @@ Enterprise Angular starter with modern patterns (no NgModules).
 
 ## Requirements
 
-Node `^22.22.3 || ^24.15.0 || >=26.0.0` and pnpm 10. The Angular 22 CLI refuses
+Node `^22.22.3 || ^24.15.0 || ^26.0.0` and pnpm 10. The Angular 22 CLI refuses
 to run on older Node patch releases, so the floor is declared in `engines`
-rather than left to be discovered at build time.
+rather than left to be discovered at build time. `.npmrc` sets
+`engine-strict=true`, so an unsupported Node fails `pnpm install` instead of
+producing a warning and an opaque CLI abort three commands later.
+
+The range is closed at `^26.0.0` rather than left open at `>=26.0.0` on purpose:
+CI runs every gate on 22, 24, and 26, and a version nobody tests should not be
+advertised as supported. Widen it in the same commit that widens the matrix.
 
 ## Quick Start
 
@@ -38,14 +44,22 @@ pnpm start  # http://localhost:4200
 | `pnpm start`       | Dev server on http://localhost:4200                        |
 | `pnpm build`       | Production bundle into `dist/`                             |
 | `pnpm typecheck`   | `tsc --noEmit` against `tsconfig.app.json`                  |
-| `pnpm lint`        | ESLint over `src/`                                          |
+| `pnpm lint`        | ESLint over `src/`, `--max-warnings=0`                       |
 | `pnpm format:check`| Prettier check (use `pnpm format` to rewrite)               |
 | `pnpm test`        | Karma unit tests, single run                                |
 | `pnpm test:ci`     | Same, pinned to the sandboxed `ChromeHeadlessCI` launcher   |
 | `pnpm e2e`         | Playwright end-to-end tests                                 |
 
-CI runs lint, typecheck, and tests in parallel, then builds once all three are
-green — see [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+CI runs lint, typecheck, format, and tests in parallel on Node 22, 24, and 26,
+then builds on all three once they are green — see
+[`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+
+**Warnings fail the build.** `--max-warnings=0` covers ESLint;
+`--strict-peer-dependencies` plus a WARN scan of the install log covers pnpm;
+`NODE_OPTIONS=--throw-deprecation` covers Node runtime deprecations; and
+[`scripts/ci/assert-no-warnings.sh`](./scripts/ci/assert-no-warnings.sh) covers
+esbuild and the Angular CLI, which exit 0 on warnings. That last one is what
+gives the bundle budget teeth — see [Bundle budgets](#bundle-budgets).
 
 Use `pnpm test:ci` rather than `pnpm test -- --browsers=…` in scripted contexts:
 the extra `--` makes the Angular CLI read `--no-watch`/`--no-progress` as unknown
@@ -97,6 +111,27 @@ Two deliberate `pnpm` overrides live in `package.json`:
   build needs them (pnpm resolves the platform-specific prebuilt packages), so
   they are declined by name to keep installs deterministic and warning-free
   instead of relying on pnpm's default refusal.
+
+## Bundle budgets
+
+`angular.json` declares budgets with `maximumError` only — no `maximumWarning`
+band. A warning nobody can merge past is just an error with extra steps, and a
+warning CI *does* let through is a budget that does not exist: `ng build` exits 0
+when a budget is exceeded, so for its first weeks this template shipped 79 kB
+over its 500 kB initial budget with a green pipeline.
+
+Current thresholds, against a 579 kB initial bundle (155 kB transfer):
+
+| Budget              | Error at |
+| ------------------- | -------- |
+| `initial`           | 600 kB   |
+| `anyComponentStyle` | 4 kB     |
+
+Both are tighter than what they replaced (1 MB and 8 kB errors). The headroom on
+`initial` is deliberately thin: crossing it should mean looking at what was just
+added to the eager graph, not raising the number. Route-level code splitting is
+already in place — every feature under `src/app/features/` is lazy — so growth in
+the initial chunk means something leaked into a shared eager import.
 
 ## Spec Progress
 See [SPEC.md](./SPEC.md).

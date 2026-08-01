@@ -12,7 +12,9 @@ import { loginSchema } from './auth.schemas';
   template: `
     <div class="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4">
       <div class="w-full max-w-md">
-        <div class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900">
+        <div
+          class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900"
+        >
           <div class="mb-8">
             <h1 class="text-2xl font-bold text-[var(--color-foreground)]">Welcome back</h1>
             <p class="mt-1 text-sm text-[var(--color-muted-foreground)]">

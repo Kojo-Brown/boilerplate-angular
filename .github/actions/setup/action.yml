@@ -1,0 +1,33 @@
+name: Setup
+description: Install pnpm and a given Node major, then install dependencies with warnings treated as failures.
+
+inputs:
+  node-version:
+    description: Node major to install, e.g. "22". Must be one of the majors in engines.node.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # No `version:` — pnpm/action-setup reads the `packageManager` field in package.json,
+    # so CI and local installs cannot drift apart.
+    - uses: pnpm/action-setup@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+
+    # `--strict-peer-dependencies` turns an unmet peer range from a log warning into a
+    # non-zero exit. The log is then scanned for anything else pnpm downgraded to a
+    # warning — an unsupported engine, a deprecated dependency, a lockfile it had to
+    # repair — none of which change the exit code on their own.
+    - name: Install dependencies
+      shell: bash
+      run: |
+        set -o pipefail
+        pnpm install --frozen-lockfile --strict-peer-dependencies 2>&1 | tee "$RUNNER_TEMP/install.log"
+        if grep -qE '(^|[[:space:]])WARN[[:space:]]' "$RUNNER_TEMP/install.log"; then
+          echo "::error::pnpm emitted warnings during install; see the log above."
+          exit 1
+        fi
