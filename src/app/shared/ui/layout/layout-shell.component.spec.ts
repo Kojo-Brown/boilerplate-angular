@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter, Router, RouterOutlet } from '@angular/router';
+import { installFakeMediaQuery } from '@/testing';
 import { LayoutShellComponent } from './layout-shell.component';
+
+const DESKTOP_QUERY = '(min-width: 768px)';
 
 function createFixture(brandName = 'App') {
   const fixture = TestBed.createComponent(LayoutShellComponent);
@@ -100,6 +103,54 @@ describe('LayoutShellComponent', () => {
     const fixture = createFixture('My App');
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('My App');
+  });
+
+  it('closes the drawer when the viewport grows past the desktop breakpoint', () => {
+    const media = installFakeMediaQuery({ [DESKTOP_QUERY]: false });
+    const fixture = createFixture();
+    fixture.componentInstance.toggleDrawer();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.isMobileDrawerOpen()).toBeTrue();
+
+    media.set(DESKTOP_QUERY, true);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.isMobileDrawerOpen()).toBeFalse();
+  });
+
+  it('leaves the open drawer alone while the viewport stays below the breakpoint', () => {
+    const media = installFakeMediaQuery({ [DESKTOP_QUERY]: false });
+    const fixture = createFixture();
+    fixture.componentInstance.toggleDrawer();
+    fixture.detectChanges();
+
+    media.set(DESKTOP_QUERY, false);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.isMobileDrawerOpen()).toBeTrue();
+  });
+
+  it('does not reopen the drawer when the viewport narrows again', () => {
+    const media = installFakeMediaQuery({ [DESKTOP_QUERY]: false });
+    const fixture = createFixture();
+    fixture.componentInstance.toggleDrawer();
+    fixture.detectChanges();
+
+    media.set(DESKTOP_QUERY, true);
+    fixture.detectChanges();
+    media.set(DESKTOP_QUERY, false);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.isMobileDrawerOpen()).toBeFalse();
+  });
+
+  it('exposes the desktop breakpoint as a signal', () => {
+    const media = installFakeMediaQuery({ [DESKTOP_QUERY]: true });
+    const fixture = createFixture();
+    expect(fixture.componentInstance.isDesktopViewport()).toBeTrue();
+
+    media.set(DESKTOP_QUERY, false);
+    expect(fixture.componentInstance.isDesktopViewport()).toBeFalse();
   });
 
   it('renders the close button inside the sidebar on mobile', () => {

@@ -4,13 +4,18 @@ import {
   HostListener,
   Input,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
+import { mediaQuerySignal } from '@/app/core/reactivity';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
+
+/** Matches Tailwind's `md` breakpoint, where the drawer becomes a static sidebar. */
+const DESKTOP_QUERY = '(min-width: 768px)';
 
 const SIDEBAR_BASE =
   'fixed inset-y-0 left-0 z-40 flex w-64 flex-col ' +
@@ -152,6 +157,9 @@ export class LayoutShellComponent {
 
   readonly isMobileDrawerOpen = signal(false);
 
+  /** `true` once the viewport is wide enough for the sidebar to be a static column. */
+  readonly isDesktopViewport = mediaQuerySignal(DESKTOP_QUERY);
+
   protected readonly sidebarClasses = computed(() =>
     this.isMobileDrawerOpen()
       ? `${SIDEBAR_BASE} translate-x-0`
@@ -165,6 +173,18 @@ export class LayoutShellComponent {
         takeUntilDestroyed()
       )
       .subscribe(() => this.isMobileDrawerOpen.set(false));
+
+    // Growing past the breakpoint turns the drawer into the static sidebar, so the open
+    // flag no longer describes anything on screen. Left set, it would reopen the drawer
+    // the moment the viewport narrows again — a device rotated twice would come back
+    // with a drawer nobody asked for. `isMobileDrawerOpen` stays writable and the
+    // reset is one-way, so this is a side effect on state the user also owns, not a
+    // derivation: `computed` cannot express it.
+    effect(() => {
+      if (this.isDesktopViewport()) {
+        this.isMobileDrawerOpen.set(false);
+      }
+    });
   }
 
   @HostListener('document:keydown.escape')
