@@ -85,6 +85,10 @@ Shared helpers live in `src/testing` (re-exported from `@/testing`):
 - `host(fixture)` — `fixture.nativeElement` typed as `HTMLElement`. The raw
   property is `any`, so `fixture.nativeElement.querySelector<T>()` is a TS2347
   compile error under this repo's `strict` config.
+- `installFakeMediaQuery(initial)` — replaces `window.matchMedia` with a registry
+  the spec drives. Headless Chrome answers `matchMedia` from a viewport a unit
+  test cannot resize, and the fake also reports its live listener count so
+  teardown can be asserted instead of assumed.
 - `requireEl(root, selector)` / `fillInput(root, selector, value)` — query or fill
   an element the spec depends on, throwing with the selector when it is missing
   instead of returning `null`.
@@ -96,6 +100,18 @@ Shared helpers live in `src/testing` (re-exported from `@/testing`):
 Prefer a real `provideRouter([])` over a stubbed `Router` for any component whose
 template uses `routerLink` — the directive calls `createUrlTree`/`serializeUrl`
 and injects `ActivatedRoute`, none of which a spy object provides.
+
+## Signals
+
+Component state is signal-first: `signal` for what a component owns, `computed`
+for anything derivable from it, and `effect` only for writes that leave the
+reactive graph — always with an `onCleanup` when the effect acquires a timer or a
+subscription. Reusable primitives (`debouncedSignal`, `intervalSignal`,
+`mediaQuerySignal`) live in `src/app/core/reactivity` and are re-exported from
+`@/app/core/reactivity`.
+
+See [docs/signals.md](./docs/signals.md) for the decision table, the cleanup
+contract, and how to test it.
 
 ## Dependency notes
 
