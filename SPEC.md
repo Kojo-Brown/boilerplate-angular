@@ -60,13 +60,32 @@ tag satisfies the engine range today only by luck of what `22` resolves to.
 - [x] Dockerfile (multi-stage nginx)
 
 ## Phase 6 — Signals & Reactivity
-- [ ] Signal-based component state: `signal`, `computed`, `effect` with cleanup semantics
+- [x] Signal-based component state: `signal`, `computed`, `effect` with cleanup semantics — `src/app/core/reactivity/` covers the three teardown classes: `debouncedSignal` (effect `onCleanup` clearing a timer, where cancelling the previous timer *is* the debounce), `intervalSignal` (reactive period; changing it tears the old timer down before arming the new one, `null` pauses without resetting the count) and `mediaQuerySignal` (`DestroyRef.onDestroy`, kept deliberately effect-free as the contrast case — a string query gives an effect no reactive dependencies) (PR #18)
 - [ ] `linkedSignal` and `resource()` for async state with automatic request cancellation
 - [ ] Zoneless change detection enabled end-to-end with a migration guide
 - [ ] `OnPush` everywhere + a documented change-detection profiling method
 - [ ] RxJS interop: `toSignal`/`toObservable` boundaries and when to prefer each
 - [ ] Advanced RxJS: `switchMap` vs `concatMap` vs `exhaustMap` decision guide with a typeahead demo
 - [ ] Custom signal-based store primitive with devtools time-travel
+
+Phase 6 item 1 complete as of PR #18 (2026-08-12). 254 unit tests (was 220) and
+every gate green in CI on Node 22, 24 and 26; coverage 90.74% statements /
+85.25% branches against unchanged `karma.conf.js` thresholds.
+
+`LayoutShellComponent` is the first production caller: the mobile drawer kept its
+open flag when the viewport grew past the `md` breakpoint, so narrowing again
+reopened a drawer nobody had asked for. That reset is a side effect rather than a
+derivation — `isMobileDrawerOpen` has two writers — which is why it is an `effect`
+and not a `computed`. `docs/signals.md` records the decision table and the two
+triggers that run a cleanup; `installFakeMediaQuery()` in `@/testing` replaces a
+viewport a unit test cannot resize and reports its live listener count, so
+teardown is asserted rather than assumed.
+
+Known gaps carried into item 2: `debouncedSignal` and `intervalSignal` have no
+production call site yet — the typeahead item later in this phase is what
+`debouncedSignal` was written for. Existing specs still call the deprecated
+`TestBed.flushEffects()`; new ones use `TestBed.tick()`. `linkedSignal` (item 2)
+may well subsume the layout shell's reset effect.
 
 ## Phase 7 — Architecture & Patterns
 - [ ] SOLID audit of services with before/after refactors in `docs/solid.md`
