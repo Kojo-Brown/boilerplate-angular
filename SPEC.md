@@ -61,7 +61,7 @@ tag satisfies the engine range today only by luck of what `22` resolves to.
 
 ## Phase 6 — Signals & Reactivity
 - [x] Signal-based component state: `signal`, `computed`, `effect` with cleanup semantics — `src/app/core/reactivity/` covers the three teardown classes: `debouncedSignal` (effect `onCleanup` clearing a timer, where cancelling the previous timer *is* the debounce), `intervalSignal` (reactive period; changing it tears the old timer down before arming the new one, `null` pauses without resetting the count) and `mediaQuerySignal` (`DestroyRef.onDestroy`, kept deliberately effect-free as the contrast case — a string query gives an effect no reactive dependencies) (PR #18)
-- [ ] `linkedSignal` and `resource()` for async state with automatic request cancellation
+- [x] `linkedSignal` and `resource()` for async state with automatic request cancellation — `linkedSignal` replaces the layout shell's reset effect; `resource()` drives `PostDetailComponent`, with cancellation made real by `abortableRequest`, since `resource` aborts through an `AbortSignal` and `HttpClient` only cancels on unsubscribe (PR #19)
 - [ ] Zoneless change detection enabled end-to-end with a migration guide
 - [ ] `OnPush` everywhere + a documented change-detection profiling method
 - [ ] RxJS interop: `toSignal`/`toObservable` boundaries and when to prefer each
@@ -86,6 +86,37 @@ production call site yet — the typeahead item later in this phase is what
 `debouncedSignal` was written for. Existing specs still call the deprecated
 `TestBed.flushEffects()`; new ones use `TestBed.tick()`. `linkedSignal` (item 2)
 may well subsume the layout shell's reset effect.
+
+Phase 6 item 2 complete as of PR #19 (2026-08-14). 284 unit tests (was 254) and
+all fourteen checks green in CI on Node 22, 24 and 26; coverage 90.38%
+statements / 84.93% branches against unchanged `karma.conf.js` thresholds.
+
+It did subsume the reset effect. `LayoutShellComponent.isMobileDrawerOpen` is now
+a `linkedSignal` sourced from the breakpoint: writable like the `signal` it was,
+reset like the `computed` it could not be, and settled on read rather than a
+flush late. The reset fires in both directions where the effect only fired on the
+way up, which no user can observe — above the breakpoint the flag is neither
+readable nor writable from the UI. Annotating the computation `(): boolean` is
+load-bearing; inferred from `false` alone the signal is `WritableSignal<false>`
+and `toggleDrawer` stops compiling.
+
+`resource()` drives `PostDetailComponent`; `PostsListComponent` deliberately
+stays on TanStack Query, so both patterns now ship on real routes and
+`docs/signals.md` compares them from two files rather than in the abstract. The
+cancellation half was the real work: `resource` aborts a superseded load through
+an `AbortSignal`, but `lastValueFrom` discards the subscription and unsubscribing
+is the only cancellation `HttpClient` understands — the obvious loader honours
+the signal in appearance only. `abortableRequest` in `src/app/core/reactivity/`
+keeps the subscription and drops it on abort, and `PostsService`'s two reads take
+an optional `AbortSignal`. The mutations do not: aborting a write the server may
+already have acted on loses a result rather than cancelling one.
+
+Known gaps carried into item 3: `PostDetailComponent` and `PostsListComponent`
+still lack `OnPush`, which item 3 of this phase covers directly.
+`injectPostQuery` now has no caller though it keeps its specs, which matches the
+never-called mutation helpers beside it. `debouncedSignal` and `intervalSignal`
+are still waiting on the typeahead item. `resource()` is used for exactly one
+read; anything paginated stays on the query, per the new decision table.
 
 ## Phase 7 — Architecture & Patterns
 - [ ] SOLID audit of services with before/after refactors in `docs/solid.md`
