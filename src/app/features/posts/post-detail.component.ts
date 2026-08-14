@@ -1,7 +1,7 @@
 import { SlicePipe } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { injectPostQuery } from './posts.queries';
+import { injectPostResource } from './posts.resource';
 
 @Component({
   selector: 'app-post-detail',
@@ -16,7 +16,13 @@ import { injectPostQuery } from './posts.queries';
         &larr; Back to Posts
       </a>
 
-      @if (post.isPending()) {
+      <!--
+        Order matters: \`value()\` throws while the resource is in its error state, so the
+        error branch has to be checked before anything reads the value. \`isLoading()\` is
+        false in the idle state, which is what an unset \`id\` produces — the skeleton
+        covers both so a missing route param does not flash an empty article.
+      -->
+      @if (post.isLoading() || post.status() === 'idle') {
         <div class="mt-4 space-y-4">
           <div class="h-8 w-2/3 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
           <div class="h-4 w-1/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
@@ -26,14 +32,14 @@ import { injectPostQuery } from './posts.queries';
             }
           </div>
         </div>
-      } @else if (post.isError()) {
+      } @else if (post.error()) {
         <div
           class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
         >
           Post not found or failed to load.
         </div>
       } @else {
-        @let data = post.data();
+        @let data = post.value();
         @if (data) {
           <article class="mt-4">
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ data.title }}</h1>
@@ -55,6 +61,6 @@ import { injectPostQuery } from './posts.queries';
 })
 export class PostDetailComponent {
   readonly id = input<string>('');
-  readonly post = injectPostQuery(this.id);
+  readonly post = injectPostResource(this.id);
   readonly bodySkeletons = Array.from({ length: 6 });
 }

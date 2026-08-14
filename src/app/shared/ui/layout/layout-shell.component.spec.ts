@@ -144,6 +144,48 @@ describe('LayoutShellComponent', () => {
     expect(fixture.componentInstance.isMobileDrawerOpen()).toBeFalse();
   });
 
+  it('closes the drawer when the viewport drops back below the breakpoint', () => {
+    // The `linkedSignal` resets in both directions, unlike the one-way effect it
+    // replaced. Above the breakpoint the flag is neither readable nor writable from the
+    // UI, so a reset on the way down can only ever confirm what is already true — but it
+    // is the documented behaviour, so it is pinned here.
+    const media = installFakeMediaQuery({ [DESKTOP_QUERY]: true });
+    const fixture = createFixture();
+    fixture.componentInstance.isMobileDrawerOpen.set(true);
+
+    media.set(DESKTOP_QUERY, false);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.isMobileDrawerOpen()).toBeFalse();
+  });
+
+  it('keeps the drawer flag writable between breakpoint crossings', () => {
+    // `linkedSignal` is reset *by* its source, not derived from it: local writes have to
+    // survive until the source actually changes.
+    installFakeMediaQuery({ [DESKTOP_QUERY]: false });
+    const fixture = createFixture();
+
+    fixture.componentInstance.isMobileDrawerOpen.set(true);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.isMobileDrawerOpen()).toBeTrue();
+
+    fixture.componentInstance.isMobileDrawerOpen.update((open) => !open);
+    expect(fixture.componentInstance.isMobileDrawerOpen()).toBeFalse();
+  });
+
+  it('resets the drawer without waiting for an effect flush', () => {
+    // The effect this replaced settled one flush late, so a caller reading the flag
+    // straight after the viewport changed saw a stale `true`. Deliberately no
+    // `detectChanges()` between the two lines.
+    const media = installFakeMediaQuery({ [DESKTOP_QUERY]: false });
+    const fixture = createFixture();
+    fixture.componentInstance.toggleDrawer();
+
+    media.set(DESKTOP_QUERY, true);
+
+    expect(fixture.componentInstance.isMobileDrawerOpen()).toBeFalse();
+  });
+
   it('exposes the desktop breakpoint as a signal', () => {
     const media = installFakeMediaQuery({ [DESKTOP_QUERY]: true });
     const fixture = createFixture();
