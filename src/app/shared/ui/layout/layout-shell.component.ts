@@ -4,9 +4,8 @@ import {
   HostListener,
   Input,
   computed,
-  effect,
   inject,
-  signal,
+  linkedSignal,
 } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -155,10 +154,32 @@ const SIDEBAR_BASE =
 export class LayoutShellComponent {
   @Input() brandName = 'App';
 
-  readonly isMobileDrawerOpen = signal(false);
-
   /** `true` once the viewport is wide enough for the sidebar to be a static column. */
   readonly isDesktopViewport = mediaQuerySignal(DESKTOP_QUERY);
+
+  /**
+   * Open state of the off-canvas drawer, reset to closed every time the viewport crosses
+   * the desktop breakpoint.
+   *
+   * State the user writes to that also has to be reset by something upstream is exactly
+   * what `linkedSignal` is for: `computed` cannot express it because the drawer has two
+   * writers, and the `effect` this replaced was a write into the reactive graph that ran
+   * a flush late. Crossing the breakpoint turns the drawer into the static sidebar, so
+   * the flag stops describing anything on screen — left set, it would reopen a drawer
+   * nobody asked for the moment the viewport narrowed again.
+   *
+   * The reset fires in both directions, where the effect only fired on the way up. That
+   * is not a behaviour change worth avoiding: above the breakpoint the flag is unreadable
+   * and unwritable, so it can only ever be `false` on the way back down.
+   *
+   * The computation is annotated `: boolean` on purpose — inferred from `false` alone the
+   * signal would be a `WritableSignal<false>` and `toggleDrawer` would not compile.
+   */
+  readonly isMobileDrawerOpen = linkedSignal<boolean, boolean>({
+    source: this.isDesktopViewport,
+    computation: (): boolean => false,
+    debugName: 'isMobileDrawerOpen',
+  });
 
   protected readonly sidebarClasses = computed(() =>
     this.isMobileDrawerOpen()
@@ -173,18 +194,6 @@ export class LayoutShellComponent {
         takeUntilDestroyed()
       )
       .subscribe(() => this.isMobileDrawerOpen.set(false));
-
-    // Growing past the breakpoint turns the drawer into the static sidebar, so the open
-    // flag no longer describes anything on screen. Left set, it would reopen the drawer
-    // the moment the viewport narrows again — a device rotated twice would come back
-    // with a drawer nobody asked for. `isMobileDrawerOpen` stays writable and the
-    // reset is one-way, so this is a side effect on state the user also owns, not a
-    // derivation: `computed` cannot express it.
-    effect(() => {
-      if (this.isDesktopViewport()) {
-        this.isMobileDrawerOpen.set(false);
-      }
-    });
   }
 
   @HostListener('document:keydown.escape')

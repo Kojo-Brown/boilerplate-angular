@@ -90,6 +90,48 @@ describe('PostsService', () => {
     });
   });
 
+  describe('abort signal', () => {
+    it('cancels an in-flight getById when the signal aborts', async () => {
+      const controller = new AbortController();
+      const promise = service.getById('abc', controller.signal);
+      const req = http.expectOne(`${BASE}/abc`);
+
+      controller.abort();
+
+      expect(req.cancelled).toBeTrue();
+      await expectAsync(promise).toBeRejected();
+    });
+
+    it('cancels an in-flight getAll when the signal aborts', async () => {
+      const controller = new AbortController();
+      const promise = service.getAll({ search: 'angular' }, controller.signal);
+      const req = http.expectOne((r) => r.url === BASE);
+
+      controller.abort();
+
+      expect(req.cancelled).toBeTrue();
+      await expectAsync(promise).toBeRejected();
+    });
+
+    it('resolves normally when the signal never aborts', async () => {
+      const controller = new AbortController();
+      const post = createMockPost({ id: 'abc' });
+      const promise = service.getById('abc', controller.signal);
+      http.expectOne(`${BASE}/abc`).flush(post);
+
+      await expectAsync(promise).toBeResolvedTo(post);
+    });
+
+    it('sends no request when the signal aborted before the call', async () => {
+      const controller = new AbortController();
+      controller.abort();
+
+      await expectAsync(service.getById('abc', controller.signal)).toBeRejected();
+
+      http.expectNone(`${BASE}/abc`);
+    });
+  });
+
   describe('create()', () => {
     it('POSTs to /posts with dto', async () => {
       const dto = { title: 'Hello', body: 'World' };

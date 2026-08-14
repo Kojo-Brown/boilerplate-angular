@@ -1,3 +1,4 @@
+export { abortableRequest } from './abortable-request';
 export { debouncedSignal } from './debounced-signal';
 export type { DebouncedSignalOptions } from './debounced-signal';
 export { intervalSignal } from './interval-signal';
