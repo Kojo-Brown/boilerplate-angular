@@ -67,11 +67,12 @@ positional arguments and abort before Karma starts.
 
 ## Testing notes
 
-**TestBed is zoneless by default in Angular 22.** `fixture.detectChanges()` only
-refreshes views that something has marked dirty, so assigning to a plain field on
-a host component does *not* re-render the component under test — the assertion
-then sees stale DOM and fails in a way that looks like a component bug. Hold host
-state in **signals**:
+**TestBed runs zoneless**, matching the app — via `src/testing/test-main.ts`, since
+the Angular CLI's generated test entry point would otherwise put the suite back on
+zone-driven change detection. `fixture.detectChanges()` only refreshes views that
+something has marked dirty, so assigning to a plain field on a host component does
+*not* re-render the component under test — the assertion then sees stale DOM and
+fails in a way that looks like a component bug. Hold host state in **signals**:
 
 ```ts
 class HostComponent {
@@ -113,6 +114,23 @@ subscription. Reusable primitives (`debouncedSignal`, `intervalSignal`,
 See [docs/signals.md](./docs/signals.md) for the decision table, the cleanup
 contract, and how to test it.
 
+## Zoneless
+
+The app runs without ZoneJS: `provideZonelessChangeDetection()` in
+`app.config.ts`, an empty `polyfills` array, and `zone.js` demoted to a
+devDependency where the test bundle still needs it for `fakeAsync`. Change
+detection is scheduled by signal writes, bound listeners, and `markForCheck()`
+rather than by patched browser APIs — 35 kB smaller, and explicit about when the
+app re-renders.
+
+Both halves are pinned, because neither fails loudly on its own:
+`src/app/app.config.spec.ts` catches a zone-based provider coming back, and
+[`scripts/ci/assert-no-zonejs.sh`](./scripts/ci/assert-no-zonejs.sh) greps the
+emitted bundles for ZoneJS in the CI build job.
+
+See [docs/zoneless.md](./docs/zoneless.md) for what does and does not trigger a
+refresh, the patterns that need converting, and how to migrate an existing app.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:
@@ -136,16 +154,18 @@ warning CI *does* let through is a budget that does not exist: `ng build` exits 
 when a budget is exceeded, so for its first weeks this template shipped 79 kB
 over its 500 kB initial budget with a green pipeline.
 
-Current thresholds, against a 579 kB initial bundle (155 kB transfer):
+Current thresholds, against a 544 kB initial bundle (144 kB transfer):
 
 | Budget              | Error at |
 | ------------------- | -------- |
-| `initial`           | 600 kB   |
+| `initial`           | 565 kB   |
 | `anyComponentStyle` | 4 kB     |
 
 Both are tighter than what they replaced (1 MB and 8 kB errors). The headroom on
-`initial` is deliberately thin: crossing it should mean looking at what was just
-added to the eager graph, not raising the number. Route-level code splitting is
+`initial` is deliberately thin — 21 kB, unchanged when dropping ZoneJS took 35 kB
+off the bundle, because a budget that absorbs a win stops being a budget:
+crossing it should mean looking at what was just added to the eager graph, not
+raising the number. Route-level code splitting is
 already in place — every feature under `src/app/features/` is lazy — so growth in
 the initial chunk means something leaked into a shared eager import.
 
