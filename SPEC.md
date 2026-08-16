@@ -62,7 +62,7 @@ tag satisfies the engine range today only by luck of what `22` resolves to.
 ## Phase 6 — Signals & Reactivity
 - [x] Signal-based component state: `signal`, `computed`, `effect` with cleanup semantics — `src/app/core/reactivity/` covers the three teardown classes: `debouncedSignal` (effect `onCleanup` clearing a timer, where cancelling the previous timer *is* the debounce), `intervalSignal` (reactive period; changing it tears the old timer down before arming the new one, `null` pauses without resetting the count) and `mediaQuerySignal` (`DestroyRef.onDestroy`, kept deliberately effect-free as the contrast case — a string query gives an effect no reactive dependencies) (PR #18)
 - [x] `linkedSignal` and `resource()` for async state with automatic request cancellation — `linkedSignal` replaces the layout shell's reset effect; `resource()` drives `PostDetailComponent`, with cancellation made real by `abortableRequest`, since `resource` aborts through an `AbortSignal` and `HttpClient` only cancels on unsubscribe (PR #19)
-- [ ] Zoneless change detection enabled end-to-end with a migration guide
+- [x] Zoneless change detection enabled end-to-end with a migration guide — no component needed converting, because the four writes that leave the reactive graph already land on `signal.set`; the work was in the test platform and in stopping the migration from rotting back (PR #20)
 - [ ] `OnPush` everywhere + a documented change-detection profiling method
 - [ ] RxJS interop: `toSignal`/`toObservable` boundaries and when to prefer each
 - [ ] Advanced RxJS: `switchMap` vs `concatMap` vs `exhaustMap` decision guide with a typeahead demo
@@ -117,6 +117,52 @@ still lack `OnPush`, which item 3 of this phase covers directly.
 never-called mutation helpers beside it. `debouncedSignal` and `intervalSignal`
 are still waiting on the typeahead item. `resource()` is used for exactly one
 read; anything paginated stays on the query, per the new decision table.
+
+Phase 6 item 3 complete as of PR #20 (2026-08-16). 287 unit tests (was 284) and
+all thirteen checks green in CI on Node 22, 24 and 26; coverage 90.46%
+statements / 84.93% branches against unchanged `karma.conf.js` thresholds. The
+initial bundle drops 579.05 kB → 543.60 kB raw (155.28 → 143.63 kB transfer), and
+the `initial` budget goes 600 kB → 565 kB to hold the documented 21 kB of
+headroom constant rather than let it absorb the win.
+
+No application source changed. Two prior items had already moved every write that
+leaves the reactive graph onto `signal.set` — the toast dismissal timer, the
+media-query listener, the layout shell's router subscription, the debounce and
+interval effects — so `provideZonelessChangeDetection()` plus an empty `polyfills`
+array was the whole app-side migration. The reactive-forms error getters survive
+for a subtler reason now written down in `docs/zoneless.md`: every change to a
+control's state arrives through a `ControlValueAccessor` host listener or
+`(ngSubmit)`, each of which marks the view dirty. A control mutated from outside
+that path would not.
+
+The real work was the test platform. Angular's Karma builder synthesises an entry
+point that checks for `window.Zone` and, finding it, adds
+`provideZoneChangeDetection()` — so the suite would have gone on exercising a
+scheduler the app no longer uses, which is exactly the configuration where a green
+suite says nothing about zoneless. `src/testing/test-main.ts` replaces it and
+initialises the testing platform zoneless for every spec. ZoneJS stays in the
+*test* polyfills deliberately: `debounced-signal.spec.ts` and
+`interval-signal.spec.ts` need `fakeAsync`/`tick` both for virtual time and for
+the end-of-spec leaked-timer check, and `jasmine.clock()` provides neither.
+Angular logs NG0914 about the combination in `pnpm test` output; it is accurate,
+it refers to the test bundle only, and `assert-no-warnings.sh` does not match it.
+
+Neither half of the configuration fails loudly when it regresses, so both are
+pinned and both guards were confirmed to fail on the regression they describe:
+`app.config.spec.ts` (its providers outrank the testing platform's, so a
+zone-based provider flips `NgZone.isInAngularZone()` and reddens three specs) and
+`scripts/ci/assert-no-zonejs.sh` (greps the emitted bundles for ZoneJS's
+`__load_patch`, wired into the build job). The second reads the artifact rather
+than `angular.json` because putting `zone.js` back in the polyfills breaks
+nothing and fails nothing — the only symptom is 35 kB nobody asked for.
+
+Known gaps carried into item 4: the eight pre-existing Playwright failures
+(register-form validation, failed-login error display, two route-guard redirects)
+fail identically on `main` and were used as the before/after control proving this
+change is behaviour-neutral in a real browser — 19 pass / 8 fail either way. They
+are untouched, and e2e is still not a CI gate. `OnPush` is still missing from
+eight components, which item 4 covers directly; under zoneless those components
+are correct but checked more often than they need to be.
 
 ## Phase 7 — Architecture & Patterns
 - [ ] SOLID audit of services with before/after refactors in `docs/solid.md`
