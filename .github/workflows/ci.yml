@@ -21,6 +21,9 @@ concurrency:
 #   - `scripts/ci/assert-no-warnings.sh` fails the build and test jobs on any esbuild
 #     or Angular CLI warning. `ng build` exits 0 on a bundle-budget overrun, so without
 #     this the budget is advisory.
+#   - `scripts/ci/assert-no-zonejs.sh` fails the build job if ZoneJS reaches the bundle.
+#     Unlike the gates above this one is not about warnings: nothing warns when ZoneJS
+#     comes back, which is exactly why it needs its own check (see `docs/zoneless.md`).
 #   - `NODE_OPTIONS: --throw-deprecation` promotes Node runtime deprecation warnings to
 #     thrown errors, so a deprecated API — ours or a dependency's — surfaces on the
 #     oldest and the newest supported runtime rather than when it is finally removed.
@@ -155,6 +158,12 @@ jobs:
 
       - name: Fail on build warnings
         run: ./scripts/ci/assert-no-warnings.sh "$RUNNER_TEMP/build.log"
+
+      # Zoneless is a build-output property, not just a provider choice: putting
+      # `zone.js` back in `angular.json` breaks nothing and fails nothing, it only
+      # re-adds ~35 kB to the bundle. This checks the emitted JavaScript instead.
+      - name: Fail if ZoneJS is in the bundle
+        run: ./scripts/ci/assert-no-zonejs.sh dist/boilerplate-angular
 
       - name: Upload build artifact
         # One copy of `dist/` is enough; the other majors still have to build cleanly.

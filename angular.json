@@ -24,7 +24,7 @@
             "outputPath": "dist/boilerplate-angular",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "tsconfig.app.json",
             "assets": [{ "glob": "**/*", "input": "public" }],
             "styles": ["src/styles.css"],
@@ -33,7 +33,7 @@
           "configurations": {
             "production": {
               "budgets": [
-                { "type": "initial", "maximumError": "600kB" },
+                { "type": "initial", "maximumError": "565kB" },
                 { "type": "anyComponentStyle", "maximumError": "4kB" }
               ],
               "outputHashing": "all",
@@ -64,6 +64,7 @@
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
             "karmaConfig": "karma.conf.js",
+            "main": "src/testing/test-main.ts",
             "polyfills": ["zone.js", "zone.js/testing"],
             "tsConfig": "tsconfig.spec.json",
             "codeCoverage": true,
