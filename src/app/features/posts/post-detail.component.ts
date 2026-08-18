@@ -1,5 +1,5 @@
 import { SlicePipe } from '@angular/common';
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { injectPostResource } from './posts.resource';
 
@@ -7,6 +7,7 @@ import { injectPostResource } from './posts.resource';
   selector: 'app-post-detail',
   standalone: true,
   imports: [RouterLink, SlicePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6">
       <a
