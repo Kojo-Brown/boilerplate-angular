@@ -131,6 +131,22 @@ emitted bundles for ZoneJS in the CI build job.
 See [docs/zoneless.md](./docs/zoneless.md) for what does and does not trigger a
 refresh, the patterns that need converting, and how to migrate an existing app.
 
+## Change detection
+
+Every production component is `OnPush`. Zoneless changes *when* a refresh runs;
+`OnPush` changes *how much* of the tree it visits — under the same set of
+notifications, Default re-checks every descendant view and OnPush skips
+subtrees whose inputs and signals have not changed. Neither the compiler nor
+ESLint flags a Default component, so
+[`scripts/ci/assert-onpush-everywhere.sh`](./scripts/ci/assert-onpush-everywhere.sh)
+runs in the `lint` job and fails a PR that adds one. Test host components
+inside spec files are excluded — they never ship, and forcing them OnPush
+would change what a change-detection test observes.
+
+See [docs/change-detection-profiling.md](./docs/change-detection-profiling.md)
+for the DevTools workflow, an in-code `afterRenderEffect` counter you can copy
+into a component while measuring, and the four wins that pay the most.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:

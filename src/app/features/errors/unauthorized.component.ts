@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 @Component({
   selector: 'app-unauthorized',
@@ -7,5 +7,6 @@ import { Component } from '@angular/core';
     <h1 class="text-2xl font-bold">403 — Unauthorized</h1>
     <p class="mt-2 text-gray-500">You do not have permission to view this page.</p>
   </div>`,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UnauthorizedComponent {}

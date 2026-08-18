@@ -1,5 +1,5 @@
 import { SlicePipe } from '@angular/common';
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { injectPostsQuery } from './posts.queries';
 
@@ -7,6 +7,7 @@ import { injectPostsQuery } from './posts.queries';
   selector: 'app-posts-list',
   standalone: true,
   imports: [RouterLink, SlicePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6">
       <h1 class="mb-6 text-2xl font-bold text-gray-900 dark:text-white">Posts</h1>

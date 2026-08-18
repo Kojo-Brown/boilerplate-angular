@@ -53,6 +53,14 @@ jobs:
         env:
           NODE_OPTIONS: --throw-deprecation
 
+      # OnPush is a decorator-metadata property, not a lint rule and not a compile
+      # error — neither ESLint nor the Angular compiler flags a Default component.
+      # Under zoneless the practical cost of Default is a full check of every view
+      # in the tree on each refresh; `docs/change-detection-profiling.md` explains
+      # why. This assertion is the source-level counterpart of the runtime rule.
+      - name: Assert OnPush on every production component
+        run: pnpm check:onpush
+
   typecheck:
     name: Typecheck (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
