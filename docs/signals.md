@@ -18,7 +18,7 @@ and are re-exported from `@/app/core/reactivity`.
 | A value that has to be fetched | `resource` | Owns the request lifecycle — loading, error, and cancellation of a load that has been superseded. |
 | A write to something the graph does not own — DOM, `localStorage`, an analytics call, a timer, a subscription | `effect` | Runs after the flush, re-runs when its dependencies change, and can register cleanup. |
 | A subscription whose lifetime is the component's, with nothing reactive about it | `DestroyRef.onDestroy` | An effect with no dependencies runs once and exists only to hold a teardown callback. Say what you mean. |
-| An RxJS stream | `toSignal` / `takeUntilDestroyed` | Covered separately in the RxJS interop section of `SPEC.md`. |
+| An RxJS stream | `toSignal` / `takeUntilDestroyed` | A value the view renders converts; a stream you subscribe to for its side effect does not. See [`docs/rxjs-interop.md`](./rxjs-interop.md). |
 
 The rule that decides most cases: **if you can write it as a `computed`, it is not an
 effect.** An effect that only copies one signal into another is a slower, harder to

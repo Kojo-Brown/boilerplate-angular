@@ -84,11 +84,11 @@ signal and the wrapper wants to be a `computed`.
 ### Getters over non-signal state
 
 Getters are re-evaluated on every refresh, so they are not broken by zoneless — they
-are only as fresh as the last refresh. The reactive-forms getters in
-[`login.component.ts`](../src/app/features/auth/login.component.ts) read
-`control.touched` and `control.errors`, neither of which is a signal:
+are only as fresh as the last refresh. Reactive forms used to be read that way here:
 
 ```ts
+// Was in login.component.ts. Reads `control.touched` and `control.errors`, neither of
+// which is a signal.
 protected get emailError(): string | null {
   const control = this.form.get('email');
   if (!control?.invalid || !control.touched) return null;
@@ -96,11 +96,21 @@ protected get emailError(): string | null {
 }
 ```
 
-This works because everything that changes a control's state arrives through a bound
-listener: typing fires the value accessor's `(input)` host listener, blurring fires
-`(blur)`, and submitting fires `(ngSubmit)` — each of which marks the view dirty. A
-control mutated from outside that path (`form.markAsTouched()` from a timer, say)
-would need a signal or a `markForCheck()`.
+That worked for as long as everything changing a control's state arrived through a
+bound listener: typing fires the value accessor's `(input)` host listener, blurring
+fires `(blur)`, and submitting fires `(ngSubmit)` — each of which marks the view dirty.
+A control mutated from outside that path — `markAllAsTouched()` from a timer, an async
+validator settling, `setErrors` from a server response — had nothing to mark it, and
+the message rendered late or not at all.
+
+Which is a boundary problem, not a getter problem: a control publishes its state on
+`AbstractControl.events`, an Observable, and no one had brought it into the graph.
+`controlSignal` / `controlErrorSignal` from `@/app/core/reactivity` do, with `toSignal`,
+and both auth forms now use them. See [`docs/rxjs-interop.md`](./rxjs-interop.md).
+
+The general rule stands: a getter over non-signal state is fine when *every* writer of
+that state already marks the view dirty. Check that before relying on it — and prefer
+a signal when the state has a stream behind it.
 
 ### Async work that has to block stability
 
@@ -196,4 +206,6 @@ asked for, which no gate would otherwise notice.
 
 - [`docs/signals.md`](./signals.md) — the signal/computed/effect decision table this
   migration rests on
+- [`docs/rxjs-interop.md`](./rxjs-interop.md) — getting Observable-backed state, reactive
+  forms included, into the graph in the first place
 - [Angular: Zoneless](https://angular.dev/guide/zoneless)

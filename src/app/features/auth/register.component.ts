@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthStore } from '@/app/store/auth/auth.store';
+import { controlErrorSignal, controlSignal } from '@/app/core/reactivity';
 import { zodValidator, zodGroupValidator } from '@/app/core/validators/zod-validator';
 import { registerBaseSchema, registerSchema } from './auth.schemas';
 
@@ -50,11 +51,11 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
                   autocomplete="name"
                   placeholder="Jane Smith"
                   class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  [class.border-red-400]="nameError"
-                  [class.border-[var(--color-border)]]="!nameError"
+                  [class.border-red-400]="nameError()"
+                  [class.border-[var(--color-border)]]="!nameError()"
                 />
-                @if (nameError) {
-                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ nameError }}</p>
+                @if (nameError()) {
+                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ nameError() }}</p>
                 }
               </div>
 
@@ -72,11 +73,11 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
                   autocomplete="email"
                   placeholder="you@example.com"
                   class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  [class.border-red-400]="emailError"
-                  [class.border-[var(--color-border)]]="!emailError"
+                  [class.border-red-400]="emailError()"
+                  [class.border-[var(--color-border)]]="!emailError()"
                 />
-                @if (emailError) {
-                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ emailError }}</p>
+                @if (emailError()) {
+                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ emailError() }}</p>
                 }
               </div>
 
@@ -94,11 +95,11 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
                   autocomplete="new-password"
                   placeholder="••••••••"
                   class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  [class.border-red-400]="passwordError"
-                  [class.border-[var(--color-border)]]="!passwordError"
+                  [class.border-red-400]="passwordError()"
+                  [class.border-[var(--color-border)]]="!passwordError()"
                 />
-                @if (passwordError) {
-                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ passwordError }}</p>
+                @if (passwordError()) {
+                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ passwordError() }}</p>
                 }
                 <p class="mt-1 text-xs text-[var(--color-muted-foreground)]">
                   Min 8 characters, one uppercase letter and one number
@@ -119,12 +120,12 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
                   autocomplete="new-password"
                   placeholder="••••••••"
                   class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  [class.border-red-400]="confirmPasswordError"
-                  [class.border-[var(--color-border)]]="!confirmPasswordError"
+                  [class.border-red-400]="confirmPasswordError()"
+                  [class.border-[var(--color-border)]]="!confirmPasswordError()"
                 />
-                @if (confirmPasswordError) {
+                @if (confirmPasswordError()) {
                   <p class="mt-1 text-xs text-red-600 dark:text-red-400">
-                    {{ confirmPasswordError }}
+                    {{ confirmPasswordError() }}
                   </p>
                 }
               </div>
@@ -177,33 +178,34 @@ export class RegisterComponent {
     });
   }
 
-  protected get nameError(): string | null {
-    const control = this.form.get('name');
-    if (!control?.invalid || !control.touched) return null;
-    return (control.errors?.['zod'] as string | undefined) ?? null;
-  }
+  /**
+   * Validation messages as signals rather than getters — see the note in
+   * `LoginComponent` and `docs/rxjs-interop.md` for why a reactive-forms control needs
+   * `toSignal` to be visible to the reactive graph at all.
+   */
+  protected readonly nameError = controlErrorSignal(this.form.controls.name, 'zod');
+  protected readonly emailError = controlErrorSignal(this.form.controls.email, 'zod');
+  protected readonly passwordError = controlErrorSignal(this.form.controls.password, 'zod');
 
-  protected get emailError(): string | null {
-    const control = this.form.get('email');
-    if (!control?.invalid || !control.touched) return null;
-    return (control.errors?.['zod'] as string | undefined) ?? null;
-  }
+  private readonly confirmPassword = controlSignal(this.form.controls.confirmPassword);
+  private readonly formState = controlSignal(this.form);
 
-  protected get passwordError(): string | null {
-    const control = this.form.get('password');
-    if (!control?.invalid || !control.touched) return null;
-    return (control.errors?.['zod'] as string | undefined) ?? null;
-  }
+  /**
+   * The one field with two sources of truth: its own schema rejects an empty value,
+   * while "passwords don't match" is a property of the pair and so lands on the group.
+   * Tracking both controls is what makes the message clear as soon as the *other* field
+   * is corrected — the group revalidates, and nothing here has to know that happened.
+   */
+  protected readonly confirmPasswordError = computed(() => {
+    const control = this.confirmPassword();
+    if (!control.touched) return null;
 
-  protected get confirmPasswordError(): string | null {
-    const control = this.form.get('confirmPassword');
-    if (!control?.touched) return null;
-    if (control.errors?.['zod']) return control.errors['zod'] as string;
-    if (this.form.errors?.['confirmPassword']) {
-      return this.form.errors['confirmPassword'] as string;
-    }
-    return null;
-  }
+    const ownError = control.errors?.['zod'];
+    if (typeof ownError === 'string') return ownError;
+
+    const groupError = this.formState().errors?.['confirmPassword'];
+    return typeof groupError === 'string' ? groupError : null;
+  });
 
   protected onSubmit(): void {
     this.form.markAllAsTouched();

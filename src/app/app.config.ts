@@ -1,5 +1,5 @@
 import type { ApplicationConfig } from '@angular/core';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { inject, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, TitleStrategy, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -10,6 +10,7 @@ import { errorInterceptor } from '@/app/core/http/interceptors/error.interceptor
 import { jwtInterceptor } from '@/app/core/http/interceptors/jwt.interceptor';
 import { loggingInterceptor } from '@/app/core/http/interceptors/logging.interceptor';
 import { createQueryClient } from '@/app/core/query/query-client.config';
+import { AuthStore } from '@/app/store/auth/auth.store';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -25,5 +26,17 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([loggingInterceptor, errorInterceptor, jwtInterceptor])),
     provideTanStackQuery(createQueryClient()),
     { provide: TitleStrategy, useClass: AppTitleStrategy },
+
+    // Turn tokens restored from storage into a real session, before the router's
+    // initial navigation runs its guards. Deliberately synchronous and non-blocking:
+    // it starts the `/auth/me` request and returns, and `authGuard` waits on
+    // `isRestoringSession` rather than bootstrap being held up by a network round trip.
+    //
+    // It lives here rather than in the store's `onInit` because `jwtInterceptor`
+    // injects `AuthStore`: a request issued during the store's own construction
+    // re-enters its factory and dies with `NG0200: Circular dependency detected`.
+    provideAppInitializer(() => {
+      inject(AuthStore).restoreSession();
+    }),
   ],
 };
