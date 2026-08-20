@@ -114,6 +114,20 @@ subscription. Reusable primitives (`debouncedSignal`, `intervalSignal`,
 See [docs/signals.md](./docs/signals.md) for the decision table, the cleanup
 contract, and how to test it.
 
+## RxJS interop
+
+Signals and Observables are converted at the edges, in the direction the
+consumer demands. `toSignal` brings a stream in when the view renders its latest
+value — `controlSignal` / `controlErrorSignal` in `@/app/core/reactivity` do it
+for reactive forms, whose state is otherwise invisible to the graph. Streams
+subscribed to for a side effect stay subscriptions, with `takeUntilDestroyed`.
+`toObservable` goes the other way for the two cases a signal cannot cover:
+time-based operators, and APIs typed `Observable` — `authGuard` uses it to wait
+for a session restore to settle before deciding.
+
+See [docs/rxjs-interop.md](./docs/rxjs-interop.md) for the decision table, the
+traps in each direction, and how to test across the boundary.
+
 ## Zoneless
 
 The app runs without ZoneJS: `provideZonelessChangeDetection()` in

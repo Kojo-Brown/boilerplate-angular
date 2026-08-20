@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthStore } from '@/app/store/auth/auth.store';
+import { controlErrorSignal } from '@/app/core/reactivity';
 import { zodValidator } from '@/app/core/validators/zod-validator';
 import { loginSchema } from './auth.schemas';
 
@@ -48,11 +49,11 @@ import { loginSchema } from './auth.schemas';
                   autocomplete="email"
                   placeholder="you@example.com"
                   class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  [class.border-red-400]="emailError"
-                  [class.border-[var(--color-border)]]="!emailError"
+                  [class.border-red-400]="emailError()"
+                  [class.border-[var(--color-border)]]="!emailError()"
                 />
-                @if (emailError) {
-                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ emailError }}</p>
+                @if (emailError()) {
+                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ emailError() }}</p>
                 }
               </div>
 
@@ -70,11 +71,11 @@ import { loginSchema } from './auth.schemas';
                   autocomplete="current-password"
                   placeholder="••••••••"
                   class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  [class.border-red-400]="passwordError"
-                  [class.border-[var(--color-border)]]="!passwordError"
+                  [class.border-red-400]="passwordError()"
+                  [class.border-[var(--color-border)]]="!passwordError()"
                 />
-                @if (passwordError) {
-                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ passwordError }}</p>
+                @if (passwordError()) {
+                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ passwordError() }}</p>
                 }
               </div>
             </div>
@@ -127,17 +128,17 @@ export class LoginComponent {
     });
   }
 
-  protected get emailError(): string | null {
-    const control = this.form.get('email');
-    if (!control?.invalid || !control.touched) return null;
-    return (control.errors?.['zod'] as string | undefined) ?? null;
-  }
-
-  protected get passwordError(): string | null {
-    const control = this.form.get('password');
-    if (!control?.invalid || !control.touched) return null;
-    return (control.errors?.['zod'] as string | undefined) ?? null;
-  }
+  /**
+   * Validation messages as signals rather than getters. A getter is re-read on every
+   * refresh and so is never *wrong*, but under zoneless nothing refreshes the view
+   * unless it is told to, and a reactive-forms control does not tell anyone: it
+   * publishes on `AbstractControl.events`, outside the reactive graph.
+   * `controlErrorSignal` bridges that stream with `toSignal`, so a message appears when
+   * the control's state changes rather than when the next unrelated refresh happens to
+   * come along. See `docs/rxjs-interop.md`.
+   */
+  protected readonly emailError = controlErrorSignal(this.form.controls.email, 'zod');
+  protected readonly passwordError = controlErrorSignal(this.form.controls.password, 'zod');
 
   protected onSubmit(): void {
     this.form.markAllAsTouched();

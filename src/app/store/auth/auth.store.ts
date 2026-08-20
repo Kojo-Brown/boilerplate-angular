@@ -23,6 +23,7 @@ const initialState: AuthState = {
   refreshToken: null,
   isLoading: false,
   error: null,
+  isRestoringSession: false,
 };
 
 export const AuthStore = signalStore(
@@ -129,11 +130,12 @@ export const AuthStore = signalStore(
         switchMap(() =>
           authService.getProfile().pipe(
             tapResponse({
-              next: (user) => patchState(store, { user, isLoading: false }),
+              next: (user) =>
+                patchState(store, { user, isLoading: false, isRestoringSession: false }),
               error: (err: unknown) => {
                 const message =
                   err instanceof HttpErrorResponse ? err.message : 'Failed to load user';
-                patchState(store, { isLoading: false, error: message });
+                patchState(store, { isLoading: false, isRestoringSession: false, error: message });
               },
             })
           )
@@ -155,6 +157,36 @@ export const AuthStore = signalStore(
 
     clearError(): void {
       patchState(store, { error: null });
+    },
+  })),
+  /**
+   * A second `withMethods` block, because `restoreSession` calls `loadCurrentUser` and a
+   * block's `store` argument carries only the methods defined *before* it.
+   */
+  withMethods((store) => ({
+    /**
+     * Turn restored tokens into a session by fetching the user behind them.
+     *
+     * Restoring the tokens is only half a session: `isAuthenticated` also wants a user,
+     * so without this a reload of a guarded route bounced a signed-in user to `/login`.
+     *
+     * Deliberately *not* called from `onInit`. `jwtInterceptor` injects this store to
+     * read the access token, so a request issued while the store is still being
+     * constructed re-enters its own factory — Angular reports `NG0200: Circular
+     * dependency detected for SignalStore`, the request never leaves, and the restore
+     * "fails" instantly. `app.config.ts` calls this from `provideAppInitializer`, once
+     * construction has finished.
+     */
+    restoreSession(): void {
+      if (!store.accessToken() || store.user() !== null || store.isRestoringSession()) {
+        return;
+      }
+
+      // Set before the request, not inside the loader: `authGuard` reads this to tell
+      // "signed out" apart from "not known yet", and the initial navigation can start
+      // before the response arrives.
+      patchState(store, { isRestoringSession: true });
+      store.loadCurrentUser();
     },
   })),
   withHooks({

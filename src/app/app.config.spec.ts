@@ -1,6 +1,8 @@
 import { Component, NgZone, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { appConfig } from './app.config';
+import { AuthStore } from '@/app/store/auth/auth.store';
 import { host, requireEl } from '@/testing';
 
 /**
@@ -22,8 +24,18 @@ describe('appConfig', () => {
     // here outrank the testing platform's, so a `provideZoneChangeDetection()` that
     // crept back into `app.config.ts` would win — which is what makes these
     // assertions about the shipped configuration rather than about the test setup.
-    TestBed.configureTestingModule({ providers: [...appConfig.providers] });
+    //
+    // `provideHttpClientTesting()` comes after them so the app initializer's `/auth/me`
+    // request lands on a controller instead of the network. Storage is cleared because
+    // that initializer reads it, and a token left behind by another spec would make
+    // these specs issue a request they never asked for.
+    localStorage.clear();
+    TestBed.configureTestingModule({
+      providers: [...appConfig.providers, provideHttpClientTesting()],
+    });
   });
+
+  afterEach(() => localStorage.clear());
 
   function text(fixture: ReturnType<typeof TestBed.createComponent<ProbeComponent>>): string {
     return requireEl(host(fixture), '[data-testid="probe"]').textContent?.trim() ?? '';
@@ -68,5 +80,29 @@ describe('appConfig', () => {
     await fixture.whenStable();
 
     expect(text(fixture)).toBe('b/b');
+  });
+
+  // Regression test for NG0200. `jwtInterceptor` injects `AuthStore`, so a `/auth/me`
+  // issued from the store's own `onInit` re-enters its factory, the request never
+  // leaves, and the session silently fails to restore. Driving it from an app
+  // initializer instead means the store is fully constructed by the time it runs — and
+  // this spec fails at `expectOne` if that ever moves back.
+  it('restores a stored session from an app initializer', () => {
+    localStorage.setItem('auth_access_token', 'mock-access-token');
+    localStorage.setItem('auth_refresh_token', 'mock-refresh-token');
+
+    // The first injection runs the app initializers.
+    const store = TestBed.inject(AuthStore);
+    const httpTesting = TestBed.inject(HttpTestingController);
+
+    expect(store.isRestoringSession()).toBeTrue();
+    const request = httpTesting.expectOne('http://localhost:3000/api/v1/auth/me');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer mock-access-token');
+
+    request.flush({ id: '1', email: 'test@example.com', name: 'Test User', role: 'user' });
+
+    expect(store.isAuthenticated()).toBeTrue();
+    expect(store.isRestoringSession()).toBeFalse();
+    httpTesting.verify();
   });
 });

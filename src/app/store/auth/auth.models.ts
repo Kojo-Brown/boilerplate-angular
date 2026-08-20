@@ -12,6 +12,12 @@ export interface AuthState {
   refreshToken: string | null;
   isLoading: boolean;
   error: string | null;
+  /**
+   * A token was found in storage at startup and the profile it belongs to has not come
+   * back yet. Until it settles, `isAuthenticated` being `false` means "not known", not
+   * "not signed in" — see `authGuard`.
+   */
+  isRestoringSession: boolean;
 }
 
 export interface LoginCredentials {

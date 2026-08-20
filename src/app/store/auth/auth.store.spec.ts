@@ -225,3 +225,105 @@ describe('AuthStore', () => {
     });
   });
 });
+
+/**
+ * The startup path. `restoreSession` is what `provideAppInitializer` calls in
+ * `app.config.ts`; `onInit` only restores the tokens.
+ */
+describe('AuthStore session restore', () => {
+  let store: InstanceType<typeof AuthStore>;
+  let httpTesting: HttpTestingController;
+
+  function bootstrap(): void {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    httpTesting = TestBed.inject(HttpTestingController);
+    store = TestBed.inject(AuthStore);
+  }
+
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  function seedTokens(): void {
+    localStorage.setItem('auth_access_token', 'stored-token');
+    localStorage.setItem('auth_refresh_token', 'stored-refresh');
+  }
+
+  it('leaves the store idle until restoreSession is called', () => {
+    seedTokens();
+
+    bootstrap();
+
+    // `onInit` restores the tokens and nothing else. Issuing the request from there
+    // would re-enter the store's own factory through `jwtInterceptor` (NG0200).
+    expect(store.accessToken()).toBe('stored-token');
+    expect(store.isRestoringSession()).toBeFalse();
+    httpTesting.verify();
+  });
+
+  it('fetches the profile behind a token found in storage', () => {
+    seedTokens();
+    bootstrap();
+
+    store.restoreSession();
+
+    expect(store.isRestoringSession()).toBeTrue();
+    expect(store.isAuthenticated()).withContext('tokens alone are not a session').toBeFalse();
+
+    httpTesting.expectOne(`${API}/me`).flush(mockUser);
+
+    expect(store.user()).toEqual(mockUser);
+    expect(store.isAuthenticated()).toBeTrue();
+    expect(store.isRestoringSession()).toBeFalse();
+    httpTesting.verify();
+  });
+
+  it('does not restore anything when storage is empty', () => {
+    bootstrap();
+
+    store.restoreSession();
+
+    expect(store.isRestoringSession()).toBeFalse();
+    httpTesting.verify();
+  });
+
+  it('is a no-op when a user is already loaded', () => {
+    bootstrap();
+    store.login({ email: 'test@example.com', password: 'password' });
+    httpTesting.expectOne(`${API}/login`).flush(mockAuthResponse);
+
+    store.restoreSession();
+
+    expect(store.isRestoringSession()).toBeFalse();
+    httpTesting.verify();
+  });
+
+  it('does not stack a second request while one is in flight', () => {
+    seedTokens();
+    bootstrap();
+    store.restoreSession();
+
+    store.restoreSession();
+
+    expect(httpTesting.match(`${API}/me`).length)
+      .withContext('the guard would be left waiting on whichever response lost the race')
+      .toBe(1);
+  });
+
+  it('finishes restoring even when the profile request fails', () => {
+    seedTokens();
+    bootstrap();
+    store.restoreSession();
+
+    httpTesting
+      .expectOne(`${API}/me`)
+      .flush({ message: 'Boom' }, { status: 500, statusText: 'Server Error' });
+
+    // A restore that never settles is worse than one that fails: `authGuard` waits on
+    // this flag, so leaving it set would hang the navigation rather than redirect.
+    expect(store.isRestoringSession()).toBeFalse();
+    expect(store.isAuthenticated()).toBeFalse();
+    httpTesting.verify();
+  });
+});
