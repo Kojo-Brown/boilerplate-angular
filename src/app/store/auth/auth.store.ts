@@ -36,10 +36,23 @@ export const AuthStore = signalStore(
     userRole: computed(() => user()?.role ?? null),
   })),
   withMethods((store, authService = inject(AuthService)) => ({
+    /**
+     * `exhaustMap`, not `switchMap`: a second submit while one is in flight is ignored,
+     * rather than cancelling the first and sending another.
+     *
+     * The forms disable their submit button on `isLoading()`, but that is a *rendered*
+     * guard — under zoneless the `patchState` above schedules a refresh, so a double
+     * click inside one frame reaches this pipeline twice. `switchMap` would then abort a
+     * request the server may already have acted on: cancelling a POST unsubscribes the
+     * client, it does not un-issue the write, and the tokens the aborted response carried
+     * are lost while the session it created is not. Ignoring the duplicate is the only
+     * choice that leaves exactly one login attempt behind. See
+     * [`docs/rxjs-flattening.md`](../../../../docs/rxjs-flattening.md).
+     */
     login: rxMethod<LoginCredentials>(
       pipe(
         tap(() => patchState(store, { isLoading: true, error: null })),
-        switchMap((credentials) =>
+        exhaustMap((credentials) =>
           authService.login(credentials).pipe(
             tapResponse({
               next: ({ user, accessToken, refreshToken }) => {
@@ -60,10 +73,11 @@ export const AuthStore = signalStore(
       )
     ),
 
+    /** `exhaustMap` for the same reason as `login`, and more so: registration creates a row. */
     register: rxMethod<RegisterCredentials>(
       pipe(
         tap(() => patchState(store, { isLoading: true, error: null })),
-        switchMap((credentials) =>
+        exhaustMap((credentials) =>
           authService.register(credentials).pipe(
             tapResponse({
               next: ({ user, accessToken, refreshToken }) => {
@@ -124,6 +138,10 @@ export const AuthStore = signalStore(
       )
     ),
 
+    /**
+     * `switchMap` here, unlike `login`: this is a read, so a superseded request costs
+     * nothing to abandon and the newest answer is the one the store should hold.
+     */
     loadCurrentUser: rxMethod<void>(
       pipe(
         tap(() => patchState(store, { isLoading: true })),

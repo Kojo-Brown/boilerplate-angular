@@ -151,6 +151,14 @@ spelling of it, because a signal has no notion of "later".
 `take(1)` completing the stream is what disposes the effect `toObservable` created, so
 the guard leaves nothing running behind it.
 
+The other caller is the table's *first* `toObservable` row:
+[`typeahead`](../src/app/core/reactivity/typeahead.ts) converts its query signal because
+`debounceTime` and `switchMap` have no signal spelling — a signal has no "quiet for
+300ms", and cancelling the request a superseded keystroke started is a subscription being
+torn down, which is not something a `computed` can express. There the conversion is
+disposed by `takeUntilDestroyed` rather than by the stream completing; see
+[`docs/rxjs-flattening.md`](./rxjs-flattening.md) for why that pipe is `switchMap`.
+
 ### The three traps
 
 **1. It emits asynchronously, on the effect flush.** `toObservable` watches the signal
@@ -195,6 +203,8 @@ injection context or an explicit `{ injector }`.
 
 ## See also
 
+- [`docs/rxjs-flattening.md`](./rxjs-flattening.md) — once you have converted a signal to
+  an Observable for `switchMap`, which flattening operator that should have been
 - [`docs/signals.md`](./signals.md) — `signal` / `computed` / `effect` / `linkedSignal`
   / `resource`, and the decision table this one hangs off
 - [`docs/zoneless.md`](./zoneless.md) — why a value a template reads has to reach the

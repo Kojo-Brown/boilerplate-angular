@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, map } from 'rxjs';
 import type { Observable } from 'rxjs';
 import { ApiService } from '@/app/core/http/api.service';
 import { abortableRequest } from '@/app/core/reactivity';
@@ -28,6 +28,20 @@ export class PostsService {
 
   getById(id: string, abortSignal?: AbortSignal): Promise<Post> {
     return this.awaitRequest(this.api.get<Post>(`/posts/${id}`), abortSignal);
+  }
+
+  /**
+   * The one read that stays an Observable, because its caller is a `switchMap`.
+   *
+   * `switchMap` cancels by unsubscribing, and `HttpClient` aborts the request when its
+   * last subscriber leaves. A Promise has no teardown to invoke: had this returned one,
+   * every superseded keystroke's request would still run to completion, and the
+   * cancellation the typeahead is built on would be a comment rather than a behaviour.
+   */
+  search(query: string, limit = 10): Observable<Post[]> {
+    return this.api
+      .get<PaginatedResponse<Post>>('/posts', { params: { search: query, pageSize: limit } })
+      .pipe(map((page) => page.data));
   }
 
   create(dto: CreatePostDto): Promise<Post> {

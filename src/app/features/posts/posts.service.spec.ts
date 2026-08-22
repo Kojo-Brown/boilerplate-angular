@@ -132,6 +132,44 @@ describe('PostsService', () => {
     });
   });
 
+  describe('search()', () => {
+    function pageOf(posts: Post[]): PaginatedResponse<Post> {
+      return { data: posts, total: posts.length, page: 1, pageSize: 10, totalPages: 1 };
+    }
+
+    it('GETs /posts with the term and a capped page size, and unwraps the page', () => {
+      const post = createMockPost({ title: 'Signals in depth' });
+      let received: Post[] | undefined;
+
+      service.search('signals').subscribe((posts) => (received = posts));
+
+      const req = http.expectOne((r) => r.url === BASE && r.params.get('search') === 'signals');
+      expect(req.request.method).toBe('GET');
+      expect(req.request.params.get('pageSize')).toBe('10');
+      req.flush(pageOf([post]));
+
+      expect(received).toEqual([post]);
+    });
+
+    it('honours an explicit limit', () => {
+      service.search('signals', 3).subscribe();
+      const req = http.expectOne((r) => r.url === BASE && r.params.get('search') === 'signals');
+      expect(req.request.params.get('pageSize')).toBe('3');
+      req.flush(pageOf([]));
+    });
+
+    // The reason this one read is not a Promise: `switchMap` cancels by unsubscribing, and
+    // only an Observable has a teardown for `HttpClient` to abort the request from.
+    it('aborts the request when its subscriber leaves', () => {
+      const subscription = service.search('signals').subscribe();
+      const req = http.expectOne((r) => r.url === BASE && r.params.get('search') === 'signals');
+
+      subscription.unsubscribe();
+
+      expect(req.cancelled).toBeTrue();
+    });
+  });
+
   describe('create()', () => {
     it('POSTs to /posts with dto', async () => {
       const dto = { title: 'Hello', body: 'World' };
