@@ -128,6 +128,21 @@ for a session restore to settle before deciding.
 See [docs/rxjs-interop.md](./docs/rxjs-interop.md) for the decision table, the
 traps in each direction, and how to test across the boundary.
 
+## Flattening operators
+
+`switchMap`, `concatMap`, `exhaustMap` and `mergeMap` differ in one thing: what
+happens to an input that arrives while the previous inner stream is still
+running. Reads where only the newest answer matters cancel the previous one
+(`switchMap` — the `typeahead` primitive in `@/app/core/reactivity`, whose
+caller is the post search box on `/dashboard/posts`); submits ignore the
+duplicate (`exhaustMap` — `AuthStore.login`, `register` and
+`refreshAccessToken`), because cancelling a write aborts the response, not the
+write.
+
+See [docs/rxjs-flattening.md](./docs/rxjs-flattening.md) for the decision table,
+what each wrong answer costs, the four traps, and the three assertions that pin
+an operator choice in a test.
+
 ## Zoneless
 
 The app runs without ZoneJS: `provideZonelessChangeDetection()` in

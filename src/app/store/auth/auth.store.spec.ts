@@ -109,6 +109,70 @@ describe('AuthStore', () => {
 
       expect(store.error()).toBe('Login failed');
     });
+
+    // `exhaustMap`, not `switchMap`: the duplicate is dropped rather than replacing a
+    // POST the server may already have acted on.
+    it('ignores a second submit while the first is in flight', () => {
+      store.login({ email: 'test@example.com', password: 'password' });
+      store.login({ email: 'test@example.com', password: 'password' });
+
+      const requests = httpTesting.match(`${API}/login`);
+      expect(requests.length).toBe(1);
+      expect(requests[0].cancelled).toBeFalse();
+      requests[0].flush(mockAuthResponse);
+    });
+
+    it('accepts a retry once the first attempt has settled', () => {
+      store.login({ email: 'test@example.com', password: 'wrong' });
+      httpTesting
+        .expectOne(`${API}/login`)
+        .flush({ message: 'Invalid credentials' }, { status: 401, statusText: 'Unauthorized' });
+
+      store.login({ email: 'test@example.com', password: 'password' });
+      httpTesting.expectOne(`${API}/login`).flush(mockAuthResponse);
+
+      expect(store.isAuthenticated()).toBeTrue();
+      expect(store.error()).toBeNull();
+    });
+  });
+
+  describe('register', () => {
+    const credentials = {
+      email: 'test@example.com',
+      password: 'password',
+      name: 'Test User',
+    };
+
+    it('populates state and persists tokens on success', () => {
+      store.register(credentials);
+      httpTesting.expectOne(`${API}/register`).flush(mockAuthResponse);
+
+      expect(store.user()).toEqual(mockUser);
+      expect(store.isAuthenticated()).toBeTrue();
+      expect(store.isLoading()).toBeFalse();
+      expect(localStorage.getItem('auth_access_token')).toBe('access-token');
+    });
+
+    it('sets the server error message on failure', () => {
+      store.register(credentials);
+      httpTesting
+        .expectOne(`${API}/register`)
+        .flush({ message: 'Email already taken' }, { status: 409, statusText: 'Conflict' });
+
+      expect(store.error()).toBe('Email already taken');
+      expect(store.isAuthenticated()).toBeFalse();
+    });
+
+    // Worth more here than on `login`: a duplicate that reaches the server creates a row.
+    it('ignores a second submit while the first is in flight', () => {
+      store.register(credentials);
+      store.register(credentials);
+
+      const requests = httpTesting.match(`${API}/register`);
+      expect(requests.length).toBe(1);
+      expect(requests[0].cancelled).toBeFalse();
+      requests[0].flush(mockAuthResponse);
+    });
   });
 
   describe('logout', () => {

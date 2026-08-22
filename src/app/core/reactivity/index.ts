@@ -11,3 +11,5 @@ export { intervalSignal } from './interval-signal';
 export type { IntervalSignalOptions } from './interval-signal';
 export { mediaQuerySignal } from './media-query-signal';
 export type { MediaQuerySignalOptions } from './media-query-signal';
+export { typeahead } from './typeahead';
+export type { Typeahead, TypeaheadOptions, TypeaheadStatus } from './typeahead';

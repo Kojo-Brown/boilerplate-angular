@@ -1,16 +1,20 @@
 import { SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PostTypeaheadComponent } from './post-typeahead.component';
 import { injectPostsQuery } from './posts.queries';
 
 @Component({
   selector: 'app-posts-list',
   standalone: true,
-  imports: [RouterLink, SlicePipe],
+  imports: [RouterLink, SlicePipe, PostTypeaheadComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6">
-      <h1 class="mb-6 text-2xl font-bold text-gray-900 dark:text-white">Posts</h1>
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Posts</h1>
+        <app-post-typeahead class="w-full sm:w-80" />
+      </div>
 
       @if (posts.isPending()) {
         <div class="space-y-3">
