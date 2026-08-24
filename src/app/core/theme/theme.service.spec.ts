@@ -72,4 +72,64 @@ describe('ThemeService', () => {
     expect(service.theme()).toBe('light');
     expect(html.classList.contains('dark')).toBeFalse();
   });
+
+  // These use `TestBed.tick()`; the specs above still call the deprecated
+  // `TestBed.flushEffects()` and are left alone rather than rewritten here.
+  describe('recorded history', () => {
+    it('labels each write so the log says what happened, not just that it did', () => {
+      service.setTheme('dark');
+      service.toggle();
+      TestBed.tick();
+
+      expect(service.history().map((entry) => entry.label)).toEqual([
+        '@@init',
+        'theme/set',
+        'theme/toggle',
+      ]);
+    });
+
+    it('undoes a theme change, down to the applied DOM class', () => {
+      service.setTheme('light');
+      service.setTheme('dark');
+      TestBed.tick();
+      expect(html.classList.contains('dark')).toBeTrue();
+
+      service.undo();
+      TestBed.tick();
+
+      expect(service.theme()).toBe('light');
+      // The whole point of time travel over *this* state: the effect re-runs, so the
+      // jump is visible in the document and in storage, not only in the signal.
+      expect(html.classList.contains('dark')).toBeFalse();
+      expect(localStorage.getItem('app_theme')).toBe('light');
+    });
+
+    it('redoes what it undid', () => {
+      service.setTheme('light');
+      service.setTheme('dark');
+      TestBed.tick();
+
+      service.undo();
+      TestBed.tick();
+      service.redo();
+      TestBed.tick();
+
+      expect(service.theme()).toBe('dark');
+      expect(html.classList.contains('dark')).toBeTrue();
+    });
+
+    it('reports whether travel is possible in each direction', () => {
+      expect(service.canUndo()).toBeFalse();
+      expect(service.canRedo()).toBeFalse();
+
+      service.setTheme('dark');
+      TestBed.tick();
+      expect(service.canUndo()).toBeTrue();
+      expect(service.canRedo()).toBeFalse();
+
+      service.undo();
+      TestBed.tick();
+      expect(service.canRedo()).toBeTrue();
+    });
+  });
 });

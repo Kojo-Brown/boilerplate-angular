@@ -143,6 +143,25 @@ See [docs/rxjs-flattening.md](./docs/rxjs-flattening.md) for the decision table,
 what each wrong answer costs, the four traps, and the three assertions that pin
 an operator choice in a test.
 
+## Store with time travel
+
+`createSignalStore` in `@/app/core/store` is a signal-backed store where every
+write carries a label and lands in a bounded, ordered log — which is what makes
+`undo()`, `redo()` and `jumpTo()` possible, and what the Redux DevTools bridge
+drives. `ThemeService` is the production caller: theme state is durable,
+user-visible, and written by named actions, so a jump backwards is something you
+can see happen to the page.
+
+It does not replace `@ngrx/signals`. `AuthStore` stays a `signalStore`, because
+`rxMethod` and its flattening control are worth more there than a history log.
+The devtools bridge is reached through a dynamic `import()` behind an
+`environment.production` guard, so it ships in its own lazy chunk in
+development and is absent from a production bundle entirely.
+
+See [docs/signal-store.md](./docs/signal-store.md) for the three-way choice
+between `signal`, `signalStore` and this, the four design decisions behind the
+log, and what the DevTools bridge deliberately refuses to do.
+
 ## Zoneless
 
 The app runs without ZoneJS: `provideZonelessChangeDetection()` in
