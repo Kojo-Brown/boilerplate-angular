@@ -66,7 +66,7 @@ tag satisfies the engine range today only by luck of what `22` resolves to.
 - [x] `OnPush` everywhere + a documented change-detection profiling method — all 15 production components are OnPush, enforced by `scripts/ci/assert-onpush-everywhere.sh` in the `lint` job (spec-file test hosts excluded); profiling method in `docs/change-detection-profiling.md` (DevTools Profiler, in-code `afterRenderEffect` counter, `ApplicationRef.isStable`) (PR #21)
 - [x] RxJS interop: `toSignal`/`toObservable` boundaries and when to prefer each — one production caller each way, since a decision table nothing follows is not one. `toSignal`: `controlSignal`/`controlErrorSignal` bridge `AbstractControl.events`, which is the only way a reactive form reaches the graph at all — `docs/zoneless.md` had flagged the getters they replace as safe only while every writer arrives through a bound listener, which an async validator or a server-side `setErrors` does not. `toObservable`: `authGuard` waits out an in-flight session restore, the case that earns the conversion because `CanActivateFn` is one-shot and `filter` + `take(1)` has no signal spelling. Giving it something to wait for surfaced a real bug — restored tokens never fetched the user behind them, so a hard reload of a guarded route logged you out — fixed by `restoreSession()` from `provideAppInitializer`, not the store's `onInit`, where `jwtInterceptor`'s own `inject(AuthStore)` kills the request with NG0200 (pinned by `app.config.spec.ts`). 314 unit tests, up from 287; e2e 19→21 passing (PR #22)
 - [x] Advanced RxJS: `switchMap` vs `concatMap` vs `exhaustMap` decision guide with a typeahead demo — `docs/rxjs-flattening.md`, written against callers that exist. `switchMap`: the `typeahead` primitive (`toObservable` → trim → `debounceTime` → `distinctUntilChanged` → `switchMap`, `catchError` on the **inner** Observable so one failed search does not end the pipeline and kill the box permanently), driving an ARIA combobox on `/dashboard/posts`; `PostsService.search` is the one read there that stays an Observable, because `switchMap` cancels by unsubscribing and a Promise has no teardown to invoke. `exhaustMap`: writing the guide exposed `AuthStore.login`/`register` on `switchMap`, where a second submit aborted the first — cancelling a POST discards the response, not the write, so the tokens are lost while the session they created is not; the forms' disabled buttons do not cover it, since under zoneless the `patchState` that sets `isLoading` schedules a refresh rather than performing one. `concatMap`/`mergeMap` have no caller here and the guide says so rather than inventing one. 356 unit tests, up from 314; coverage 93.16% statements / 90.32% branches against unchanged `karma.conf.js` thresholds; green on all 14 checks (PR #23)
-- [ ] Custom signal-based store primitive with devtools time-travel
+- [x] Custom signal-based store primitive with devtools time-travel — `createSignalStore` in `@/app/core/store`, where every write carries a label and lands in a bounded, ordered log; that log is what `undo`/`redo`/`jumpTo` and the Redux DevTools bridge both run on. Not a replacement for `@ngrx/signals` — `AuthStore` stays a `signalStore` — with `ThemeService` as the production caller, since a jump backwards is visible on the `dark` class rather than only in a signal (PR #24)
 
 Phase 6 item 1 complete as of PR #18 (2026-08-12). 254 unit tests (was 220) and
 every gate green in CI on Node 22, 24 and 26; coverage 90.74% statements /
@@ -163,6 +163,49 @@ change is behaviour-neutral in a real browser — 19 pass / 8 fail either way. T
 are untouched, and e2e is still not a CI gate. `OnPush` is still missing from
 eight components, which item 4 covers directly; under zoneless those components
 are correct but checked more often than they need to be.
+
+Phase 6 item 7 complete as of PR #24 (2026-08-24), closing the phase. 402 unit
+tests, up from 356; all fourteen checks green in CI on Node 22, 24 and 26.
+Coverage rose to 94.26% statements / 91.11% branches (from 93.16% / 90.32%)
+against unchanged `karma.conf.js` thresholds. Initial bundle 551.37 kB against
+the unchanged 565 kB budget — +2.04 kB for the primitive and nothing for the
+bridge.
+
+The log is the feature, and four decisions behind it each have a wrong answer
+that looks fine. History holds snapshots rather than patches, so `jumpTo` is an
+index assignment that cannot drift from what a replay would produce. Trimming
+shifts indexes, so `Transition.id` is monotonic and never reused — which is why
+`reset()` keeps its own reference to the initial state and is not a synonym for
+`jumpTo(0)`, since a full log no longer starts at `@@init`. Writing while
+travelled truncates the redo tail. And `subscribe` is synchronous rather than an
+`effect`, because effects coalesce: two writes in one tick would be reported
+once, and a devtools log that silently drops actions is worse than none.
+
+The bridge maps the monitor's action ids through its own `sentIds` array instead
+of assuming they match history indexes; the two agree right up until the first
+trim or reset, after which a naive `history()[actionId]` lands on a neighbour.
+`IMPORT_STATE` and `ACTION` are refused with a reason in the monitor rather than
+left unimplemented — both would mean widening arbitrary JSON into `T`, and there
+is no runtime schema here to validate against.
+
+`ThemeService` reaches the bridge through a dynamic `import()` behind an
+`environment.production` guard, so it ships as its own lazy chunk in development
+and esbuild drops it from production entirely. Both halves were checked against
+the emitted output rather than assumed. Because that import resolves late, the
+bridge replays existing history on connect.
+
+Worth recording for the next run: this container's default Node is 22.22.2, and
+`.npmrc`'s `engine-strict=true` correctly refused to install against
+`engines.node` — the Phase 0 gate from PR #17 doing its job. Node 24.19.0 was
+installed to run the gates; the range was not loosened.
+
+Known gaps carried into Phase 7: `historyLimit` bounds entry count, not bytes, so
+a store holding large state can still grow. Programmatic travel does not move the
+monitor's cursor — the extension protocol has no message for it. The bridge is
+tested against a fake extension in both directions but has never been clicked
+through with the real one, there being no browser with it installed in CI. And
+`docs/signal-store.md` is the fourth decision-table doc in `docs/`; the README now
+links six.
 
 ## Phase 7 — Architecture & Patterns
 - [ ] SOLID audit of services with before/after refactors in `docs/solid.md`
