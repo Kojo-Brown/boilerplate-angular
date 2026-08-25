@@ -3,11 +3,14 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import type { ComponentFixture } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { of } from 'rxjs';
 import type { TestRequest } from '@angular/common/http/testing';
 import { environment } from '@/environments/environment';
 import { createMockPost, fillInput, host, requireEl } from '@/testing';
 import { PostTypeaheadComponent } from './post-typeahead.component';
+import { PostsService } from './posts.service';
 import type { PaginatedResponse } from '@/app/core/http/models/api.models';
+import type { PostSearcher } from './posts.contracts';
 import type { Post } from './posts.models';
 
 const BASE = `${environment.apiUrl}/posts`;
@@ -279,5 +282,31 @@ describe('PostTypeaheadComponent', () => {
     fixture.destroy();
 
     expect(request.cancelled).toBeTrue();
+  }));
+
+  /**
+   * The interface-segregation payoff, stated as a test: what this component needs from
+   * `PostsService` is one method. If that ever stops being true, this spec fails to
+   * compile — which is a better warning than a component quietly growing a dependency
+   * on the writing side of the posts API.
+   */
+  it('needs nothing from PostsService beyond PostSearcher', fakeAsync(() => {
+    const searcher: PostSearcher = {
+      search: (query) => of([createMockPost({ id: '1', title: `Result for ${query}` })]),
+    };
+    // A fresh module rather than `overrideProvider`: the shared `beforeEach` has already
+    // injected `HttpTestingController`, and an instantiated TestBed refuses overrides.
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [PostTypeaheadComponent],
+      providers: [provideRouter([]), { provide: PostsService, useValue: searcher }],
+    });
+
+    create();
+    search('signals');
+    fixture.detectChanges();
+
+    expect(options().length).toBe(1);
+    expect(options()[0].textContent).toContain('Result for signals');
   }));
 });

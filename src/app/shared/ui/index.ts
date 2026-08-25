@@ -8,8 +8,8 @@ export { DialogService } from './dialog/dialog.service';
 export type { AppDialogConfig } from './dialog/dialog.service';
 
 export { ToastItemComponent, ToastContainerComponent } from './toast/toast.component';
-export { ToastService } from './toast/toast.service';
-export type { Toast, ToastOptions, ToastType } from './toast/toast.service';
+export { ToastService, TOAST_ID_FACTORY, TOAST_SCHEDULER } from './toast/toast.service';
+export type { Toast, ToastOptions, ToastScheduler, ToastType } from './toast/toast.service';
 
 export { ThemeToggleComponent } from './theme-toggle/theme-toggle.component';
 

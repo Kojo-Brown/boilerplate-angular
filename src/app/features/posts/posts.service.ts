@@ -4,10 +4,18 @@ import type { Observable } from 'rxjs';
 import { ApiService } from '@/app/core/http/api.service';
 import { abortableRequest } from '@/app/core/reactivity';
 import type { PaginatedResponse } from '@/app/core/http/models/api.models';
+import type { PostReader, PostSearcher, PostWriter } from './posts.contracts';
 import type { CreatePostDto, Post, PostsListParams, UpdatePostDto } from './posts.models';
 
+/**
+ * The implementation behind the three post roles.
+ *
+ * `implements` is doing real work here: it is what makes a signature change to
+ * `PostReader` a compile error in this file rather than a silent divergence between the
+ * class and the interface its consumers hold.
+ */
 @Injectable({ providedIn: 'root' })
-export class PostsService {
+export class PostsService implements PostReader, PostSearcher, PostWriter {
   private readonly api = inject(ApiService);
 
   /**
