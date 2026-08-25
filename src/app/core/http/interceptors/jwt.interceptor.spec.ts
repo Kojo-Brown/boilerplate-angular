@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
-import { jwtInterceptor } from './jwt.interceptor';
+import { AUTH_BYPASS_PATHS, jwtInterceptor } from './jwt.interceptor';
 import { AuthStore } from '@/app/store/auth/auth.store';
 import { AuthService } from '@/app/store/auth/auth.service';
 
@@ -171,5 +171,42 @@ describe('jwtInterceptor', () => {
       expect(caughtStatus).toBe(403);
       expect(authServiceSpy.refreshToken).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('AUTH_BYPASS_PATHS', () => {
+  /**
+   * The open/closed claim, exercised: an application adds an unauthenticated endpoint by
+   * providing a different list, and the interceptor is not touched.
+   */
+  it('lets an application extend the unauthenticated endpoints', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(withInterceptors([jwtInterceptor])),
+        provideHttpClientTesting(),
+        {
+          provide: AuthStore,
+          useValue: { accessToken: (): string => ACCESS_TOKEN, refreshToken: (): null => null },
+        },
+        { provide: AuthService, useValue: {} },
+        { provide: AUTH_BYPASS_PATHS, useValue: ['/auth/magic-link'] },
+      ],
+    });
+
+    const http = TestBed.inject(HttpClient);
+    const controller = TestBed.inject(HttpTestingController);
+
+    http.post('/api/auth/magic-link', {}).subscribe();
+    expect(controller.expectOne('/api/auth/magic-link').request.headers.has('Authorization'))
+      .withContext('the newly declared bypass path')
+      .toBeFalse();
+
+    // And the defaults are genuinely replaced, not merged — this one is signed again.
+    http.post('/api/auth/login', {}).subscribe();
+    expect(controller.expectOne('/api/auth/login').request.headers.get('Authorization'))
+      .withContext('a default path, no longer in the provided list')
+      .toBe(`Bearer ${ACCESS_TOKEN}`);
+
+    controller.verify();
   });
 });

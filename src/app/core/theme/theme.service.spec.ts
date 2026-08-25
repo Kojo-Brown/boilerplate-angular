@@ -1,82 +1,92 @@
 import { TestBed } from '@angular/core/testing';
 import { DOCUMENT } from '@angular/common';
+import { createFakeThemePreferenceStore } from '@/testing';
+import type { FakeThemePreferenceOptions, FakeThemePreferenceStore } from '@/testing';
+import { THEME_PREFERENCE_STORE } from './theme-preference';
 import { ThemeService } from './theme.service';
 
 describe('ThemeService', () => {
   let service: ThemeService;
+  let preference: FakeThemePreferenceStore;
   let html: HTMLElement;
 
-  beforeEach(() => {
-    localStorage.clear();
-    TestBed.configureTestingModule({});
+  /**
+   * The service reads its initial theme while it is being constructed, so a spec that
+   * cares about that read has to seed the preference *before* injecting. Every spec goes
+   * through here rather than through a `beforeEach`, which is what removed the
+   * `TestBed.resetTestingModule()` dance the old version of this suite needed.
+   */
+  function setup(options: FakeThemePreferenceOptions = {}): void {
+    preference = createFakeThemePreferenceStore(options);
+    TestBed.configureTestingModule({
+      providers: [{ provide: THEME_PREFERENCE_STORE, useValue: preference }],
+    });
     service = TestBed.inject(ThemeService);
     html = TestBed.inject(DOCUMENT).documentElement;
-    TestBed.flushEffects();
+    TestBed.tick();
+  }
+
+  afterEach(() => html.classList.remove('dark'));
+
+  describe('initial theme', () => {
+    it('uses the stored preference when there is one', () => {
+      setup({ stored: 'dark', system: 'light' });
+      expect(service.theme()).toBe('dark');
+    });
+
+    it('falls back to the system preference when nothing is stored', () => {
+      setup({ stored: null, system: 'dark' });
+      expect(service.theme()).toBe('dark');
+    });
+
+    it('does not consult the system preference once a choice is stored', () => {
+      setup({ stored: 'light', system: 'dark' });
+      expect(service.theme()).toBe('light');
+    });
   });
 
-  afterEach(() => localStorage.clear());
+  describe('applying a theme', () => {
+    it('adds the dark class to the html element', () => {
+      setup({ stored: 'light' });
+      service.setTheme('dark');
+      TestBed.tick();
+      expect(html.classList.contains('dark')).toBeTrue();
+    });
 
-  it('should default to light theme when no preference is stored and system prefers light', () => {
-    spyOn(window, 'matchMedia').and.returnValue({ matches: false } as MediaQueryList);
-    localStorage.clear();
-    TestBed.resetTestingModule();
-    TestBed.configureTestingModule({});
-    const svc = TestBed.inject(ThemeService);
-    TestBed.flushEffects();
-    expect(svc.theme()).toBe('light');
+    it('removes the dark class again', () => {
+      setup({ stored: 'dark' });
+      service.setTheme('light');
+      TestBed.tick();
+      expect(html.classList.contains('dark')).toBeFalse();
+    });
+
+    it('persists the theme through the preference store', () => {
+      setup({ stored: 'light' });
+      service.setTheme('dark');
+      TestBed.tick();
+      expect(preference.stored).toBe('dark');
+    });
+
+    it('toggles from light to dark', () => {
+      setup({ stored: 'light' });
+      service.toggle();
+      TestBed.tick();
+      expect(service.theme()).toBe('dark');
+      expect(html.classList.contains('dark')).toBeTrue();
+    });
+
+    it('toggles from dark to light', () => {
+      setup({ stored: 'dark' });
+      service.toggle();
+      TestBed.tick();
+      expect(service.theme()).toBe('light');
+      expect(html.classList.contains('dark')).toBeFalse();
+    });
   });
 
-  it('should read stored theme preference from localStorage', () => {
-    localStorage.setItem('app_theme', 'dark');
-    TestBed.resetTestingModule();
-    TestBed.configureTestingModule({});
-    const svc = TestBed.inject(ThemeService);
-    TestBed.flushEffects();
-    expect(svc.theme()).toBe('dark');
-  });
-
-  it('should apply dark class to html element when theme is dark', () => {
-    service.setTheme('dark');
-    TestBed.flushEffects();
-    expect(html.classList.contains('dark')).toBeTrue();
-  });
-
-  it('should remove dark class from html element when theme is light', () => {
-    service.setTheme('dark');
-    TestBed.flushEffects();
-    service.setTheme('light');
-    TestBed.flushEffects();
-    expect(html.classList.contains('dark')).toBeFalse();
-  });
-
-  it('should persist theme to localStorage', () => {
-    service.setTheme('dark');
-    TestBed.flushEffects();
-    expect(localStorage.getItem('app_theme')).toBe('dark');
-  });
-
-  it('should toggle from light to dark', () => {
-    service.setTheme('light');
-    TestBed.flushEffects();
-    service.toggle();
-    TestBed.flushEffects();
-    expect(service.theme()).toBe('dark');
-    expect(html.classList.contains('dark')).toBeTrue();
-  });
-
-  it('should toggle from dark to light', () => {
-    service.setTheme('dark');
-    TestBed.flushEffects();
-    service.toggle();
-    TestBed.flushEffects();
-    expect(service.theme()).toBe('light');
-    expect(html.classList.contains('dark')).toBeFalse();
-  });
-
-  // These use `TestBed.tick()`; the specs above still call the deprecated
-  // `TestBed.flushEffects()` and are left alone rather than rewritten here.
   describe('recorded history', () => {
     it('labels each write so the log says what happened, not just that it did', () => {
+      setup({ stored: 'light' });
       service.setTheme('dark');
       service.toggle();
       TestBed.tick();
@@ -89,6 +99,7 @@ describe('ThemeService', () => {
     });
 
     it('undoes a theme change, down to the applied DOM class', () => {
+      setup({ stored: 'light' });
       service.setTheme('light');
       service.setTheme('dark');
       TestBed.tick();
@@ -101,10 +112,11 @@ describe('ThemeService', () => {
       // The whole point of time travel over *this* state: the effect re-runs, so the
       // jump is visible in the document and in storage, not only in the signal.
       expect(html.classList.contains('dark')).toBeFalse();
-      expect(localStorage.getItem('app_theme')).toBe('light');
+      expect(preference.stored).toBe('light');
     });
 
     it('redoes what it undid', () => {
+      setup({ stored: 'light' });
       service.setTheme('light');
       service.setTheme('dark');
       TestBed.tick();
@@ -119,6 +131,7 @@ describe('ThemeService', () => {
     });
 
     it('reports whether travel is possible in each direction', () => {
+      setup({ stored: 'light' });
       expect(service.canUndo()).toBeFalse();
       expect(service.canRedo()).toBeFalse();
 

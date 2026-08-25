@@ -3,19 +3,13 @@ import { DestroyRef, effect, inject, Injectable } from '@angular/core';
 import type { Signal } from '@angular/core';
 import { createSignalStore } from '@/app/core/store';
 import { environment } from '@/environments/environment';
+import { THEME_PREFERENCE_STORE } from './theme-preference';
+import type { Theme } from './theme-preference';
 
-export type Theme = 'light' | 'dark';
+export type { Theme } from './theme-preference';
 
 export interface ThemeState {
   theme: Theme;
-}
-
-const THEME_KEY = 'app_theme';
-
-function resolveInitialTheme(): Theme {
-  const stored = localStorage.getItem(THEME_KEY);
-  if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 /**
@@ -30,12 +24,18 @@ function resolveInitialTheme(): Theme {
  *
  * `AuthStore` deliberately stays an `@ngrx/signals` `signalStore`; see the header of
  * `signal-store.ts` for why this primitive does not try to replace it.
+ *
+ * Everything to do with *where* a preference lives — the storage key, `localStorage`,
+ * `prefers-color-scheme` — is behind {@link THEME_PREFERENCE_STORE}. See
+ * [`docs/solid.md`](../../../../docs/solid.md) for why, and for what that separation
+ * bought the tests below it.
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly document = inject(DOCUMENT);
+  private readonly preference = inject(THEME_PREFERENCE_STORE);
   private readonly store = createSignalStore<ThemeState>(
-    { theme: resolveInitialTheme() },
+    { theme: this.preference.read() ?? this.preference.systemPreference() },
     { name: 'theme', historyLimit: 25 }
   );
 
@@ -50,9 +50,8 @@ export class ThemeService {
   constructor() {
     effect(() => {
       const current = this.theme();
-      const html = this.document.documentElement;
-      html.classList.toggle('dark', current === 'dark');
-      localStorage.setItem(THEME_KEY, current);
+      this.document.documentElement.classList.toggle('dark', current === 'dark');
+      this.preference.write(current);
     });
 
     // Dynamic import, not a top-level one: this keeps the devtools bridge in its own

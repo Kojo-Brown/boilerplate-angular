@@ -1,6 +1,7 @@
 import { inject, resource } from '@angular/core';
 import type { ResourceRef, Signal } from '@angular/core';
 import { PostsService } from './posts.service';
+import type { PostReader } from './posts.contracts';
 import type { Post } from './posts.models';
 
 /**
@@ -37,7 +38,9 @@ import type { Post } from './posts.models';
  * @param id Post id to load. An empty string leaves the resource idle.
  */
 export function injectPostResource(id: Signal<string>): ResourceRef<Post | undefined> {
-  const postsService = inject(PostsService);
+  // Typed as the narrow role, not as the class: this loader reads one post, and nothing
+  // about it should have to change when the writing side of `PostsService` does.
+  const postsService: PostReader = inject(PostsService);
 
   return resource({
     params: () => id() || undefined,

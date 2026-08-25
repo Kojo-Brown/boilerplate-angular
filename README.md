@@ -195,6 +195,20 @@ See [docs/change-detection-profiling.md](./docs/change-detection-profiling.md)
 for the DevTools workflow, an in-code `afterRenderEffect` counter you can copy
 into a component while measuring, and the four wins that pay the most.
 
+## SOLID seams
+
+Four injection seams in the app exist because a SOLID audit found a cost, not
+because a principle said so: `THEME_PREFERENCE_STORE` (where a theme choice is
+remembered), `TOAST_SCHEDULER` and `TOAST_ID_FACTORY` (deferred work and ids, as
+dependencies rather than globals), and `AUTH_BYPASS_PATHS` (which endpoints
+`jwtInterceptor` leaves unsigned). `PostsService` additionally publishes three
+role interfaces — `PostReader`, `PostSearcher`, `PostWriter` — so a consumer can
+depend on the slice it uses.
+
+See [docs/solid.md](./docs/solid.md) for the before/after on each of the five
+principles, the tests they made possible, and the three violations that are
+recorded there and deliberately left alone.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router } from '@angular/router';
 import { typeahead } from '@/app/core/reactivity';
 import { PostsService } from './posts.service';
+import type { PostSearcher } from './posts.contracts';
 import type { Post } from './posts.models';
 
 let nextId = 0;
@@ -92,7 +93,9 @@ const ACTIVE_OPTION_CLASSES = `${OPTION_CLASSES} bg-[var(--color-muted)]`;
 })
 export class PostTypeaheadComponent {
   private readonly router = inject(Router);
-  private readonly postsService = inject(PostsService);
+  // A search box searches. Declaring the narrow role means a spec can stand in
+  // `{ search: () => of([]) }` rather than a stub of the whole posts API.
+  private readonly postsService: PostSearcher = inject(PostsService);
 
   private readonly id = nextId++;
   protected readonly inputId = `post-typeahead-${this.id}`;

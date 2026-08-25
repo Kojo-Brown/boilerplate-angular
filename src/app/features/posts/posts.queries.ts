@@ -6,10 +6,11 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { queryKeys } from '@/app/core/query/query-keys';
 import { PostsService } from './posts.service';
+import type { PostReader, PostWriter } from './posts.contracts';
 import type { CreatePostDto, PostsListParams, UpdatePostDto } from './posts.models';
 
 export function injectPostsQuery(params?: PostsListParams) {
-  const postsService = inject(PostsService);
+  const postsService: PostReader = inject(PostsService);
   return injectQuery(() => ({
     queryKey: queryKeys.posts.list(params ?? {}),
     queryFn: () => postsService.getAll(params),
@@ -17,7 +18,7 @@ export function injectPostsQuery(params?: PostsListParams) {
 }
 
 export function injectPostQuery(id: () => string) {
-  const postsService = inject(PostsService);
+  const postsService: PostReader = inject(PostsService);
   return injectQuery(() => ({
     queryKey: queryKeys.posts.detail(id()),
     queryFn: () => postsService.getById(id()),
@@ -26,7 +27,7 @@ export function injectPostQuery(id: () => string) {
 }
 
 export function injectCreatePostMutation() {
-  const postsService = inject(PostsService);
+  const postsService: PostWriter = inject(PostsService);
   const queryClient = injectQueryClient();
   return injectMutation(() => ({
     mutationFn: (dto: CreatePostDto) => postsService.create(dto),
@@ -37,7 +38,7 @@ export function injectCreatePostMutation() {
 }
 
 export function injectUpdatePostMutation() {
-  const postsService = inject(PostsService);
+  const postsService: PostWriter = inject(PostsService);
   const queryClient = injectQueryClient();
   return injectMutation(() => ({
     mutationFn: ({ id, dto }: { id: string; dto: UpdatePostDto }) => postsService.update(id, dto),
@@ -49,7 +50,7 @@ export function injectUpdatePostMutation() {
 }
 
 export function injectDeletePostMutation() {
-  const postsService = inject(PostsService);
+  const postsService: PostWriter = inject(PostsService);
   const queryClient = injectQueryClient();
   return injectMutation(() => ({
     mutationFn: (id: string) => postsService.remove(id),
