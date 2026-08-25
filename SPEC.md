@@ -208,7 +208,7 @@ through with the real one, there being no browser with it installed in CI. And
 links six.
 
 ## Phase 7 — Architecture & Patterns
-- [ ] SOLID audit of services with before/after refactors in `docs/solid.md`
+- [x] SOLID audit of services with before/after refactors in `docs/solid.md` — five findings, five refactors (`THEME_PREFERENCE_STORE`, `AUTH_BYPASS_PATHS`, a substitutable `createMockAuthStore`, `PostReader`/`PostSearcher`/`PostWriter`, `TOAST_SCHEDULER`/`TOAST_ID_FACTORY`); three violations recorded and deliberately left to their own items (PR #25)
 - [ ] Facade pattern over NgRx Signal Store to keep components framework-agnostic
 - [ ] Strategy pattern via multi-provider `InjectionToken` arrays
 - [ ] Decorator pattern: `HttpInterceptorFn` composition for retry, cache, and telemetry
