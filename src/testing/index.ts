@@ -1,3 +1,4 @@
+export * from './auth-facade';
 export * from './dom';
 export * from './media-query';
 export * from './mock-factories';

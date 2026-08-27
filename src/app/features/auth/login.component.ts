@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AuthStore } from '@/app/store/auth/auth.store';
+import { AuthFacade } from '@/app/core/auth';
 import { controlErrorSignal } from '@/app/core/reactivity';
 import { zodValidator } from '@/app/core/validators/zod-validator';
 import { loginSchema } from './auth.schemas';
@@ -24,12 +24,12 @@ import { loginSchema } from './auth.schemas';
             </p>
           </div>
 
-          @if (authStore.error()) {
+          @if (auth.errorMessage()) {
             <div
               role="alert"
               class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
             >
-              {{ authStore.error() }}
+              {{ auth.errorMessage() }}
             </div>
           }
 
@@ -82,10 +82,10 @@ import { loginSchema } from './auth.schemas';
 
             <button
               type="submit"
-              [disabled]="authStore.isLoading()"
+              [disabled]="auth.isBusy()"
               class="mt-6 w-full rounded-md bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              @if (authStore.isLoading()) {
+              @if (auth.isBusy()) {
                 Signing in…
               } @else {
                 Sign in
@@ -111,7 +111,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  protected readonly authStore = inject(AuthStore);
+  protected readonly auth = inject(AuthFacade);
 
   protected readonly form = this.fb.group({
     email: ['', [zodValidator(loginSchema.shape.email)]],
@@ -120,7 +120,7 @@ export class LoginComponent {
 
   constructor() {
     effect(() => {
-      if (this.authStore.isAuthenticated()) {
+      if (this.auth.isSignedIn()) {
         const returnUrl =
           (this.route.snapshot.queryParams['returnUrl'] as string | undefined) ?? '/dashboard';
         void this.router.navigateByUrl(returnUrl);
@@ -147,6 +147,6 @@ export class LoginComponent {
     const result = loginSchema.safeParse(this.form.getRawValue());
     if (!result.success) return;
 
-    this.authStore.login(result.data);
+    this.auth.signIn(result.data);
   }
 }

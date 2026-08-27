@@ -209,6 +209,25 @@ See [docs/solid.md](./docs/solid.md) for the before/after on each of the five
 principles, the tests they made possible, and the three violations that are
 recorded there and deliberately left alone.
 
+## The auth facade
+
+Components do not inject `AuthStore`. They inject `AuthFacade`
+(`src/app/core/auth`), which publishes four reads — `currentUser`, `isSignedIn`,
+`isBusy`, `errorMessage` — and four commands — `signIn`, `signUp`, `signOut`,
+`dismissError`. The store's twenty members stay behind it, tokens and session
+lifecycle included, and `store.login`'s `rxMethod` signature (which accepts an
+observable and returns a subscription) becomes `signIn(credentials): void`.
+
+`core/` is exempt: `authGuard`, `roleGuard`, `jwtInterceptor` and
+`app.config.ts` own the session lifecycle and hold the store directly. The rule
+for everything else is enforced by `no-restricted-imports` in
+`eslint.config.mjs`, so `inject(AuthStore)` in a component fails `pnpm lint`
+rather than quietly removing the seam.
+
+See [docs/facade.md](./docs/facade.md) for what a component could reach before
+and cannot now, why the facade passes the store's signals through instead of
+wrapping them, and what the typed `createFakeAuthFacade` double replaced.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:

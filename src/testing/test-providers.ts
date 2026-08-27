@@ -2,7 +2,9 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import type { EnvironmentProviders, Provider } from '@angular/core';
+import { AuthFacade } from '@/app/core/auth';
 import { AuthStore } from '@/app/store/auth/auth.store';
+import { createFakeAuthFacade } from './auth-facade';
 import { createMockAuthStore } from './mock-factories';
 
 /**
@@ -12,13 +14,20 @@ import { createMockAuthStore } from './mock-factories';
  */
 type TestProvider = Provider | EnvironmentProviders;
 
-/** Standard providers for components that need routing + HTTP + auth. */
+/**
+ * Standard providers for components that need routing + HTTP + auth.
+ *
+ * Both auth doubles, because the two layers have different dependencies: components go
+ * through `AuthFacade`, while `authGuard`, `roleGuard` and `jwtInterceptor` hold
+ * `AuthStore` directly. A fixture that renders a routed component exercises both.
+ */
 export function provideTestDeps(extraProviders: TestProvider[] = []): TestProvider[] {
   return [
     provideHttpClient(),
     provideHttpClientTesting(),
     provideRouter([]),
     { provide: AuthStore, useValue: createMockAuthStore() },
+    { provide: AuthFacade, useValue: createFakeAuthFacade() },
     ...extraProviders,
   ];
 }

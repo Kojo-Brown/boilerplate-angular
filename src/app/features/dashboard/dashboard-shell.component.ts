@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthStore } from '@/app/store/auth/auth.store';
+import { AuthFacade } from '@/app/core/auth';
 import { LayoutShellComponent } from '@/app/shared/ui/layout/layout-shell.component';
 
 const NAV_LINK =
@@ -34,7 +34,17 @@ const NAV_LINK_ACTIVE = 'bg-[var(--color-muted)] text-[var(--color-primary)]';
         </li>
       </ul>
 
-      <div sidebar-footer>
+      <div sidebar-footer class="space-y-1">
+        @if (auth.currentUser(); as user) {
+          <p class="px-3 py-1">
+            <span class="block truncate text-sm font-medium text-[var(--color-foreground)]">
+              {{ user.name }}
+            </span>
+            <span class="block truncate text-xs text-[var(--color-muted-foreground)]">
+              {{ user.email }}
+            </span>
+          </p>
+        }
         <button
           type="button"
           (click)="onLogout()"
@@ -51,9 +61,9 @@ export class DashboardShellComponent {
   protected readonly navLink = NAV_LINK;
   protected readonly navLinkActive = NAV_LINK_ACTIVE;
 
-  private readonly authStore = inject(AuthStore);
+  protected readonly auth = inject(AuthFacade);
 
   onLogout(): void {
-    this.authStore.logout();
+    this.auth.signOut();
   }
 }

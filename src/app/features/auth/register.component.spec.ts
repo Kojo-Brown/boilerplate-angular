@@ -1,22 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import type { ComponentFixture } from '@angular/core/testing';
-import { signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 import { RegisterComponent } from './register.component';
-import { AuthStore } from '@/app/store/auth/auth.store';
-import { fillInput, host, requireEl } from '@/testing';
+import { AuthFacade } from '@/app/core/auth';
+import { createFakeAuthFacade, fillInput, host, requireEl } from '@/testing';
+import type { FakeAuthFacade } from '@/testing';
 
 describe('RegisterComponent', () => {
   let fixture: ComponentFixture<RegisterComponent>;
   let component: RegisterComponent;
 
-  const mockAuthStore = {
-    isAuthenticated: signal(false),
-    isLoading: signal(false),
-    error: signal<string | null>(null),
-    register: jasmine.createSpy('register'),
-    clearError: jasmine.createSpy('clearError'),
-  };
+  /** The same double the login spec uses — see the note there. */
+  let auth: FakeAuthFacade;
 
   // A real Router (not a stub) so `routerLink` can build hrefs, and so `ActivatedRoute`
   // — which RouterLink injects — is present. A spy object supplies neither.
@@ -26,14 +21,11 @@ describe('RegisterComponent', () => {
     requireEl<HTMLButtonElement>(host(fixture), 'button[type="submit"]');
 
   beforeEach(async () => {
-    mockAuthStore.register.calls.reset();
-    mockAuthStore.isAuthenticated.set(false);
-    mockAuthStore.isLoading.set(false);
-    mockAuthStore.error.set(null);
+    auth = createFakeAuthFacade();
 
     await TestBed.configureTestingModule({
       imports: [RegisterComponent],
-      providers: [{ provide: AuthStore, useValue: mockAuthStore }, provideRouter([])],
+      providers: [{ provide: AuthFacade, useValue: auth }, provideRouter([])],
     }).compileComponents();
 
     navigate = spyOn(TestBed.inject(Router), 'navigate');
@@ -82,13 +74,13 @@ describe('RegisterComponent', () => {
     expect(texts.some((t) => t?.includes("Passwords don't match"))).toBeTrue();
   });
 
-  it('should not call register when form is invalid', () => {
+  it('should not sign up when form is invalid', () => {
     submitButton().click();
     fixture.detectChanges();
-    expect(mockAuthStore.register).not.toHaveBeenCalled();
+    expect(auth.signUp).not.toHaveBeenCalled();
   });
 
-  it('should call authStore.register without confirmPassword on valid submit', () => {
+  it('should call the facade without confirmPassword on valid submit', () => {
     const el = host(fixture);
     fillInput(el, '#name', 'Jane Smith');
     fillInput(el, '#email', 'jane@example.com');
@@ -99,7 +91,7 @@ describe('RegisterComponent', () => {
     submitButton().click();
     fixture.detectChanges();
 
-    expect(mockAuthStore.register).toHaveBeenCalledWith({
+    expect(auth.signUp).toHaveBeenCalledWith({
       name: 'Jane Smith',
       email: 'jane@example.com',
       password: 'Password1',
@@ -107,14 +99,14 @@ describe('RegisterComponent', () => {
   });
 
   it('should display API error from store', () => {
-    mockAuthStore.error.set('Email already in use');
+    auth.errorMessage.set('Email already in use');
     fixture.detectChanges();
     const alert = host(fixture).querySelector('[role="alert"]');
     expect(alert?.textContent?.trim()).toContain('Email already in use');
   });
 
   it('should disable button while loading', () => {
-    mockAuthStore.isLoading.set(true);
+    auth.isBusy.set(true);
     fixture.detectChanges();
     const btn = submitButton();
     expect(btn.disabled).toBeTrue();
@@ -128,7 +120,7 @@ describe('RegisterComponent', () => {
 
   it('should navigate to the dashboard once registration authenticates', () => {
     expect(navigate).not.toHaveBeenCalled();
-    mockAuthStore.isAuthenticated.set(true);
+    auth.isSignedIn.set(true);
     fixture.detectChanges();
     expect(navigate).toHaveBeenCalledWith(['/dashboard']);
   });
@@ -144,6 +136,6 @@ describe('RegisterComponent', () => {
     submitButton().click();
     fixture.detectChanges();
 
-    expect(mockAuthStore.register).not.toHaveBeenCalled();
+    expect(auth.signUp).not.toHaveBeenCalled();
   });
 });
