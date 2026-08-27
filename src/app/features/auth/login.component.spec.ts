@@ -1,22 +1,21 @@
 import { TestBed } from '@angular/core/testing';
 import type { ComponentFixture } from '@angular/core/testing';
-import { signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 import { LoginComponent } from './login.component';
-import { AuthStore } from '@/app/store/auth/auth.store';
-import { fillInput, host, requireEl } from '@/testing';
+import { AuthFacade } from '@/app/core/auth';
+import { createFakeAuthFacade, fillInput, host, requireEl } from '@/testing';
+import type { FakeAuthFacade } from '@/testing';
 
 describe('LoginComponent', () => {
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
 
-  const mockAuthStore = {
-    isAuthenticated: signal(false),
-    isLoading: signal(false),
-    error: signal<string | null>(null),
-    login: jasmine.createSpy('login'),
-    clearError: jasmine.createSpy('clearError'),
-  };
+  /**
+   * The component depends on `AuthFacade`, so the double is one too — eight members
+   * checked by the compiler, rather than the five of `AuthStore` this spec used to
+   * hand-roll and the fifteen it left out. See `docs/facade.md`.
+   */
+  let auth: FakeAuthFacade;
 
   // A real Router (not a stub) so `routerLink` can build hrefs — RouterLink calls
   // `createUrlTree`/`serializeUrl`, which a hand-rolled spy object does not implement.
@@ -26,14 +25,11 @@ describe('LoginComponent', () => {
     requireEl<HTMLButtonElement>(host(fixture), 'button[type="submit"]');
 
   beforeEach(async () => {
-    mockAuthStore.login.calls.reset();
-    mockAuthStore.isAuthenticated.set(false);
-    mockAuthStore.isLoading.set(false);
-    mockAuthStore.error.set(null);
+    auth = createFakeAuthFacade();
 
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
-      providers: [{ provide: AuthStore, useValue: mockAuthStore }, provideRouter([])],
+      providers: [{ provide: AuthFacade, useValue: auth }, provideRouter([])],
     }).compileComponents();
 
     navigateByUrl = spyOn(TestBed.inject(Router), 'navigateByUrl');
@@ -73,13 +69,13 @@ describe('LoginComponent', () => {
     expect(errorTexts.some((t) => t?.toLowerCase().includes('email'))).toBeTrue();
   });
 
-  it('should not call login when form is invalid', () => {
+  it('should not sign in when form is invalid', () => {
     submitButton().click();
     fixture.detectChanges();
-    expect(mockAuthStore.login).not.toHaveBeenCalled();
+    expect(auth.signIn).not.toHaveBeenCalled();
   });
 
-  it('should call authStore.login with valid credentials', () => {
+  it('should call the facade with valid credentials', () => {
     const el = host(fixture);
     fillInput(el, '#email', 'user@example.com');
     fillInput(el, '#password', 'Password1');
@@ -88,21 +84,21 @@ describe('LoginComponent', () => {
     submitButton().click();
     fixture.detectChanges();
 
-    expect(mockAuthStore.login).toHaveBeenCalledWith({
+    expect(auth.signIn).toHaveBeenCalledWith({
       email: 'user@example.com',
       password: 'Password1',
     });
   });
 
-  it('should display API error from store', () => {
-    mockAuthStore.error.set('Invalid credentials');
+  it('should display the error the facade reports', () => {
+    auth.errorMessage.set('Invalid credentials');
     fixture.detectChanges();
     const alert = host(fixture).querySelector('[role="alert"]');
     expect(alert?.textContent?.trim()).toContain('Invalid credentials');
   });
 
   it('should disable submit button while loading', () => {
-    mockAuthStore.isLoading.set(true);
+    auth.isBusy.set(true);
     fixture.detectChanges();
     const btn = submitButton();
     expect(btn.disabled).toBeTrue();
@@ -116,7 +112,7 @@ describe('LoginComponent', () => {
 
   it('should navigate to the dashboard once authenticated', () => {
     expect(navigateByUrl).not.toHaveBeenCalled();
-    mockAuthStore.isAuthenticated.set(true);
+    auth.isSignedIn.set(true);
     fixture.detectChanges();
     expect(navigateByUrl).toHaveBeenCalledWith('/dashboard');
   });

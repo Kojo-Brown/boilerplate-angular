@@ -43,5 +43,42 @@ export default tseslint.config(
       // `strict`. Revisit if typescript-eslint#8113 lands.
       '@typescript-eslint/no-invalid-void-type': 'off',
     },
+  },
+  {
+    // The facade boundary, as a rule rather than a convention.
+    //
+    // `features/` and `shared/` are view code, and view code talks to the auth domain
+    // through `AuthFacade` in `@/app/core/auth`. Without a rule here the pattern lasts
+    // exactly until the next person types `inject(AuthStore)` — it compiles, it works,
+    // and the seam is gone. `docs/facade.md` explains what the seam is worth.
+    //
+    // `core/` is exempt on purpose: `authGuard`, `roleGuard`, `jwtInterceptor` and
+    // `app.config.ts` coordinate the session lifecycle (restore, rotate, redirect) and
+    // legitimately need the store's full surface. So is `src/testing/`, which builds the
+    // doubles for both layers.
+    //
+    // The base rule rather than `@typescript-eslint/no-restricted-imports`: its extra
+    // option is `allowTypeImports`, and a type pulled from `@/app/store/**` is exactly
+    // what this is meant to stop — `@/app/core/auth` re-exports the domain types.
+    files: ['src/app/features/**/*.ts', 'src/app/shared/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@ngrx/*', '@ngrx/**'],
+              message:
+                'View code must not depend on the state library. Use AuthFacade from @/app/core/auth, or add the read you need to it.',
+            },
+            {
+              group: ['@/app/store/*', '@/app/store/**', '**/app/store/*', '**/app/store/**'],
+              message:
+                'Components go through AuthFacade (@/app/core/auth), which also re-exports User, LoginCredentials and RegisterCredentials. See docs/facade.md.',
+            },
+          ],
+        },
+      ],
+    },
   }
 );

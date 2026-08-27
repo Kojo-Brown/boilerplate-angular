@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AuthStore } from '@/app/store/auth/auth.store';
+import { AuthFacade } from '@/app/core/auth';
 import { controlErrorSignal, controlSignal } from '@/app/core/reactivity';
 import { zodValidator, zodGroupValidator } from '@/app/core/validators/zod-validator';
 import { registerBaseSchema, registerSchema } from './auth.schemas';
@@ -26,12 +26,12 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
             </p>
           </div>
 
-          @if (authStore.error()) {
+          @if (auth.errorMessage()) {
             <div
               role="alert"
               class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
             >
-              {{ authStore.error() }}
+              {{ auth.errorMessage() }}
             </div>
           }
 
@@ -133,10 +133,10 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
 
             <button
               type="submit"
-              [disabled]="authStore.isLoading()"
+              [disabled]="auth.isBusy()"
               class="mt-6 w-full rounded-md bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              @if (authStore.isLoading()) {
+              @if (auth.isBusy()) {
                 Creating account…
               } @else {
                 Create account
@@ -158,7 +158,7 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
 export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
-  protected readonly authStore = inject(AuthStore);
+  protected readonly auth = inject(AuthFacade);
 
   protected readonly form = this.fb.group(
     {
@@ -172,7 +172,7 @@ export class RegisterComponent {
 
   constructor() {
     effect(() => {
-      if (this.authStore.isAuthenticated()) {
+      if (this.auth.isSignedIn()) {
         void this.router.navigate(['/dashboard']);
       }
     });
@@ -215,6 +215,6 @@ export class RegisterComponent {
     if (!result.success) return;
 
     const { confirmPassword: _, ...credentials } = result.data;
-    this.authStore.register(credentials);
+    this.auth.signUp(credentials);
   }
 }
