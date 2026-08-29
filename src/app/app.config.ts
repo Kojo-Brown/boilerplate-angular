@@ -10,6 +10,10 @@ import { errorInterceptor } from '@/app/core/http/interceptors/error.interceptor
 import { jwtInterceptor } from '@/app/core/http/interceptors/jwt.interceptor';
 import { loggingInterceptor } from '@/app/core/http/interceptors/logging.interceptor';
 import { createQueryClient } from '@/app/core/query/query-client.config';
+import {
+  BUILT_IN_API_ERROR_MAPPERS,
+  provideApiErrorMappers,
+} from '@/app/core/http/errors/api-error-mappers';
 import { AuthStore } from '@/app/store/auth/auth.store';
 
 export const appConfig: ApplicationConfig = {
@@ -24,6 +28,14 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([loggingInterceptor, errorInterceptor, jwtInterceptor])),
+
+    // How `errorInterceptor` reads a failed response, as a list rather than a function
+    // body. First match wins, so this order is the contract: dropping a strategy is
+    // deleting a name here, and adding one — a legacy gateway's `{ err_code, err_msg }`,
+    // say — means deciding which built-ins it should get asked before.
+    // `docs/strategy-tokens.md` covers that and the lazy-route case.
+    provideApiErrorMappers(...BUILT_IN_API_ERROR_MAPPERS),
+
     provideTanStackQuery(createQueryClient()),
     { provide: TitleStrategy, useClass: AppTitleStrategy },
 

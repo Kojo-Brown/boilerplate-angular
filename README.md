@@ -228,6 +228,22 @@ See [docs/facade.md](./docs/facade.md) for what a component could reach before
 and cannot now, why the facade passes the store's signals through instead of
 wrapping them, and what the typed `createFakeAuthFacade` double replaced.
 
+## API error strategies
+
+How a failed response becomes an `ApiError` is a list, not a function body.
+`errorInterceptor` injects `API_ERROR_MAPPERS` — a `multi: true` token holding
+`ApiErrorMapper` strategies — and takes the first one that recognises the
+response. Four ship: `offline` (no status at all), `problem-json` (RFC 9457),
+`message-envelope` (this API's own `{ message, errors }`) and `string-body`
+(`text/plain`). `app.config.ts` registers them with
+`provideApiErrorMappers(...BUILT_IN_API_ERROR_MAPPERS)`, so supporting one more
+backend format is one entry in that call and no change under `core/http`.
+
+See [docs/strategy-tokens.md](./docs/strategy-tokens.md) for why `map()` returns
+`ApiError | null` instead of pairing with a `canMap()`, why the token carries no
+`providedIn` default, and why a lazy route that provides mappers **replaces**
+the set rather than adding to it.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:
