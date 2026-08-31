@@ -9,7 +9,16 @@ import { AppTitleStrategy } from '@/app/core/routing/title.strategy';
 import { errorInterceptor } from '@/app/core/http/interceptors/error.interceptor';
 import { jwtInterceptor } from '@/app/core/http/interceptors/jwt.interceptor';
 import { loggingInterceptor } from '@/app/core/http/interceptors/logging.interceptor';
+import { cacheInterceptor } from '@/app/core/http/interceptors/cache.interceptor';
+import { retryInterceptor } from '@/app/core/http/interceptors/retry.interceptor';
+import { telemetryInterceptor } from '@/app/core/http/interceptors/telemetry.interceptor';
+import {
+  composeInterceptors,
+  interceptWhen,
+  requestsUnder,
+} from '@/app/core/http/interceptors/compose';
 import { createQueryClient } from '@/app/core/query/query-client.config';
+import { environment } from '@/environments/environment';
 import {
   BUILT_IN_API_ERROR_MAPPERS,
   provideApiErrorMappers,
@@ -27,7 +36,32 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideAnimationsAsync(),
     provideRouter(routes, withComponentInputBinding()),
-    provideHttpClient(withInterceptors([loggingInterceptor, errorInterceptor, jwtInterceptor])),
+    // Outermost first. The order is the whole design, so it is written out rather than
+    // left to be inferred; `docs/interceptor-decorators.md` argues each position.
+    //
+    //   telemetry  — measures what the caller waited for, backoff and refresh included
+    //   logging    — dev console, inside telemetry so it cannot skew the measurement
+    //   error      — normalises failures, so nothing above it sees an HttpErrorResponse
+    //   jwt        — owns the Authorization header and the 401 refresh queue
+    //   cache      — keys on the request jwt will actually send, credential included
+    //   retry      — nearest the transport, so one request can be several attempts
+    //
+    // `cache` and `retry` are scoped to this application's own API. Neither is safe to
+    // apply blind to a third-party URL: the cache would key someone else's endpoint by
+    // our `Authorization` header, and the retry would decide on our behalf that another
+    // service's 503 is worth a second request.
+    provideHttpClient(
+      withInterceptors([
+        telemetryInterceptor,
+        loggingInterceptor,
+        errorInterceptor,
+        jwtInterceptor,
+        interceptWhen(
+          requestsUnder(environment.apiUrl),
+          composeInterceptors(cacheInterceptor, retryInterceptor)
+        ),
+      ])
+    ),
 
     // How `errorInterceptor` reads a failed response, as a list rather than a function
     // body. First match wins, so this order is the contract: dropping a strategy is
