@@ -244,6 +244,28 @@ See [docs/strategy-tokens.md](./docs/strategy-tokens.md) for why `map()` returns
 `providedIn` default, and why a lazy route that provides mappers **replaces**
 the set rather than adding to it.
 
+## HTTP decorators
+
+An `HttpInterceptorFn` takes the handler beneath it and returns a handler, so
+the interceptor chain is already a decorator stack. Three decorators use that:
+`retryInterceptor` (exponential backoff with full jitter, idempotent methods
+only, `Retry-After` honoured), `cacheInterceptor` (in-flight deduplication
+always, storage only when the response's `Cache-Control` or the call site says
+so) and `telemetryInterceptor` (one span per request, counting `cancelled`
+separately from `error`). `composeInterceptors` folds several into one and
+`interceptWhen` scopes the result, so `app.config.ts` can apply the cache and
+the retry to this application's own API and nothing else.
+
+The three are ordered, not merely listed: telemetry outermost so it measures the
+backoff, cache beneath `jwtInterceptor` so its key carries the credential, retry
+innermost so three attempts are one cache entry and one span. What each learned
+travels back up through a mutable `REQUEST_TRACE` on the `HttpContext`.
+
+See [docs/interceptor-decorators.md](./docs/interceptor-decorators.md) for the
+position-by-position argument, why nothing is cached by default, why `POST` is
+absent from the retry policy, and the `runInInjectionContext` hazard that
+`composeInterceptors` exists to avoid.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:
