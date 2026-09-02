@@ -7,6 +7,8 @@ import { environment } from '@/environments/environment';
 import { createMockPost } from '@/testing';
 import type { Post } from './posts.models';
 import { injectPostResource } from './posts.resource';
+import { HttpPostsService } from './http-posts.service';
+import { providePostsBackend } from './posts.providers';
 
 const BASE = `${environment.apiUrl}/posts`;
 
@@ -35,7 +37,11 @@ describe('injectPostResource', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        ...providePostsBackend(HttpPostsService),
+      ],
     });
     backend = TestBed.inject(HttpTestingController);
     id = signal('');

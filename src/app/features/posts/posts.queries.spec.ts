@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideTanStackQuery, QueryClient } from '@tanstack/angular-query-experimental';
-import { PostsService } from './posts.service';
+import { HttpPostsService } from './http-posts.service';
+import { providePostsBackend } from './posts.providers';
 import { queryKeys } from '@/app/core/query/query-keys';
 
 function createTestQueryClient(): QueryClient {
@@ -53,8 +54,8 @@ describe('queryKeys', () => {
   });
 });
 
-describe('PostsService', () => {
-  let service: PostsService;
+describe('HttpPostsService', () => {
+  let service: HttpPostsService;
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
@@ -63,10 +64,11 @@ describe('PostsService', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideTanStackQuery(createTestQueryClient()),
+        ...providePostsBackend(HttpPostsService),
       ],
     });
 
-    service = TestBed.inject(PostsService);
+    service = TestBed.inject(HttpPostsService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 

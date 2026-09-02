@@ -4,27 +4,32 @@ import type { Observable } from 'rxjs';
 import { ApiService } from '@/app/core/http/api.service';
 import { abortableRequest } from '@/app/core/reactivity';
 import type { PaginatedResponse } from '@/app/core/http/models/api.models';
+// `import type`: an implementation needs the roles' *shape* to satisfy `implements`,
+// never their identity as tokens. Only `posts.providers.ts`, which builds the
+// providers, imports them as values — the import graph DIP asks for.
 import type { PostReader, PostSearcher, PostWriter } from './posts.contracts';
 import type { CreatePostDto, Post, PostsListParams, UpdatePostDto } from './posts.models';
 
 /**
- * The implementation behind the three post roles.
+ * The posts backend this application ships with: every role, served over HTTP.
  *
- * `implements` is doing real work here: it is what makes a signature change to
- * `PostReader` a compile error in this file rather than a silent divergence between the
- * class and the interface its consumers hold.
+ * `implements` is doing real work here — it is what makes a signature change to
+ * {@link PostReader} a compile error in this file rather than a silent divergence
+ * between the class and the abstraction its consumers inject. `implements` rather than
+ * `extends` because TypeScript has single inheritance and there are three roles; the
+ * abstract classes carry no state and no implementation, so structural satisfaction is
+ * all that is needed and `providePostsBackend` binds each token to this instance.
+ *
+ * Deliberately **not** `providedIn: 'root'`. A backend nothing has chosen should not be
+ * reachable: with a root registration, `inject(HttpPostsService)` keeps working and the
+ * abstraction is a suggestion rather than the only way in. Wiring is
+ * `providePostsBackend(HttpPostsService)` in `app.config.ts`, and a spec that wants the
+ * real transport says so the same way.
  */
-@Injectable({ providedIn: 'root' })
-export class PostsService implements PostReader, PostSearcher, PostWriter {
+@Injectable()
+export class HttpPostsService implements PostReader, PostSearcher, PostWriter {
   private readonly api = inject(ApiService);
 
-  /**
-   * The reads take an optional `AbortSignal` so a `resource()` loader can hand its own
-   * signal straight through and have a superseded request actually cancelled. The
-   * mutations deliberately do not: `resource` aborts whenever its params change or its
-   * owner is destroyed, which for a write means tearing down a request the server may
-   * already have acted on.
-   */
   getAll(params?: PostsListParams, abortSignal?: AbortSignal): Promise<PaginatedResponse<Post>> {
     return this.awaitRequest(
       this.api.get<PaginatedResponse<Post>>('/posts', {

@@ -6,6 +6,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { environment } from '@/environments/environment';
 import { createMockPost } from '@/testing';
 import { PostDetailComponent } from './post-detail.component';
+import { HttpPostsService } from './http-posts.service';
+import { providePostsBackend } from './posts.providers';
 
 const BASE = `${environment.apiUrl}/posts`;
 
@@ -15,7 +17,12 @@ describe('PostDetailComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PostDetailComponent],
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        ...providePostsBackend(HttpPostsService),
+      ],
     }).compileComponents();
     backend = TestBed.inject(HttpTestingController);
   });

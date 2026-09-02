@@ -1,7 +1,6 @@
 import { inject, resource } from '@angular/core';
 import type { ResourceRef, Signal } from '@angular/core';
-import { PostsService } from './posts.service';
-import type { PostReader } from './posts.contracts';
+import { PostReader } from './posts.contracts';
 import type { Post } from './posts.models';
 
 /**
@@ -17,7 +16,9 @@ import type { Post } from './posts.models';
  *
  * - **Cancellation is automatic.** Changing the id aborts the load already in flight
  *   before starting the next one, and so does destroying the component. The abort
- *   reaches `HttpClient` because `PostsService` awaits through `abortableRequest`; the
+ *   reaches `HttpClient` because `HttpPostsService` awaits through `abortableRequest`,
+ *   and `InMemoryPostsService` rejects on an already-aborted signal for the same
+ *   reason; the
  *   practical effect is that clicking through a list quickly leaves one open request
  *   rather than one per click, and a slow first response can no longer land after a
  *   faster second one and overwrite it.
@@ -32,19 +33,20 @@ import type { Post } from './posts.models';
  * Like every `inject`-prefixed helper here, this must be called from an injection
  * context; the resource is then owned by that context and torn down with it. It takes
  * no `{ injector }` escape hatch on purpose: the option would only reach `resource()`
- * and not the `inject(PostsService)` above it, so it could not do what its name
+ * and not the `inject(PostReader)` above it, so it could not do what its name
  * promised. Wrap the call in `runInInjectionContext` instead.
  *
  * @param id Post id to load. An empty string leaves the resource idle.
  */
 export function injectPostResource(id: Signal<string>): ResourceRef<Post | undefined> {
-  // Typed as the narrow role, not as the class: this loader reads one post, and nothing
-  // about it should have to change when the writing side of `PostsService` does.
-  const postsService: PostReader = inject(PostsService);
+  // The narrow role is the token, not just the annotation: this loader reads one post,
+  // and nothing about it should have to change when the writing side of the backend
+  // does — or when the backend stops being the HTTP one.
+  const posts = inject(PostReader);
 
   return resource({
     params: () => id() || undefined,
-    loader: ({ params, abortSignal }) => postsService.getById(params, abortSignal),
+    loader: ({ params, abortSignal }) => posts.getById(params, abortSignal),
     debugName: 'postResource',
   });
 }
