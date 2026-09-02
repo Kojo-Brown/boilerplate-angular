@@ -5,6 +5,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideTanStackQuery, QueryClient } from '@tanstack/angular-query-experimental';
 import { PostsListComponent } from './posts-list.component';
+import { HttpPostsService } from './http-posts.service';
+import { providePostsBackend } from './posts.providers';
 
 function createTestQueryClient(): QueryClient {
   return new QueryClient({
@@ -23,6 +25,7 @@ describe('PostsListComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideTanStackQuery(createTestQueryClient()),
+        ...providePostsBackend(HttpPostsService),
       ],
     }).compileComponents();
   });

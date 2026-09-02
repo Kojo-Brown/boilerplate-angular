@@ -201,9 +201,10 @@ Four injection seams in the app exist because a SOLID audit found a cost, not
 because a principle said so: `THEME_PREFERENCE_STORE` (where a theme choice is
 remembered), `TOAST_SCHEDULER` and `TOAST_ID_FACTORY` (deferred work and ids, as
 dependencies rather than globals), and `AUTH_BYPASS_PATHS` (which endpoints
-`jwtInterceptor` leaves unsigned). `PostsService` additionally publishes three
-role interfaces — `PostReader`, `PostSearcher`, `PostWriter` — so a consumer can
-depend on the slice it uses.
+`jwtInterceptor` leaves unsigned). The posts backend additionally publishes
+three roles — `PostReader`, `PostSearcher`, `PostWriter` — so a consumer can
+depend on the slice it uses; they are abstract classes, and therefore tokens as
+well as types (see below).
 
 See [docs/solid.md](./docs/solid.md) for the before/after on each of the five
 principles, the tests they made possible, and the three violations that are
@@ -265,6 +266,26 @@ See [docs/interceptor-decorators.md](./docs/interceptor-decorators.md) for the
 position-by-position argument, why nothing is cached by default, why `POST` is
 absent from the retry policy, and the `runInInjectionContext` hazard that
 `composeInterceptors` exists to avoid.
+
+## Dependency inversion
+
+The posts backend is reached through three **abstract classes** — `PostReader`,
+`PostSearcher`, `PostWriter` — which in Angular are one symbol that is both a
+type and an injection token. Consumers inject the role they use and no longer
+import an implementation; `core/routing` no longer reaches into `features/` for
+one. Two backends satisfy them: `HttpPostsService`, chosen by the lazy dashboard
+route that owns the posts pages, and `InMemoryPostsService`, which lets a
+component spec exercise the real read-write cycle with no `HttpTestingController`
+at all.
+
+`providePostsBackend(Backend)` binds all three roles to one instance with
+`useExisting`, and takes a `Type<PostsBackend>` so the class is checked — which
+Angular's own `useClass`/`useValue`/`useExisting` literals, all typed `any`, are
+not.
+
+See [docs/dependency-inversion.md](./docs/dependency-inversion.md) for why an
+abstract class here and an `InjectionToken` in `docs/solid.md`, what `useClass`
+would have cost, and where the in-memory backend's fidelity stops.
 
 ## Dependency notes
 

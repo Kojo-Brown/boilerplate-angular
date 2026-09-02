@@ -1,15 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, convertToParamMap } from '@angular/router';
-import { PostsService } from '@/app/features/posts/posts.service';
+import { PostReader } from '@/app/features/posts/posts.contracts';
 import { postTitleResolver } from './post-title.resolver';
 
 describe('postTitleResolver', () => {
-  let postsServiceSpy: jasmine.SpyObj<PostsService>;
+  let readerSpy: jasmine.SpyObj<PostReader>;
 
   beforeEach(() => {
-    postsServiceSpy = jasmine.createSpyObj<PostsService>('PostsService', ['getById']);
+    readerSpy = jasmine.createSpyObj<PostReader>('PostReader', ['getById']);
     TestBed.configureTestingModule({
-      providers: [{ provide: PostsService, useValue: postsServiceSpy }],
+      providers: [{ provide: PostReader, useValue: readerSpy }],
     });
   });
 
@@ -22,7 +22,7 @@ describe('postTitleResolver', () => {
   }
 
   it('returns the post title when fetch succeeds', async () => {
-    postsServiceSpy.getById.and.returnValue(
+    readerSpy.getById.and.returnValue(
       Promise.resolve({
         id: '1',
         title: 'Hello World',
@@ -41,7 +41,7 @@ describe('postTitleResolver', () => {
   });
 
   it('returns "Post Detail" when fetch fails', async () => {
-    postsServiceSpy.getById.and.returnValue(Promise.reject(new Error('not found')));
+    readerSpy.getById.and.returnValue(Promise.reject(new Error('not found')));
 
     const result = await TestBed.runInInjectionContext(() =>
       postTitleResolver(buildRoute('1'), {} as never)
@@ -56,6 +56,6 @@ describe('postTitleResolver', () => {
     );
 
     expect(result).toBe('Post Detail');
-    expect(postsServiceSpy.getById).not.toHaveBeenCalled();
+    expect(readerSpy.getById).not.toHaveBeenCalled();
   });
 });

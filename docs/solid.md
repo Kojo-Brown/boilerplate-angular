@@ -277,6 +277,13 @@ It is still one class behind one injection token. Splitting it into three servic
 move the coupling into `app.config.ts` and buy nothing; what changes is the *type* each
 caller holds, which is where the coupling was actually doing damage.
 
+> **Superseded by the D section's follow-up.** The roles are unchanged in shape but are
+> now abstract classes rather than interfaces, so the *token* is the role too:
+> `inject(PostSearcher)`, not `inject(PostsService)` with a `PostSearcher` annotation.
+> The class is `HttpPostsService`. See
+> [`docs/dependency-inversion.md`](./dependency-inversion.md); the snippets below are
+> kept as the audit recorded them.
+
 `implements` on the class matters as much as the annotations on the consumers: without
 it, a signature change to `PostReader` would leave the interface and the class quietly
 disagreeing until some third file failed to compile.
@@ -385,6 +392,12 @@ Inverting a *domain* dependency, where two implementations are both real and a c
 should be able to swap one for the other, is a different exercise and has its own entry in
 Phase 7 of `SPEC.md` (`abstract-class provider tokens, swapped in tests`). This audit
 deliberately does not pre-empt it.
+
+That exercise has since been done to the posts backend, and the rule this section states
+is the one it follows: `PostReader`/`PostSearcher`/`PostWriter` are abstract classes
+because two backends behind them are real, while the in-memory backend's own clock is an
+`InjectionToken` with a `factory` default, for exactly the reasons above. See
+[`docs/dependency-inversion.md`](./dependency-inversion.md).
 
 ---
 

@@ -195,11 +195,11 @@ decides *what* to load, a `loader` does the loading, and the result is exposed a
 
 ```ts
 export function injectPostResource(id: Signal<string>): ResourceRef<Post | undefined> {
-  const postsService = inject(PostsService);
+  const posts = inject(PostReader);
 
   return resource({
     params: () => id() || undefined,
-    loader: ({ params, abortSignal }) => postsService.getById(params, abortSignal),
+    loader: ({ params, abortSignal }) => posts.getById(params, abortSignal),
   });
 }
 ```
@@ -221,7 +221,7 @@ loader: ({ params }) => lastValueFrom(this.api.get<Post>(`/posts/${params}`)),
 
 `abortableRequest` from `@/app/core/reactivity` is the bridge: it keeps the subscription
 and drops it when the signal fires, resolving exactly like `lastValueFrom` otherwise.
-`PostsService` awaits its reads through it, which is why `getById` and `getAll` take an
+`HttpPostsService` awaits its reads through it, which is why `getById` and `getAll` take an
 optional `AbortSignal` and the mutations do not — aborting a write the server may have
 already acted on is not a cancellation, it is a lost result.
 

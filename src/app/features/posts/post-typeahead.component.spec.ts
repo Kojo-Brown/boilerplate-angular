@@ -8,9 +8,10 @@ import type { TestRequest } from '@angular/common/http/testing';
 import { environment } from '@/environments/environment';
 import { createMockPost, fillInput, host, requireEl } from '@/testing';
 import { PostTypeaheadComponent } from './post-typeahead.component';
-import { PostsService } from './posts.service';
 import type { PaginatedResponse } from '@/app/core/http/models/api.models';
-import type { PostSearcher } from './posts.contracts';
+import { PostSearcher } from './posts.contracts';
+import { HttpPostsService } from './http-posts.service';
+import { providePostsBackend } from './posts.providers';
 import type { Post } from './posts.models';
 
 const BASE = `${environment.apiUrl}/posts`;
@@ -28,7 +29,12 @@ describe('PostTypeaheadComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [PostTypeaheadComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        ...providePostsBackend(HttpPostsService),
+      ],
     });
     httpTesting = TestBed.inject(HttpTestingController);
   });
@@ -286,11 +292,15 @@ describe('PostTypeaheadComponent', () => {
 
   /**
    * The interface-segregation payoff, stated as a test: what this component needs from
-   * `PostsService` is one method. If that ever stops being true, this spec fails to
+   * the posts backend is one method. If that ever stops being true, this spec fails to
    * compile — which is a better warning than a component quietly growing a dependency
    * on the writing side of the posts API.
+   *
+   * `PostSearcher` being the *token* and not just the annotation is what makes the
+   * double a two-method object rather than a stand-in for the whole backend, and what
+   * lets this run with no HTTP layer configured at all.
    */
-  it('needs nothing from PostsService beyond PostSearcher', fakeAsync(() => {
+  it('needs nothing from the posts backend beyond PostSearcher', fakeAsync(() => {
     const searcher: PostSearcher = {
       search: (query) => of([createMockPost({ id: '1', title: `Result for ${query}` })]),
     };
@@ -299,7 +309,7 @@ describe('PostTypeaheadComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [PostTypeaheadComponent],
-      providers: [provideRouter([]), { provide: PostsService, useValue: searcher }],
+      providers: [provideRouter([]), { provide: PostSearcher, useValue: searcher }],
     });
 
     create();

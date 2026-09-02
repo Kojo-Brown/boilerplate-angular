@@ -1,9 +1,15 @@
+import { createEnvironmentInjector, EnvironmentInjector } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { DASHBOARD_ROUTES } from './dashboard.routes';
 import { postTitleResolver } from '@/app/core/routing/post-title.resolver';
 import { DashboardShellComponent } from './dashboard-shell.component';
 import { DashboardComponent } from './dashboard.component';
 import { PostsListComponent } from '../posts/posts-list.component';
 import { PostDetailComponent } from '../posts/post-detail.component';
+import { HttpPostsService } from '../posts/http-posts.service';
+import { PostReader, PostSearcher, PostWriter } from '../posts/posts.contracts';
 import { loadRouteComponent } from '@/testing';
 
 describe('DASHBOARD_ROUTES', () => {
@@ -36,6 +42,43 @@ describe('DASHBOARD_ROUTES', () => {
     // The detail title is resolved per-post rather than static, so the route carries the
     // resolver itself. Asserting identity keeps this pinned to the real resolver.
     expect(detail?.title).toBe(postTitleResolver);
+  });
+
+  /**
+   * The posts backend is chosen here rather than in `app.config.ts`, so that choice is
+   * load-bearing and belongs in a test: dropping these providers leaves every consumer
+   * of `PostReader` throwing NG0201 on a page nothing else covers.
+   *
+   * `createEnvironmentInjector` is what the router itself does with a route's
+   * `providers`, so this exercises the real mechanism rather than a stand-in for it.
+   */
+  describe('posts backend wiring', () => {
+    it('binds all three roles to one HttpPostsService for the routes beneath it', () => {
+      TestBed.configureTestingModule({
+        providers: [provideHttpClient(), provideHttpClientTesting()],
+      });
+      const scoped = createEnvironmentInjector(
+        shell.providers ?? [],
+        TestBed.inject(EnvironmentInjector)
+      );
+
+      const reader = scoped.get(PostReader);
+
+      expect(reader).toBeInstanceOf(HttpPostsService);
+      expect<unknown>(scoped.get(PostSearcher)).toBe(reader);
+      expect<unknown>(scoped.get(PostWriter)).toBe(reader);
+
+      scoped.destroy();
+    });
+
+    it('leaves the roles unprovided above the route, so the backend stays scoped', () => {
+      TestBed.configureTestingModule({
+        providers: [provideHttpClient(), provideHttpClientTesting()],
+      });
+
+      expect(TestBed.inject(PostReader, null)).toBeNull();
+      expect(TestBed.inject(HttpPostsService, null)).toBeNull();
+    });
   });
 
   describe('lazy loaders actually resolve', () => {

@@ -50,7 +50,7 @@ follows from that:
 
 - **`HttpClient` aborts the request** when its last subscriber leaves, so a superseded
   search really does stop occupying a connection. Asserted, not assumed:
-  [`posts.service.spec.ts`](../src/app/features/posts/posts.service.spec.ts) unsubscribes
+  [`http-posts.service.spec.ts`](../src/app/features/posts/http-posts.service.spec.ts) unsubscribes
   and expects `req.cancelled`.
 - **The abort is client-side only.** For a `GET`, that is the end of it. For a write, the
   server may already have committed: cancelling a `POST /auth/login` un-issues nothing,
@@ -58,7 +58,7 @@ follows from that:
   exists. That asymmetry is the whole argument for `exhaustMap` on a submit.
 - **A Promise has no teardown**, so `switchMap(() => somePromise)` cancels nothing; it
   only ignores the result. This is why
-  [`PostsService.search`](../src/app/features/posts/posts.service.ts) is the one read in
+  [`HttpPostsService.search`](../src/app/features/posts/http-posts.service.ts) is the one read in
   that service that stays an Observable while `getAll`/`getById` return Promises: its
   caller is a `switchMap`, and a Promise would quietly turn cancellation into a comment.
 

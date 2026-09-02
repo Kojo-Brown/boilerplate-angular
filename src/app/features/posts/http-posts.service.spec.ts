@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { PostsService } from './posts.service';
+import { HttpPostsService } from './http-posts.service';
+import { providePostsBackend } from './posts.providers';
 import { environment } from '@/environments/environment';
 import { createMockPost } from '@/testing';
 import type { PaginatedResponse } from '@/app/core/http/models/api.models';
@@ -9,15 +10,19 @@ import type { Post } from './posts.models';
 
 const BASE = `${environment.apiUrl}/posts`;
 
-describe('PostsService', () => {
-  let service: PostsService;
+describe('HttpPostsService', () => {
+  let service: HttpPostsService;
   let http: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        ...providePostsBackend(HttpPostsService),
+      ],
     });
-    service = TestBed.inject(PostsService);
+    service = TestBed.inject(HttpPostsService);
     http = TestBed.inject(HttpTestingController);
   });
 
