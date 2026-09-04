@@ -2,6 +2,8 @@ import type { Routes } from '@angular/router';
 import { postTitleResolver } from '@/app/core/routing/post-title.resolver';
 import { HttpPostsService } from '../posts/http-posts.service';
 import { providePostsBackend } from '../posts/posts.providers';
+import { SAMPLE_WIDGETS } from './widgets/sample-widgets';
+import { provideDashboardWidgets } from './widgets/widget.contracts';
 
 export const DASHBOARD_ROUTES: Routes = [
   {
@@ -27,6 +29,12 @@ export const DASHBOARD_ROUTES: Routes = [
         path: '',
         loadComponent: () => import('./dashboard.component').then((m) => m.DashboardComponent),
         title: 'Dashboard',
+        // Which widgets the board renders. On this route rather than in `app.config.ts` for
+        // the reason the posts backend is: the board is the only consumer, the widget
+        // components and their sample data are only reachable from here, and naming them at
+        // the root would put all of it in the initial bundle. Replace the argument list to
+        // change the dashboard; the board itself imports no widget.
+        providers: [provideDashboardWidgets(...SAMPLE_WIDGETS)],
       },
       {
         path: 'posts',

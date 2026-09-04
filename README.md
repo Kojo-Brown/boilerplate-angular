@@ -287,6 +287,31 @@ See [docs/dependency-inversion.md](./docs/dependency-inversion.md) for why an
 abstract class here and an `InjectionToken` in `docs/solid.md`, what `useClass`
 would have cost, and where the in-memory backend's fidelity stops.
 
+## Dynamic components
+
+`ViewContainerRef.createComponent()` renders a component the template does not
+name, and `inputBinding`/`outputBinding`/`twoWayBinding` carry values into it —
+all of them taking a `string` name and an `unknown` value, so nothing checks that
+the input exists or that the value fits. `dynamicComponent(Type, bind => [...])`
+in `src/app/shared/dynamic/` closes that: names are `keyof` the component's
+`input()`/`model()`/`output()` declarations, values are the types those declare,
+and a transformed input widens to what its transform accepts exactly as it does
+in a template. `[appDynamicOutlet]` renders the result.
+
+The two names the compiler cannot see — an aliased input, an `@Input()` field —
+are checked at construction with `reflectComponentType()`, so binding `total`
+when the alias is `count` fails with both names in the message instead of
+silently binding nothing.
+
+`WidgetBoardComponent` is the payoff: it renders whatever is registered under
+`DASHBOARD_WIDGETS`, imports no widget, and knows no widget's inputs, because
+each definition binds its own component under the compiler's eye.
+
+See [docs/dynamic-components.md](./docs/dynamic-components.md) for what each
+declaration maps to, why the descriptor's reference is the identity of the
+rendering, when `NgComponentOutlet` is the better trade, and the five things
+this deliberately does not cover.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:
