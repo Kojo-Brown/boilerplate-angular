@@ -312,6 +312,28 @@ declaration maps to, why the descriptor's reference is the identity of the
 rendering, when `NgComponentOutlet` is the better trade, and the five things
 this deliberately does not cover.
 
+## Structural directives
+
+`src/app/shared/directives/` holds the two structural directives this
+application needed after `@if` and `@for` became language features.
+`*appAsync="post; let data; loading: skeleton; error: failed"` renders the
+loaded branch of an asynchronous read with `data` typed, over an
+`AsyncSnapshot<T>` built by `resourceSnapshot()` or `querySnapshot()` — which is
+also where each library's ordering hazard is handled once, `resource.value()`
+throwing in the error state and a failed TanStack refetch keeping the data it
+had. `*appRepeat="6"` renders a template a fixed number of times, which `@for`
+has no spelling for.
+
+`data` is a `Post` and not `any` because of four lines: a directive that omits
+`ngTemplateContextGuard` does not get `unknown` in its template, it switches
+template type-checking off inside it. With the guard, `{{ data.titel }}` fails
+`pnpm build`; without it, the same typo builds clean and renders nothing.
+
+See [docs/structural-directives.md](./docs/structural-directives.md) for both
+guard forms and why only one of them is here, what a `TemplateRef` passed as an
+input can and cannot type, and why the loaded view is updated rather than
+recreated.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:
