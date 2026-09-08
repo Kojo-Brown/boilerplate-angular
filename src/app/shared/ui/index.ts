@@ -14,3 +14,5 @@ export type { Toast, ToastOptions, ToastScheduler, ToastType } from './toast/toa
 export { ThemeToggleComponent } from './theme-toggle/theme-toggle.component';
 
 export { LayoutShellComponent } from './layout/layout-shell.component';
+
+export { PanelSkeletonComponent } from './skeleton/panel-skeleton.component';

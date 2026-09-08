@@ -24,6 +24,11 @@ concurrency:
 #   - `scripts/ci/assert-no-zonejs.sh` fails the build job if ZoneJS reaches the bundle.
 #     Unlike the gates above this one is not about warnings: nothing warns when ZoneJS
 #     comes back, which is exactly why it needs its own check (see `docs/zoneless.md`).
+#   - `scripts/ci/assert-deferred-chunks.mjs` fails the build job when a `@defer` block
+#     has stopped splitting a chunk. Same shape of problem as ZoneJS and the same reason
+#     it is checked against the artifact: an eager reference to a deferred component is
+#     silent — it moves code between two lazy chunks, so the initial-bundle budget does
+#     not move either (see `docs/defer.md`).
 #   - `NODE_OPTIONS: --throw-deprecation` promotes Node runtime deprecation warnings to
 #     thrown errors, so a deprecated API — ours or a dependency's — surfaces on the
 #     oldest and the newest supported runtime rather than when it is finally removed.
@@ -172,6 +177,19 @@ jobs:
       # re-adds ~35 kB to the bundle. This checks the emitted JavaScript instead.
       - name: Fail if ZoneJS is in the bundle
         run: ./scripts/ci/assert-no-zonejs.sh dist/boilerplate-angular
+
+      # Whether a `@defer` block still defers anything is invisible everywhere else: an
+      # eager reference to a deferred component moves the code between two lazy chunks,
+      # which no budget, no lint rule and no spec can see. `check:defer` reads the
+      # bundler's own metafile; `docs/defer.md` says what it checks.
+      #
+      # One Node major, like `format`, and for the same reason: the chunk graph is a
+      # function of the source and the bundler, so running it three times only burns
+      # runner minutes. It builds a second time to get the metafile, which is why it is
+      # not folded into the step above.
+      - name: Assert every @defer block still splits its chunk
+        if: matrix.node-version == '22'
+        run: pnpm check:defer
 
       - name: Upload build artifact
         # One copy of `dist/` is enough; the other majors still have to build cleanly.
