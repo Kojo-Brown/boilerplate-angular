@@ -49,6 +49,8 @@ pnpm start  # http://localhost:4200
 | `pnpm test`        | Karma unit tests, single run                                |
 | `pnpm test:ci`     | Same, pinned to the sandboxed `ChromeHeadlessCI` launcher   |
 | `pnpm e2e`         | Playwright end-to-end tests                                 |
+| `pnpm check:onpush`| Fails on a production component without `OnPush`            |
+| `pnpm check:defer` | Fails when a `@defer` block has stopped splitting its chunk |
 
 CI runs lint, typecheck, format, and tests in parallel on Node 22, 24, and 26,
 then builds on all three once they are green — see
@@ -93,6 +95,10 @@ Shared helpers live in `src/testing` (re-exported from `@/testing`):
 - `requireEl(root, selector)` / `fillInput(root, selector, value)` — query or fill
   an element the spec depends on, throwing with the selector when it is missing
   instead of returning `null`.
+- `settleUntil(fixture, rendered)` — render repeatedly until a condition holds, for a
+  read Angular is not tracking. `whenStable()` only covers pending tasks the framework
+  knows about, so a TanStack Query `queryFn` settles with the fixture already reporting
+  itself stable; waiting on the outcome beats guessing a turn count.
 - `loadChildRoutes(route)` / `loadRouteComponent(route)` — **invoke** a lazy route
   loader and return what it resolves to. Asserting only that `loadChildren` is
   defined passes even when the dynamic import points at a moved file or renamed
@@ -334,6 +340,34 @@ guard forms and why only one of them is here, what a `TemplateRef` passed as an
 input can and cannot type, and why the loaded view is updated rather than
 recreated.
 
+## Deferred loading
+
+`DashboardComponent` defers everything below the widget board, each block with
+the trigger that matches how it is reached: `on viewport; prefetch on idle` for
+the insights panel past the fold, `on interaction(ref); prefetch on hover(ref)`
+for the breakdown behind a disclosure button, and `on timer(4s); prefetch on
+idle` for the "what's new" strip, where the delay is the design and not a
+stand-in for `on idle`.
+
+Prefetching fetches *code*, never data, so a deferred block that then reads
+something has two waits in a row. `PanelSkeletonComponent` covers both: it is
+the block's `@placeholder` and it is the `loading:` template of the `*appAsync`
+inside the deferred component, so the frame holds still from first paint until
+real content replaces it.
+
+The reason there is a CI gate for this is that the failure is silent. Naming a
+deferred component in its own `@placeholder`, or importing a value from its file
+anywhere eager, turns the dynamic import back into a static one — no warning, no
+lost chunk name in a diff, and, because the host is itself a lazy route, an
+initial-bundle budget that does not move by a single byte. `pnpm check:defer`
+reads the bundler's metafile and fails when a block's chunk becomes statically
+reachable from its host's.
+
+See [docs/defer.md](./docs/defer.md) for the trigger decision table, why `on
+timer` is usually the wrong answer and `when` never un-renders, what a
+placeholder-less block has to name instead, why `@error` cannot retry, and how
+to drive each block state from a spec.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:
@@ -371,6 +405,12 @@ crossing it should mean looking at what was just added to the eager graph, not
 raising the number. Route-level code splitting is
 already in place — every feature under `src/app/features/` is lazy — so growth in
 the initial chunk means something leaked into a shared eager import.
+
+What a budget cannot see is code moving *between* lazy chunks, which is exactly
+what a de-optimised `@defer` block does: the initial total is unchanged to the
+byte while a panel that used to arrive on scroll now arrives with the route.
+`pnpm check:defer` is the gate for that half; see
+[Deferred loading](#deferred-loading).
 
 ## Spec Progress
 See [SPEC.md](./SPEC.md).
