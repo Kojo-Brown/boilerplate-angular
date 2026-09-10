@@ -29,6 +29,10 @@ concurrency:
 #     it is checked against the artifact: an eager reference to a deferred component is
 #     silent — it moves code between two lazy chunks, so the initial-bundle budget does
 #     not move either (see `docs/defer.md`).
+#   - `scripts/ci/assert-route-budgets.mjs` fails the build job when a route costs more
+#     JavaScript than it is budgeted, or when route splitting has quietly collapsed. Also
+#     not a warning problem: `ng build` has no per-route budget to warn about, and growth
+#     behind a lazy route leaves the initial total untouched (see `docs/route-budgets.md`).
 #   - `NODE_OPTIONS: --throw-deprecation` promotes Node runtime deprecation warnings to
 #     thrown errors, so a deprecated API — ours or a dependency's — surfaces on the
 #     oldest and the newest supported runtime rather than when it is finally removed.
@@ -178,18 +182,41 @@ jobs:
       - name: Fail if ZoneJS is in the bundle
         run: ./scripts/ci/assert-no-zonejs.sh dist/boilerplate-angular
 
-      # Whether a `@defer` block still defers anything is invisible everywhere else: an
-      # eager reference to a deferred component moves the code between two lazy chunks,
-      # which no budget, no lint rule and no spec can see. `check:defer` reads the
-      # bundler's own metafile; `docs/defer.md` says what it checks.
+      # Two gates ask questions that only the module graph can answer, and `pnpm build`
+      # deliberately does not emit the metafile that holds it (it would ship inside
+      # `dist/`). So the bundle is built once more, with `--stats-json`, into `.stats/`
+      # and both gates read that — one extra build for both rather than one each.
       #
       # One Node major, like `format`, and for the same reason: the chunk graph is a
       # function of the source and the bundler, so running it three times only burns
-      # runner minutes. It builds a second time to get the metafile, which is why it is
-      # not folded into the step above.
+      # runner minutes.
+      - name: Build again with the bundler metafile
+        if: matrix.node-version == '22'
+        run: pnpm stats
+        env:
+          NODE_OPTIONS: --throw-deprecation
+
+      # Whether a `@defer` block still defers anything is invisible everywhere else: an
+      # eager reference to a deferred component moves the code between two lazy chunks,
+      # which no budget, no lint rule and no spec can see. `docs/defer.md` says what this
+      # checks.
       - name: Assert every @defer block still splits its chunk
         if: matrix.node-version == '22'
         run: pnpm check:defer
+        env:
+          STATS_JSON: .stats/stats.json
+
+      # The `initial` budget in `angular.json` prices the first paint. It says nothing
+      # about what a user pays on top of it to reach a page, which is the whole point of
+      # putting every feature behind a lazy route — a route's chunk can double, or start
+      # pulling a library in through a shared chunk, without moving the initial total by
+      # a byte. This prices each route and posts the audit to the job summary;
+      # `docs/route-budgets.md` says how the numbers are arrived at.
+      - name: Assert every route is within its bundle budget
+        if: matrix.node-version == '22'
+        run: pnpm check:routes
+        env:
+          STATS_JSON: .stats/stats.json
 
       - name: Upload build artifact
         # One copy of `dist/` is enough; the other majors still have to build cleanly.
