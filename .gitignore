@@ -2,6 +2,9 @@
 dist/
 .angular/
 
+# `pnpm stats` — a production build carrying its metafile, for the bundle gates
+.stats/
+
 # Node
 node_modules/
 

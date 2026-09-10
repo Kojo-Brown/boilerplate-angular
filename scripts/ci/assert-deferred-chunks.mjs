@@ -29,28 +29,25 @@
 //      was deleted, or a component that became unreachable, fails here rather than
 //      passing as trivially-deferred.
 //
-// ## Why a second build
+// ## Where the metafile comes from
 //
 // `pnpm build` deliberately does not pass `--stats-json`: the metafile maps every output
 // chunk back to the source paths that went into it, which is the one thing minification
-// takes away, and it would ship inside `dist/` next to the bundles. So this runs its own
-// production build into a scratch directory and reads the metafile from there. That costs
-// one extra build in CI, which is the price of the deploy artifact staying clean.
+// takes away, and it would ship inside `dist/` next to the bundles. `loadBuild()` either
+// reuses a build named by STATS_JSON or produces its own into a scratch directory — CI
+// runs `pnpm stats` once and points both bundle gates at it.
 //
-// Point STATS_JSON at an existing metafile to skip the build while iterating locally:
-//
-//   pnpm exec ng build --stats-json && \
-//     STATS_JSON=dist/boilerplate-angular/stats.json node scripts/ci/assert-deferred-chunks.mjs
+//   pnpm stats && STATS_JSON=.stats/stats.json pnpm check:defer
 //
 // Usage: node scripts/ci/assert-deferred-chunks.mjs
 
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const repoRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
+import {
+  chunkContaining,
+  dynamicallyImports,
+  javascriptOutputs,
+  loadBuild,
+  staticClosure,
+} from './lib/metafile.mjs';
 
 /**
  * Every `@defer`red component in the application, and the component whose template
@@ -79,75 +76,15 @@ const DEFERRED_BLOCKS = [
   },
 ];
 
-/** Read the metafile named by `STATS_JSON`, or produce one from a scratch build. */
-function loadStats() {
-  const existing = process.env.STATS_JSON;
-  if (existing) {
-    return JSON.parse(readFileSync(resolve(repoRoot, existing), 'utf8'));
-  }
-
-  const outDir = mkdtempSync(join(tmpdir(), 'defer-stats-'));
-  try {
-    execFileSync(
-      'node',
-      [
-        join(repoRoot, 'node_modules', '@angular', 'cli', 'bin', 'ng.js'),
-        'build',
-        '--configuration',
-        'production',
-        '--stats-json',
-        '--output-path',
-        outDir,
-      ],
-      { cwd: repoRoot, stdio: ['ignore', 'ignore', 'inherit'] }
-    );
-    return JSON.parse(readFileSync(join(outDir, 'stats.json'), 'utf8'));
-  } finally {
-    rmSync(outDir, { recursive: true, force: true });
-  }
-}
-
-/** The output chunk a source file was bundled into, or `null` if it was not bundled. */
-function chunkContaining(outputs, sourcePath) {
-  for (const [name, output] of Object.entries(outputs)) {
-    if (Object.hasOwn(output.inputs, sourcePath)) return name;
-  }
-  return null;
-}
-
-/**
- * Every chunk reachable from `start` by following static imports, `start` included.
- *
- * Transitive on purpose: an eager reference does not have to be direct. A component
- * pulled in through a barrel file, or through a second component the host imports
- * eagerly, is one static hop further away and just as un-deferred.
- */
-function staticClosure(outputs, start) {
-  const seen = new Set([start]);
-  const queue = [start];
-  while (queue.length > 0) {
-    const current = queue.pop();
-    for (const imported of outputs[current]?.imports ?? []) {
-      if (imported.kind !== 'import-statement') continue;
-      if (seen.has(imported.path)) continue;
-      seen.add(imported.path);
-      queue.push(imported.path);
-    }
-  }
-  return seen;
-}
-
 function main() {
   if (DEFERRED_BLOCKS.length === 0) {
     console.error('assert-deferred-chunks: nothing declared — has the block list been emptied?');
     process.exit(2);
   }
 
-  const stats = loadStats();
-  const outputs = stats.outputs ?? {};
-  const jsOutputs = Object.fromEntries(
-    Object.entries(outputs).filter(([name]) => name.endsWith('.js'))
-  );
+  const build = loadBuild();
+  build.dispose();
+  const jsOutputs = javascriptOutputs(build.stats);
 
   if (Object.keys(jsOutputs).length === 0) {
     console.error('assert-deferred-chunks: the build emitted no JavaScript chunks.');
@@ -187,10 +124,7 @@ function main() {
       continue;
     }
 
-    const dynamicallyImported = (jsOutputs[hostChunk].imports ?? []).some(
-      (imported) => imported.kind === 'dynamic-import' && imported.path === componentChunk
-    );
-    if (!dynamicallyImported) {
+    if (!dynamicallyImports(jsOutputs, hostChunk, componentChunk)) {
       failures.push(
         `${component}: ${host}'s chunk (${hostChunk}) does not dynamically import ` +
           `${componentChunk}. The "@defer (${trigger})" block appears to be gone.`

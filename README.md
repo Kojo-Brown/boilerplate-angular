@@ -50,7 +50,9 @@ pnpm start  # http://localhost:4200
 | `pnpm test:ci`     | Same, pinned to the sandboxed `ChromeHeadlessCI` launcher   |
 | `pnpm e2e`         | Playwright end-to-end tests                                 |
 | `pnpm check:onpush`| Fails on a production component without `OnPush`            |
+| `pnpm stats`       | Production build into `.stats/`, carrying the bundler metafile |
 | `pnpm check:defer` | Fails when a `@defer` block has stopped splitting its chunk |
+| `pnpm check:routes`| Fails when a route exceeds its bundle budget, and prints the audit |
 
 CI runs lint, typecheck, format, and tests in parallel on Node 22, 24, and 26,
 then builds on all three once they are green — see
@@ -391,7 +393,7 @@ warning CI *does* let through is a budget that does not exist: `ng build` exits 
 when a budget is exceeded, so for its first weeks this template shipped 79 kB
 over its 500 kB initial budget with a green pipeline.
 
-Current thresholds, against a 544 kB initial bundle (144 kB transfer):
+Current thresholds, against a 561.47 kB initial bundle (148.58 kB transfer):
 
 | Budget              | Error at |
 | ------------------- | -------- |
@@ -411,6 +413,32 @@ what a de-optimised `@defer` block does: the initial total is unchanged to the
 byte while a panel that used to arrive on scroll now arrives with the route.
 `pnpm check:defer` is the gate for that half; see
 [Deferred loading](#deferred-loading).
+
+### Per-route budgets
+
+`initial` also cannot see what a route costs *after* the first paint, which is the
+whole point of putting every feature behind a lazy route. `pnpm check:routes`
+prices each one — the union of every chunk the browser has downloaded once the
+route is on screen, minus what the initial bundle already provided — and fails
+when a route exceeds its own budget:
+
+| Route                  |   Lazy JS | Error at |
+| ---------------------- | --------: | -------: |
+| `/login`               | 109.69 kB |   112 kB |
+| `/register`            | 111.78 kB |   114 kB |
+| `/dashboard`           |  29.17 kB |    31 kB |
+| `/dashboard/posts`     |  31.46 kB |    33 kB |
+| `/dashboard/posts/:id` |  26.02 kB |    28 kB |
+| `/unauthorized`        |   0.52 kB |     2 kB |
+| `/admin`               |   0.50 kB |     2 kB |
+
+The auth routes cost twenty times what the dashboard's do, and none of it is the
+form: they share a 101.89 kB chunk that is 51 kB of Zod v3 and 39 kB of
+`@angular/forms`. The gate also fails when route splitting collapses — a route's
+code reaching the initial bundle, two routes merging into one chunk, a parent
+importing a child statically — none of which moves a total anything else watches.
+[`docs/route-budgets.md`](./docs/route-budgets.md) has the full audit, the
+measurement, and what to do when a budget is crossed.
 
 ## Spec Progress
 See [SPEC.md](./SPEC.md).
