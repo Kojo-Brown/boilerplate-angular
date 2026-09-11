@@ -370,6 +370,37 @@ timer` is usually the wrong answer and `when` never un-renders, what a
 placeholder-less block has to name instead, why `@error` cannot retry, and how
 to drive each block state from a spec.
 
+## Virtual scrolling
+
+`src/app/shared/virtual-table/` renders a table of any size with only a
+screenful of rows in the DOM, over `@angular/cdk/scrolling`.
+`/dashboard/activity` is the caller: 10,000 audit-log entries, about sixteen
+`role="row"` elements, sortable by five of its six columns.
+
+It is not a `<table>`, and cannot be: the CDK positions rows inside a
+`transform`ed wrapper `div` and sizes the scrollbar with a spacer `div`, neither
+of which is a legal child of `<table>`. So it is CSS grid with explicit ARIA
+roles — which makes the accessibility tree the component's problem. With ~16 of
+10,000 rows in the DOM, a screen reader announces "row 3 of 16" unless
+`aria-rowcount` and `aria-rowindex` supply the real numbers; the header must sit
+outside the viewport or it scrolls away with the rows; the CDK's two scaffolding
+divs must be hidden or the rows belong to no rowgroup; and the viewport needs a
+`tabindex` or a keyboard user cannot scroll it at all.
+
+Three hazards the API closes rather than documents: `rowKey` takes a row and not
+a `TrackByFunction`, because the index `cdkVirtualFor` passes a `trackBy` is
+relative to the rendered window and tracking by it hands one row's DOM node to
+another row's data; `itemSize` and the row height are the same input, because the
+spacer is `itemSize × rows.length` and a disagreement makes the scrollbar
+describe a document that does not exist; and the zebra stripe is bound from the
+data index, because `:nth-child(even)` counts the sliding window and strobes as
+it scrolls.
+
+See [docs/virtual-scrolling.md](./docs/virtual-scrolling.md) for when *not* to
+use it (the CDK costs 24.39 kB against 9.22 kB of table), why sorting belongs to
+the caller, what a cell cannot contain and why, and the five things this
+deliberately does not do — a paged `DataSource` among them.
+
 ## Dependency notes
 
 Two deliberate `pnpm` overrides live in `package.json`:
@@ -393,20 +424,29 @@ warning CI *does* let through is a budget that does not exist: `ng build` exits 
 when a budget is exceeded, so for its first weeks this template shipped 79 kB
 over its 500 kB initial budget with a green pipeline.
 
-Current thresholds, against a 561.47 kB initial bundle (148.58 kB transfer):
+Current thresholds, against a 567.58 kB initial bundle (149.79 kB transfer):
 
 | Budget              | Error at |
 | ------------------- | -------- |
-| `initial`           | 565 kB   |
+| `initial`           | 571 kB   |
 | `anyComponentStyle` | 4 kB     |
 
 Both are tighter than what they replaced (1 MB and 8 kB errors). The headroom on
-`initial` is deliberately thin — 21 kB, unchanged when dropping ZoneJS took 35 kB
-off the bundle, because a budget that absorbs a win stops being a budget:
-crossing it should mean looking at what was just added to the eager graph, not
-raising the number. Route-level code splitting is
+`initial` is deliberately thin — unchanged when dropping ZoneJS took 35 kB off the
+bundle, because a budget that absorbs a win stops being a budget: crossing it
+should mean looking at what was just added to the eager graph, not raising the
+number. Route-level code splitting is
 already in place — every feature under `src/app/features/` is lazy — so growth in
 the initial chunk means something leaked into a shared eager import.
+
+`initial` has been raised exactly once, from 565 kB, by the virtual-scrolling
+item — and only after establishing that the 5.30 kB it added was unreachable from
+any route-level change. 13 eager files import the `rxjs` barrel, which
+chunk-assigns every rxjs module to `main`; the CDK's `auditTime` and
+animation-frame scheduler therefore *survive* tree-shaking in the initial bundle
+rather than moving into the lazy chunk that uses them. The lever is the barrel
+imports, not the route. See
+[`docs/virtual-scrolling.md`](./docs/virtual-scrolling.md#the-530-kb-that-lands-in-main).
 
 What a budget cannot see is code moving *between* lazy chunks, which is exactly
 what a de-optimised `@defer` block does: the initial total is unchanged to the
@@ -424,11 +464,12 @@ when a route exceeds its own budget:
 
 | Route                  |   Lazy JS | Error at |
 | ---------------------- | --------: | -------: |
-| `/login`               | 109.69 kB |   112 kB |
-| `/register`            | 111.78 kB |   114 kB |
-| `/dashboard`           |  29.17 kB |    31 kB |
-| `/dashboard/posts`     |  31.46 kB |    33 kB |
-| `/dashboard/posts/:id` |  26.02 kB |    28 kB |
+| `/login`               | 109.65 kB |   112 kB |
+| `/register`            | 111.74 kB |   114 kB |
+| `/dashboard/activity`  |  55.58 kB |    58 kB |
+| `/dashboard`           |  29.45 kB |    31 kB |
+| `/dashboard/posts`     |  31.74 kB |    33 kB |
+| `/dashboard/posts/:id` |  26.30 kB |    28 kB |
 | `/unauthorized`        |   0.52 kB |     2 kB |
 | `/admin`               |   0.50 kB |     2 kB |
 

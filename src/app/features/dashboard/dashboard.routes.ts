@@ -43,6 +43,12 @@ export const DASHBOARD_ROUTES: Routes = [
         title: 'Posts',
       },
       {
+        path: 'activity',
+        loadComponent: () =>
+          import('./activity/activity-log.component').then((m) => m.ActivityLogComponent),
+        title: 'Activity log',
+      },
+      {
         path: 'posts/:id',
         loadComponent: () =>
           import('../posts/post-detail.component').then((m) => m.PostDetailComponent),

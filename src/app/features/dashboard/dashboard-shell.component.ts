@@ -32,6 +32,11 @@ const NAV_LINK_ACTIVE = 'bg-[var(--color-muted)] text-[var(--color-primary)]';
             Posts
           </a>
         </li>
+        <li>
+          <a routerLink="/dashboard/activity" [routerLinkActive]="navLinkActive" [class]="navLink">
+            Activity log
+          </a>
+        </li>
       </ul>
 
       <div sidebar-footer class="space-y-1">
