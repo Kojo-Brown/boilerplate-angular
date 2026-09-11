@@ -116,6 +116,27 @@ const ROUTE_BUDGETS = [
     maximum: '33kB',
   },
   {
+    path: '/dashboard/activity',
+    chain: [
+      'src/app/features/dashboard/dashboard.routes.ts',
+      'src/app/features/dashboard/dashboard-shell.component.ts',
+      'src/app/features/dashboard/activity/activity-log.component.ts',
+    ],
+    // The most expensive route under the dashboard, at roughly two dashboards, and
+    // `@angular/cdk/scrolling` is 24.39 kB of it against 9.22 kB for the table, the page and
+    // the 10,000-row generator together. That is the trade virtual scrolling is: ~24 kB of
+    // library to stop rendering ~9,984 rows. It is worth it here and would not be worth it
+    // for a 200-row table, which is the decision `docs/virtual-scrolling.md` asks a caller to
+    // make before reaching for this component.
+    //
+    // What this route is *not* charged for is the CDK's rxjs dependencies — `auditTime` and
+    // the animation-frame scheduler are chunk-assigned to `main`, because 13 eager files
+    // import the `rxjs` barrel and that makes every rxjs module statically reachable from the
+    // entry. That is the +5.30 kB the `initial` budget in `angular.json` absorbed when this
+    // route was added, and no route-level change can move it here.
+    maximum: '58kB',
+  },
+  {
     path: '/dashboard/posts/:id',
     chain: [
       'src/app/features/dashboard/dashboard.routes.ts',

@@ -27,13 +27,14 @@ describe('DashboardShellComponent', () => {
     await setup();
   });
 
-  it('renders nav links for Overview and Posts', () => {
+  it('renders nav links for Overview, Posts and the activity log', () => {
     const fixture = TestBed.createComponent(DashboardShellComponent);
     fixture.detectChanges();
     const links = fixture.debugElement.queryAll(By.directive(RouterLink));
     const hrefs = links.map((l) => l.attributes['routerLink']);
     expect(hrefs).toContain('/dashboard');
     expect(hrefs).toContain('/dashboard/posts');
+    expect(hrefs).toContain('/dashboard/activity');
   });
 
   it('signs out through the facade when the sign-out button is clicked', () => {

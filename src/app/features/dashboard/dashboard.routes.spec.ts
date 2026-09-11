@@ -2,6 +2,7 @@ import { createEnvironmentInjector, EnvironmentInjector } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { ActivityLogComponent } from './activity/activity-log.component';
 import { DASHBOARD_ROUTES } from './dashboard.routes';
 import { postTitleResolver } from '@/app/core/routing/post-title.resolver';
 import { DashboardShellComponent } from './dashboard-shell.component';
@@ -21,7 +22,7 @@ describe('DASHBOARD_ROUTES', () => {
   });
 
   it('shell has child routes', () => {
-    expect(shell.children?.length).toBe(3);
+    expect(shell.children?.length).toBe(4);
   });
 
   it('overview child is at the empty path', () => {
@@ -34,6 +35,12 @@ describe('DASHBOARD_ROUTES', () => {
     const list = shell.children?.find((r) => r.path === 'posts');
     expect(list?.loadComponent).toBeDefined();
     expect(list?.title).toBe('Posts');
+  });
+
+  it('activity log child is at "activity"', () => {
+    const activity = shell.children?.find((r) => r.path === 'activity');
+    expect(activity?.loadComponent).toBeDefined();
+    expect(activity?.title).toBe('Activity log');
   });
 
   it('post detail child captures :id param', () => {
@@ -99,6 +106,11 @@ describe('DASHBOARD_ROUTES', () => {
     it('post detail loadComponent resolves to PostDetailComponent', async () => {
       const detail = shell.children?.find((r) => r.path === 'posts/:id');
       await expectAsync(loadRouteComponent(detail)).toBeResolvedTo(PostDetailComponent);
+    });
+
+    it('activity log loadComponent resolves to ActivityLogComponent', async () => {
+      const activity = shell.children?.find((r) => r.path === 'activity');
+      await expectAsync(loadRouteComponent(activity)).toBeResolvedTo(ActivityLogComponent);
     });
   });
 });
