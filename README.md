@@ -79,6 +79,19 @@ then builds on all three once they are green — see
 esbuild and the Angular CLI, which exit 0 on warnings. That last one is what
 gives the bundle budget teeth — see [Bundle budgets](#bundle-budgets).
 
+The two steps that run `ng build` are the one exception, and they are not
+exempt so much as enforced differently. On Node 26 `module.register()` is
+deprecated (DEP0205), Angular's SSR route extractor calls it from inside a
+prerender worker, and `--throw-deprecation` therefore turns a dependency's one
+line into `An error occurred while extracting routes` and zero prerendered
+pages. It is present in every published Angular 22 release, and
+`--disable-warning=DEP0205` does not help because the throw happens before the
+disable list is consulted. So those steps run without the flag and have their
+logs read by
+[`assert-no-unexpected-deprecations.sh`](./scripts/ci/assert-no-unexpected-deprecations.sh)
+instead, which fails on any deprecation whose code is not allow-listed with a
+reason — DEP0205 being the only one.
+
 Use `pnpm test:ci` rather than `pnpm test -- --browsers=…` in scripted contexts:
 the extra `--` makes the Angular CLI read `--no-watch`/`--no-progress` as unknown
 positional arguments and abort before Karma starts.

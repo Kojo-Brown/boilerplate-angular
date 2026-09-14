@@ -43,6 +43,13 @@ concurrency:
 #     oldest and the newest supported runtime rather than when it is finally removed.
 #     `--pending-deprecation` is deliberately not set: it flags APIs that are not
 #     deprecated yet, which would fail the build on advisory notices.
+#   - `scripts/ci/assert-no-unexpected-deprecations.sh` enforces that same policy on the two
+#     steps that run `ng build`, which cannot carry `--throw-deprecation`: Angular's SSR
+#     route extractor calls `module.register()`, deprecated on Node 26 as DEP0205, from
+#     inside a prerender worker — so the flag turns a dependency's one-line deprecation
+#     into "An error occurred while extracting routes" and 0 prerendered routes. Those two
+#     steps run without the flag and have their logs scanned instead, with DEP0205 the only
+#     allow-listed code. The script's header has the whole finding.
 #
 # `format` runs on a single Node major on purpose. Prettier's output is a pure function
 # of the source and `.prettierrc`, so running it three times only burns runner minutes.
@@ -171,15 +178,19 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      # No `--throw-deprecation` here, unlike every other step: see the note above and the
+      # header of assert-no-unexpected-deprecations.sh. The policy is enforced by the step
+      # after next instead, against this log.
       - name: Build
         run: |
           set -o pipefail
           pnpm build 2>&1 | tee "$RUNNER_TEMP/build.log"
-        env:
-          NODE_OPTIONS: --throw-deprecation
 
       - name: Fail on build warnings
         run: ./scripts/ci/assert-no-warnings.sh "$RUNNER_TEMP/build.log"
+
+      - name: Fail on unexpected deprecation warnings
+        run: ./scripts/ci/assert-no-unexpected-deprecations.sh "$RUNNER_TEMP/build.log"
 
       # Zoneless is a build-output property, not just a provider choice: putting
       # `zone.js` back in `angular.json` breaks nothing and fails nothing, it only
@@ -195,11 +206,18 @@ jobs:
       # One Node major, like `format`, and for the same reason: the chunk graph is a
       # function of the source and the bundler, so running it three times only burns
       # runner minutes.
+      #
+      # No `--throw-deprecation`, same as `Build` above and for the same reason: this is
+      # `ng build` too, so it takes the same route through the prerenderer.
       - name: Build again with the bundler metafile
         if: matrix.node-version == '22'
-        run: pnpm stats
-        env:
-          NODE_OPTIONS: --throw-deprecation
+        run: |
+          set -o pipefail
+          pnpm stats 2>&1 | tee "$RUNNER_TEMP/stats.log"
+
+      - name: Fail on unexpected deprecation warnings in the stats build
+        if: matrix.node-version == '22'
+        run: ./scripts/ci/assert-no-unexpected-deprecations.sh "$RUNNER_TEMP/stats.log"
 
       # Whether a `@defer` block still defers anything is invisible everywhere else: an
       # eager reference to a deferred component moves the code between two lazy chunks,

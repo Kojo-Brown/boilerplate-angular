@@ -319,6 +319,17 @@ Startup failures there use `console.error` + `process.exit(1)`.
 | `pnpm check:defer` | The login form's chunk merging back into the page's — invisible to every other gate, because the server renders the block either way. |
 | `pnpm check:routes` | `/login` costing more than 4 kB to reach again. |
 
+One thing SSR cost the pipeline, recorded here because it looks like a weakened gate and
+is not: the two steps that run `ng build` no longer carry
+`NODE_OPTIONS=--throw-deprecation`. On Node 26, `module.register()` is deprecated
+(DEP0205) and Angular's route extractor calls it from inside a prerender worker, so the
+flag turns that one dependency line into `An error occurred while extracting routes` and
+zero prerendered pages — on every published Angular 22 release, `22.2.0-next.7` included.
+`--disable-warning=DEP0205` does not rescue it either: the throw happens before the
+disable list is consulted, verified on Node 26.8.2. Those steps now have their logs read
+by `assert-no-unexpected-deprecations.sh`, which fails on any deprecation whose code is
+not allow-listed with a reason. Every other job still throws.
+
 `assert-ssr.mjs` is the only gate in `scripts/ci/` that *runs* the build rather than
 reading it, and that is the point: a browser-only global reached during a render, a
 platform-specific provider, a route whose mode changed — all of them compile, pass every
