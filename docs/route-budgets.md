@@ -55,6 +55,15 @@ Measured at the commit that added the gate, against a 561.47 kB initial bundle
 | `/dashboard/posts/:id` |  26.02 kB |  9.73 kB |   28 kB |  587.56 kB |
 | `/admin`               |   0.50 kB |  0.43 kB |    2 kB |  562.04 kB |
 
+> **Since measured.** `/login` is now **2.94 kB** against a **4 kB** budget. The 108 kB it
+> used to carry is still there — it is the same shared Zod and `@angular/forms` chunk
+> `/register` pays for — but the page is prerendered and its form is behind
+> `@defer (hydrate on interaction)`, so that chunk is fetched on the visitor's first click
+> rather than on the way to the route. The budget moved with the measurement, for the
+> reason given under *When a budget is crossed* below. See [`ssr.md`](./ssr.md).
+> `/dashboard/activity` (55.37 kB against 58 kB) post-dates this table too; `pnpm
+> check:routes` prints the current figures.
+
 "Lazy JS" is what the route adds to the initial bundle; "cold start" is everything a first
 visit fetches, the global stylesheet included. Transfer sizes are gzipped and reported
 only — zlib's output moves a few bytes between Node builds, and a budget that shifts under

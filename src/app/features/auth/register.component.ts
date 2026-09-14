@@ -1,7 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthFacade } from '@/app/core/auth';
+import { typedBeforeHydration } from '@/app/core/platform/pre-hydration-input';
 import { controlErrorSignal, controlSignal } from '@/app/core/reactivity';
 import { zodValidator, zodGroupValidator } from '@/app/core/validators/zod-validator';
 import { registerBaseSchema, registerSchema } from './auth.schemas';
@@ -160,12 +168,26 @@ export class RegisterComponent {
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthFacade);
 
+  /**
+   * This page is prerendered too, so it has the same window as `/login` — narrower, since
+   * nothing here defers, but wide enough to type into on a slow connection. See
+   * `typedBeforeHydration` for what is being recovered and why the constructor is the
+   * only place it still exists.
+   */
+  private readonly typed = typedBeforeHydration(
+    inject<ElementRef<HTMLElement>>(ElementRef).nativeElement,
+    ['name', 'email', 'password', 'confirmPassword'] as const
+  );
+
   protected readonly form = this.fb.group(
     {
-      name: ['', [zodValidator(registerBaseSchema.shape.name)]],
-      email: ['', [zodValidator(registerBaseSchema.shape.email)]],
-      password: ['', [zodValidator(registerBaseSchema.shape.password)]],
-      confirmPassword: ['', [zodValidator(registerBaseSchema.shape.confirmPassword)]],
+      name: [this.typed.name ?? '', [zodValidator(registerBaseSchema.shape.name)]],
+      email: [this.typed.email ?? '', [zodValidator(registerBaseSchema.shape.email)]],
+      password: [this.typed.password ?? '', [zodValidator(registerBaseSchema.shape.password)]],
+      confirmPassword: [
+        this.typed.confirmPassword ?? '',
+        [zodValidator(registerBaseSchema.shape.confirmPassword)],
+      ],
     },
     { validators: zodGroupValidator(registerSchema) }
   );

@@ -12,10 +12,8 @@ import {
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { EMPTY, exhaustMap, pipe, switchMap, tap } from 'rxjs';
 import { AuthService } from './auth.service';
+import { AUTH_TOKEN_STORAGE } from './token-storage';
 import type { AuthState, AuthTokens, LoginCredentials, RegisterCredentials } from './auth.models';
-
-const ACCESS_TOKEN_KEY = 'auth_access_token';
-const REFRESH_TOKEN_KEY = 'auth_refresh_token';
 
 const initialState: AuthState = {
   user: null,
@@ -35,7 +33,7 @@ export const AuthStore = signalStore(
     currentUser: computed(() => user()),
     userRole: computed(() => user()?.role ?? null),
   })),
-  withMethods((store, authService = inject(AuthService)) => ({
+  withMethods((store, authService = inject(AuthService), tokens = inject(AUTH_TOKEN_STORAGE)) => ({
     /**
      * `exhaustMap`, not `switchMap`: a second submit while one is in flight is ignored,
      * rather than cancelling the first and sending another.
@@ -56,8 +54,7 @@ export const AuthStore = signalStore(
           authService.login(credentials).pipe(
             tapResponse({
               next: ({ user, accessToken, refreshToken }) => {
-                localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-                localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+                tokens.write({ accessToken, refreshToken });
                 patchState(store, { user, accessToken, refreshToken, isLoading: false });
               },
               error: (err: unknown) => {
@@ -81,8 +78,7 @@ export const AuthStore = signalStore(
           authService.register(credentials).pipe(
             tapResponse({
               next: ({ user, accessToken, refreshToken }) => {
-                localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-                localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+                tokens.write({ accessToken, refreshToken });
                 patchState(store, { user, accessToken, refreshToken, isLoading: false });
               },
               error: (err: unknown) => {
@@ -99,14 +95,12 @@ export const AuthStore = signalStore(
     ),
 
     logout(): void {
-      localStorage.removeItem(ACCESS_TOKEN_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      tokens.clear();
       patchState(store, initialState);
     },
 
     updateTokens({ accessToken, refreshToken }: AuthTokens): void {
-      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      tokens.write({ accessToken, refreshToken });
       patchState(store, { accessToken, refreshToken });
     },
 
@@ -115,21 +109,18 @@ export const AuthStore = signalStore(
         exhaustMap(() => {
           const token = store.refreshToken();
           if (!token) {
-            localStorage.removeItem(ACCESS_TOKEN_KEY);
-            localStorage.removeItem(REFRESH_TOKEN_KEY);
+            tokens.clear();
             patchState(store, initialState);
             return EMPTY;
           }
           return authService.refreshToken(token).pipe(
             tapResponse({
               next: ({ accessToken, refreshToken }) => {
-                localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-                localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+                tokens.write({ accessToken, refreshToken });
                 patchState(store, { accessToken, refreshToken });
               },
               error: () => {
-                localStorage.removeItem(ACCESS_TOKEN_KEY);
-                localStorage.removeItem(REFRESH_TOKEN_KEY);
+                tokens.clear();
                 patchState(store, initialState);
               },
             })
@@ -161,11 +152,16 @@ export const AuthStore = signalStore(
       )
     ),
 
+    /**
+     * Adopt whatever tokens storage is holding. A no-op where there is no storage —
+     * server-side rendering, or a browser with site data blocked — which is what keeps
+     * the `onInit` hook below from throwing the moment this store is constructed on the
+     * server. See `AUTH_TOKEN_STORAGE` and `docs/ssr.md`.
+     */
     loadFromStorage(): void {
-      const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-      if (accessToken && refreshToken) {
-        patchState(store, { accessToken, refreshToken });
+      const stored = tokens.read();
+      if (stored !== null) {
+        patchState(store, stored);
       }
     },
 

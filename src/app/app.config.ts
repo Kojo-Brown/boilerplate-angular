@@ -2,6 +2,7 @@ import type { ApplicationConfig } from '@angular/core';
 import { inject, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, TitleStrategy, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideTanStackQuery } from '@tanstack/angular-query-experimental';
 import { routes } from '@/app/app.routes';
@@ -34,6 +35,26 @@ export const appConfig: ApplicationConfig = {
     // being attached/removed. Anything that mutates state outside those paths has to
     // say so explicitly — see `docs/zoneless.md`.
     provideZonelessChangeDetection(),
+
+    // Adopt the server's DOM instead of replacing it. Without this the browser throws
+    // away every node the server rendered and builds the page again, which is not a
+    // slower version of hydration — it is a visible flash, a lost scroll position, and
+    // an input the user had already typed into being recreated empty.
+    //
+    // `withEventReplay()` is the only feature named because it is the only one not on by
+    // default: in v22 `provideClientHydration()` already brings DOM hydration, the
+    // `HttpClient` transfer cache, and incremental hydration, so `withIncrementalHydration()`
+    // is deprecated and adding it here would be noise that reads as significant.
+    //
+    // Event replay is what makes a *dehydrated* region honest. `@defer (hydrate …)` in
+    // `LoginComponent` leaves the sign-in form as server-rendered markup with no
+    // listeners on it; replay captures the click or keystroke that arrives before the
+    // chunk does and dispatches it once the block is alive. It is not a substitute for
+    // designing that markup to be inert — see the header of `login.component.ts` for the
+    // one thing replay cannot undo — but without it the first interaction on a
+    // prerendered page is simply dropped. See `docs/ssr.md`.
+    provideClientHydration(withEventReplay()),
+
     provideAnimationsAsync(),
     provideRouter(routes, withComponentInputBinding()),
     // Outermost first. The order is the whole design, so it is written out rather than

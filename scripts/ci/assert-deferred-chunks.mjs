@@ -57,6 +57,13 @@ import {
  * an entry here is how the decision gets a test. The paths are checked against the
  * metafile's own input list, so a rename that misses this file fails the gate instead of
  * silently checking nothing.
+ *
+ * A `hydrate` trigger is checked the same way and for a stronger reason. An ordinary
+ * `@defer` that stops deferring costs a download; a `hydrate` block that stops deferring
+ * costs the whole point of prerendering the page, because the chunk it was holding back
+ * is exactly the JavaScript the visitor was not supposed to need before touching
+ * anything — and nothing about the page looks different when it regresses, since the
+ * server renders the block's content either way.
  */
 const DEFERRED_BLOCKS = [
   {
@@ -73,6 +80,11 @@ const DEFERRED_BLOCKS = [
     component: 'src/app/features/dashboard/release-notes/release-notes.component.ts',
     host: 'src/app/features/dashboard/dashboard.component.ts',
     trigger: 'on timer(4s); prefetch on idle',
+  },
+  {
+    component: 'src/app/features/auth/login-form.component.ts',
+    host: 'src/app/features/auth/login.component.ts',
+    trigger: 'hydrate on interaction',
   },
 ];
 

@@ -13,6 +13,7 @@ Enterprise Angular starter with modern patterns (no NgModules).
 | Styles | TailwindCSS 4 |
 | State | NgRx Signal Store |
 | Forms | Angular Reactive Forms + Zod |
+| Rendering | Prerendered public routes + Node SSR, with incremental hydration |
 | Testing | Jasmine + Karma + Playwright |
 
 ## Requirements
@@ -37,12 +38,24 @@ cp src/environments/environment.example.ts src/environments/environment.ts
 pnpm start  # http://localhost:4200
 ```
 
+To run the production build the way it is deployed — Node, server-rendered, with
+the prerendered pages in place:
+
+```bash
+pnpm build
+NG_ALLOWED_HOSTS=localhost pnpm serve:ssr  # http://localhost:4000
+```
+
+`NG_ALLOWED_HOSTS` is required and deliberately has no default; see
+[Server-side rendering](#server-side-rendering).
+
 ## Scripts
 
 | Script             | What it does                                              |
 | ------------------ | --------------------------------------------------------- |
 | `pnpm start`       | Dev server on http://localhost:4200                        |
-| `pnpm build`       | Production bundle into `dist/`                             |
+| `pnpm build`       | Production bundle into `dist/` — browser, server, and prerendered pages |
+| `pnpm serve:ssr`   | Runs the built Node server (needs `NG_ALLOWED_HOSTS`)       |
 | `pnpm typecheck`   | `tsc --noEmit` against `tsconfig.app.json`                  |
 | `pnpm lint`        | ESLint over `src/`, `--max-warnings=0`                       |
 | `pnpm format:check`| Prettier check (use `pnpm format` to rewrite)               |
@@ -53,6 +66,7 @@ pnpm start  # http://localhost:4200
 | `pnpm stats`       | Production build into `.stats/`, carrying the bundler metafile |
 | `pnpm check:defer` | Fails when a `@defer` block has stopped splitting its chunk |
 | `pnpm check:routes`| Fails when a route exceeds its bundle budget, and prints the audit |
+| `pnpm check:ssr`   | Starts the built server and checks what each route answers  |
 
 CI runs lint, typecheck, format, and tests in parallel on Node 22, 24, and 26,
 then builds on all three once they are green — see
@@ -64,6 +78,19 @@ then builds on all three once they are green — see
 [`scripts/ci/assert-no-warnings.sh`](./scripts/ci/assert-no-warnings.sh) covers
 esbuild and the Angular CLI, which exit 0 on warnings. That last one is what
 gives the bundle budget teeth — see [Bundle budgets](#bundle-budgets).
+
+The two steps that run `ng build` are the one exception, and they are not
+exempt so much as enforced differently. On Node 26 `module.register()` is
+deprecated (DEP0205), Angular's SSR route extractor calls it from inside a
+prerender worker, and `--throw-deprecation` therefore turns a dependency's one
+line into `An error occurred while extracting routes` and zero prerendered
+pages. It is present in every published Angular 22 release, and
+`--disable-warning=DEP0205` does not help because the throw happens before the
+disable list is consulted. So those steps run without the flag and have their
+logs read by
+[`assert-no-unexpected-deprecations.sh`](./scripts/ci/assert-no-unexpected-deprecations.sh)
+instead, which fails on any deprecation whose code is not allow-listed with a
+reason — DEP0205 being the only one.
 
 Use `pnpm test:ci` rather than `pnpm test -- --browsers=…` in scripted contexts:
 the extra `--` makes the Angular CLI read `--no-watch`/`--no-progress` as unknown
@@ -370,6 +397,81 @@ timer` is usually the wrong answer and `when` never un-renders, what a
 placeholder-less block has to name instead, why `@error` cannot retry, and how
 to drive each block state from a spec.
 
+`/login` uses the same syntax for a different job — see
+[Server-side rendering](#server-side-rendering).
+
+## Server-side rendering
+
+`pnpm build` produces three things: the browser bundle, a Node server that
+renders it, and a static HTML file for every route that can be produced ahead of
+time. Which is which is one line per route in
+[`src/app/app.routes.server.ts`](./src/app/app.routes.server.ts):
+
+| Route | Mode | Why |
+| ----- | ---- | --- |
+| `/login`, `/register`, `/unauthorized` | `Prerender` | Identical bytes for everyone. |
+| everything else | `Client` | Depends on who is asking, which the server cannot know. |
+
+The session lives in `localStorage` and nothing carries it to the server, so on
+the server `AuthStore` is signed out for *everyone* — signed-in visitors
+included. Rendering `/dashboard` there therefore has two possible outcomes and
+both are wrong: run `authGuard` and every request is a 302 to `/login`, or skip
+it and an anonymous request is served a dashboard frame the client takes back
+the moment it hydrates. `RenderMode.Client` says the honest thing instead.
+Phase 10's httpOnly refresh cookie is what would change the answer.
+
+`provideClientHydration(withEventReplay())` in `app.config.ts` makes the browser
+adopt the server's DOM rather than rebuild it. Event replay is the only feature
+named because it is the only one still opt-in — Angular 22 brings DOM hydration,
+the `HttpClient` transfer cache and incremental hydration by default, which is
+why `withIncrementalHydration()` is deprecated and absent here.
+
+### Incremental hydration
+
+`/login` is prerendered, so the whole sign-in card is visible with no JavaScript
+at all. Being *usable* is what costs: 101.89 kB of `@angular/forms` and Zod
+against ~5 kB for the rest of the page. `@defer (hydrate on interaction)` splits
+the two — the server renders the form's real markup, and the browser fetches and
+hydrates it on the first click or keystroke.
+
+| | `/login` | `/register` (the control) |
+| --- | ---: | ---: |
+| Lazy JS to reach the route | **2.94 kB** | 111.15 kB |
+| …before | 109.65 kB | 111.74 kB |
+
+Two hazards came out of it, both measured against the production build with
+scripts delayed.
+
+A dehydrated form is live HTML. Angular's event replay runs *after* the browser
+has dispatched the event and suppresses the default action of nothing but a
+click on an `<a>`, so a `<button type="submit">` inside the block still submits
+the form natively on a pre-hydration click — a navigation back to `/login` that
+discards what was typed. The markup is made inert instead: a `type="button"`
+submit control, and Enter bound on the fields.
+
+And hydrating a reactive form *empties* it: `setUpControl` writes each control's
+initial value over the node the visitor has been typing into. That one is not
+about `@defer` — `/register` lost a typed value after 2.5 s and `/login` after
+5.1 s — so both forms now seed their controls from the server-rendered DOM in
+their constructor, before the `formControlName` directives run.
+
+`pnpm check:ssr` starts the built server and checks all of it — that the
+prerendered pages carry hydration annotations, that the sign-in block arrives
+dehydrated, that `/dashboard` comes back as an empty shell, and that a request
+with an unknown `Host` is rejected.
+
+`NG_ALLOWED_HOSTS` has no default and the server refuses to start without it.
+Angular validates `Host` and `X-Forwarded-Host` against that list, which is
+empty unless something fills it — so an unconfigured server would otherwise
+start, pass a health check, and answer every real request with a 400 about
+server-side request forgery.
+
+See [docs/ssr.md](./docs/ssr.md) for the full reasoning: why a provider that
+exists on only one platform breaks hydration, what `storageOf` fixes that
+`view?.localStorage` does not, the ESLint rule that keeps browser globals out of
+code that now runs twice, what a `hydrate` block falls back to when nothing is
+hydrating, and why a top-level `throw` in `server.ts` exits 0.
+
 ## Virtual scrolling
 
 `src/app/shared/virtual-table/` renders a table of any size with only a
@@ -424,11 +526,11 @@ warning CI *does* let through is a budget that does not exist: `ng build` exits 
 when a budget is exceeded, so for its first weeks this template shipped 79 kB
 over its 500 kB initial budget with a green pipeline.
 
-Current thresholds, against a 567.58 kB initial bundle (149.79 kB transfer):
+Current thresholds, against a 563.09 kB initial bundle (157.48 kB transfer):
 
 | Budget              | Error at |
 | ------------------- | -------- |
-| `initial`           | 571 kB   |
+| `initial`           | 567 kB   |
 | `anyComponentStyle` | 4 kB     |
 
 Both are tighter than what they replaced (1 MB and 8 kB errors). The headroom on
@@ -438,6 +540,15 @@ should mean looking at what was just added to the eager graph, not raising the
 number. Route-level code splitting is
 already in place — every feature under `src/app/features/` is lazy — so growth in
 the initial chunk means something leaked into a shared eager import.
+
+`initial` has been *lowered* once, from 571 kB, when server-side rendering was
+turned on: the builder stopped emitting one 535 kB `main` chunk and started
+emitting thirteen initial chunks sharing code with the server graph, which took
+4.49 kB off the raw total. The headroom was kept at its old ~4 kB rather than
+banked. (Raw is what the budget compares, and raw is what fell; the gzipped
+transfer went the other way, 149.79 kB → 157.48 kB, because thirteen small
+chunks compress worse than one large one. That is the cost of the split, and it
+is recorded here rather than hidden behind the number that improved.)
 
 `initial` has been raised exactly once, from 565 kB, by the virtual-scrolling
 item — and only after establishing that the 5.30 kB it added was unreachable from
@@ -464,20 +575,27 @@ when a route exceeds its own budget:
 
 | Route                  |   Lazy JS | Error at |
 | ---------------------- | --------: | -------: |
-| `/login`               | 109.65 kB |   112 kB |
-| `/register`            | 111.74 kB |   114 kB |
-| `/dashboard/activity`  |  55.58 kB |    58 kB |
-| `/dashboard`           |  29.45 kB |    31 kB |
-| `/dashboard/posts`     |  31.74 kB |    33 kB |
-| `/dashboard/posts/:id` |  26.30 kB |    28 kB |
-| `/unauthorized`        |   0.52 kB |     2 kB |
-| `/admin`               |   0.50 kB |     2 kB |
+| `/register`            | 111.15 kB |   114 kB |
+| `/dashboard/activity`  |  55.37 kB |    58 kB |
+| `/dashboard/posts`     |  32.05 kB |    33 kB |
+| `/dashboard`           |  29.62 kB |    31 kB |
+| `/dashboard/posts/:id` |  26.49 kB |    28 kB |
+| `/login`               |   2.94 kB |     4 kB |
+| `/admin`               |   0.55 kB |     2 kB |
+| `/unauthorized`        |   0.54 kB |     2 kB |
 
-The auth routes cost twenty times what the dashboard's do, and none of it is the
-form: they share a 101.89 kB chunk that is 51 kB of Zod v3 and 39 kB of
-`@angular/forms`. The gate also fails when route splitting collapses — a route's
-code reaching the initial bundle, two routes merging into one chunk, a parent
-importing a child statically — none of which moves a total anything else watches.
+`/register` costs two hundred times what `/login` does, and none of the
+difference is the form: both render one, and both draw it from the same 101.89 kB
+chunk of Zod v3 (51 kB) and `@angular/forms` (39 kB). `/login` is prerendered and
+hydrates its form on first interaction, so that chunk is no longer part of
+*reaching* the route — see [Incremental hydration](#incremental-hydration).
+`/login`'s budget moved from 112 kB to 4 kB in the same commit, because a budget
+left at its old ceiling would pass just as happily on the day the block stopped
+deferring.
+
+The gate also fails when route splitting collapses — a route's code reaching the
+initial bundle, two routes merging into one chunk, a parent importing a child
+statically — none of which moves a total anything else watches.
 [`docs/route-budgets.md`](./docs/route-budgets.md) has the full audit, the
 measurement, and what to do when a budget is crossed.
 
