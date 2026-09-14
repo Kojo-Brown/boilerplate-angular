@@ -45,6 +45,73 @@ export default tseslint.config(
     },
   },
   {
+    // The platform boundary, as a rule rather than a convention.
+    //
+    // Since SSR was turned on, everything under `src/app/` runs twice: once in a browser
+    // and once in a Node process where `window`, `document` and `localStorage` do not
+    // exist. A bare reference to one of them compiles, passes every unit spec — the specs
+    // run in a browser — and then throws while the injector is constructing a root
+    // service during a render, which takes the whole page with it. `AuthStore` did
+    // exactly this until `AUTH_TOKEN_STORAGE` replaced the globals with a seam.
+    //
+    // The replacements are not workarounds: `inject(DOCUMENT)` is how Angular has always
+    // said to reach the DOM, and it is the same call in a test, where it returns the
+    // fixture's document rather than the page's.
+    //
+    // Specs are exempt — they *are* the browser — and so is `src/server.ts`, which has
+    // the opposite rule below.
+    files: ['src/app/**/*.ts'],
+    ignores: ['src/app/**/*.spec.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'window',
+          message:
+            'Not defined during server-side rendering. Use `inject(DOCUMENT).defaultView`, which is `null` there — see docs/ssr.md.',
+        },
+        {
+          name: 'document',
+          message: 'Not defined during server-side rendering. Use `inject(DOCUMENT)`.',
+        },
+        {
+          name: 'localStorage',
+          message:
+            'Not defined during server-side rendering. Go through AUTH_TOKEN_STORAGE, THEME_PREFERENCE_STORE, or `storageOf(inject(DOCUMENT).defaultView)` for a new one.',
+        },
+        {
+          name: 'sessionStorage',
+          message:
+            'Not defined during server-side rendering. Put it behind an injection token, as `storageOf` does for localStorage.',
+        },
+        {
+          name: 'navigator',
+          message: 'Not defined during server-side rendering. Reach it via `inject(DOCUMENT).defaultView`.',
+        },
+      ],
+    },
+  },
+  {
+    // The same boundary from the other side. `src/server.ts` is the one file that runs on
+    // Node and never in a browser, and `types: ["node"]` in `tsconfig.app.json` — which
+    // it needs — puts `process` and friends in scope for the whole program. This keeps
+    // the DOM out of the Node file; the rule above keeps Node out of the DOM files.
+    files: ['src/server.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'window',
+          message: 'src/server.ts runs on Node. The rendered DOM is main.server.ts’s, not this file’s.',
+        },
+        {
+          name: 'document',
+          message: 'src/server.ts runs on Node. The rendered DOM is main.server.ts’s, not this file’s.',
+        },
+      ],
+    },
+  },
+  {
     // The facade boundary, as a rule rather than a convention.
     //
     // `features/` and `shared/` are view code, and view code talks to the auth domain

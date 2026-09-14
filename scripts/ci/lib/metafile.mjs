@@ -93,11 +93,23 @@ export function loadBuild() {
 }
 
 /**
- * The JavaScript outputs of a build, keyed by file name.
+ * The **browser** JavaScript outputs of a build, keyed by file name.
  *
- * Stylesheets are dropped because the import graph below is a graph of ES modules: a
- * component's styles are inlined into its chunk, and the one global stylesheet is an
- * initial file with no edges. Anything that needs the CSS asks `stats.outputs` directly.
+ * Two things are filtered out, for different reasons.
+ *
+ * Stylesheets, because the import graph below is a graph of ES modules: a component's
+ * styles are inlined into its chunk, and the one global stylesheet is an initial file
+ * with no edges. Anything that needs the CSS asks `stats.outputs` directly.
+ *
+ * And the server build. Since SSR was turned on, one `ng build` emits two module graphs
+ * into one metafile — `dist/<project>/browser` and `dist/<project>/server` — and almost
+ * every source file appears in both. Every question these gates ask is about what a
+ * *browser* downloads, so a server chunk answering `chunkContaining()` first would make
+ * a route's cost, or a `@defer` block's split, a measurement of the wrong artifact. The
+ * two sets are told apart by extension: the browser build emits `.js` and the server
+ * build `.mjs`, with no overlap in either direction (`assert-ssr.mjs` re-checks that
+ * against the emitted files, so this stays an observation about the builder rather than
+ * an assumption about it).
  */
 export function javascriptOutputs(stats) {
   return Object.fromEntries(

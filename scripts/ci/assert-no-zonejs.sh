@@ -13,6 +13,13 @@
 # reference the bare identifier `Zone` (`typeof Zone !== 'undefined'` guards), which is
 # why that is not what gets matched here.
 #
+# Both module graphs are searched. The browser build emits `.js` and the server build
+# `.mjs`, and ZoneJS reaching the server is its own regression rather than a lesser
+# version of the browser one: `@angular/ssr` branches on `typeof Zone !== 'undefined'`
+# to decide whether to install Node's global error handlers, so a stray ZoneJS there
+# does not bloat a bundle — it silently turns off the handler that reports an unhandled
+# rejection during a render.
+#
 # Usage: scripts/ci/assert-no-zonejs.sh <dist-dir>
 set -euo pipefail
 
@@ -24,13 +31,13 @@ if [ ! -d "$dist" ]; then
 fi
 
 # A build that emitted nothing would otherwise "pass" this check.
-bundles="$(find "$dist" -type f -name '*.js' -print)"
+bundles="$(find "$dist" -type f \( -name '*.js' -o -name '*.mjs' \) -print)"
 if [ -z "$bundles" ]; then
   echo "assert-no-zonejs.sh: no JavaScript bundles under $dist — did the build run?" >&2
   exit 2
 fi
 
-matches="$(grep -rl '__load_patch' "$dist" --include='*.js' || true)"
+matches="$(grep -rl '__load_patch' "$dist" --include='*.js' --include='*.mjs' || true)"
 
 if [ -n "$matches" ]; then
   echo "::error::ZoneJS found in the production bundle — this app is zoneless (see docs/zoneless.md)."

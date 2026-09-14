@@ -33,6 +33,11 @@ concurrency:
 #     JavaScript than it is budgeted, or when route splitting has quietly collapsed. Also
 #     not a warning problem: `ng build` has no per-route budget to warn about, and growth
 #     behind a lazy route leaves the initial total untouched (see `docs/route-budgets.md`).
+#   - `scripts/ci/assert-ssr.mjs` starts the built server and checks what it answers. It is
+#     the only gate here that runs the artifact rather than reading it, because the ways SSR
+#     breaks are all invisible to a bundle and to a browser-run unit suite: a browser-only
+#     global reached during a render, a platform-specific provider, a route whose render
+#     mode changed, a `@defer (hydrate …)` block that arrives hydrated (see `docs/ssr.md`).
 #   - `NODE_OPTIONS: --throw-deprecation` promotes Node runtime deprecation warnings to
 #     thrown errors, so a deprecated API — ours or a dependency's — surfaces on the
 #     oldest and the newest supported runtime rather than when it is finally removed.
@@ -217,6 +222,16 @@ jobs:
         run: pnpm check:routes
         env:
           STATS_JSON: .stats/stats.json
+
+      # The server half of the build, exercised. `pnpm build` emits `dist/<project>/server`
+      # on every Node major, but booting it once is enough: what this asserts is a property
+      # of the artifact, not of the runtime that built it — same reasoning as `pnpm stats`
+      # above.
+      - name: Assert the server renders what each route promises
+        if: matrix.node-version == '22'
+        run: pnpm check:ssr
+        env:
+          NODE_OPTIONS: --throw-deprecation
 
       - name: Upload build artifact
         # One copy of `dist/` is enough; the other majors still have to build cleanly.

@@ -24,6 +24,9 @@
             "outputPath": "dist/boilerplate-angular",
             "index": "src/index.html",
             "browser": "src/main.ts",
+            "server": "src/main.server.ts",
+            "outputMode": "server",
+            "ssr": { "entry": "src/server.ts" },
             "polyfills": [],
             "tsConfig": "tsconfig.app.json",
             "assets": [{ "glob": "**/*", "input": "public" }],
@@ -33,7 +36,7 @@
           "configurations": {
             "production": {
               "budgets": [
-                { "type": "initial", "maximumError": "571kB" },
+                { "type": "initial", "maximumError": "567kB" },
                 { "type": "anyComponentStyle", "maximumError": "4kB" }
               ],
               "outputHashing": "all",

@@ -115,9 +115,18 @@ export function connectDevtools<T extends object>(
   store: SignalStore<T>,
   options: DevtoolsOptions = {}
 ): () => void {
+  // `no-restricted-globals` sends a `window` reference to `inject(DOCUMENT).defaultView`,
+  // and there is no injector here: this is a plain function, reached from `ThemeService`'s
+  // constructor through a dynamic import that can resolve after that injection context is
+  // gone. The `typeof` guard is the SSR-safe form for exactly that case, and it is
+  // load-bearing rather than defensive — `ThemeService` is constructed during a server
+  // render too, and a development build imports this file there.
+  //
+  /* eslint-disable no-restricted-globals -- see above */
   const extension =
     options.extension ??
     (typeof window === 'undefined' ? undefined : window.__REDUX_DEVTOOLS_EXTENSION__);
+  /* eslint-enable no-restricted-globals */
 
   if (!extension) {
     return () => {

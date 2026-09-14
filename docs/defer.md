@@ -197,8 +197,13 @@ single-root placeholder) is asserted directly instead.
 
 ## Not covered here
 
-- **`hydrate` triggers.** `@defer (hydrate on viewport)` — incremental hydration — needs
-  SSR, which is its own Phase 8 item. Nothing in this repo renders on a server yet.
+- **`hydrate` triggers.** `@defer (hydrate on interaction)` — incremental hydration — is a
+  different feature wearing the same syntax, and it lives in [`ssr.md`](./ssr.md). The
+  short version: a `hydrate` trigger renders the block's *main* content on the server and
+  defers only the JavaScript that makes it interactive, so it needs a server-rendered
+  route and does nothing on the client-rendered ones every block in this file sits on. It
+  also needs no placeholder — it resolves against the main view — and it changes what a
+  `<button type="submit">` inside the block means. `/login` is the one caller.
 - **`@defer` inside `@for`.** Legal, and each iteration gets its own block; the chunk is
   fetched once and shared. No view here needs it.
 - **Route-level splitting.** `loadComponent`/`loadChildren` already split every route in

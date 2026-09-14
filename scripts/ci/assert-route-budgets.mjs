@@ -78,10 +78,17 @@ const ROUTE_BUDGETS = [
   {
     path: '/login',
     chain: ['src/app/features/auth/auth.routes.ts', 'src/app/features/auth/login.component.ts'],
-    // By far the most expensive route in the application, and none of it is the login
-    // form: the chunk it shares with /register is Zod v3 (51 kB) plus @angular/forms
-    // (39 kB). `docs/route-budgets.md` covers what could be done about that.
-    maximum: '112kB',
+    // Was the most expensive route in the application at 111 kB, none of it the login
+    // form itself: the chunk it shared with /register is Zod v3 (51 kB) plus
+    // @angular/forms (39 kB). The form is now behind `@defer (hydrate on interaction)`
+    // in a prerendered page, so that 108 kB is no longer part of reaching the route —
+    // it is fetched when the visitor first clicks or types. `/register` below is the
+    // control group and still pays it.
+    //
+    // The budget moved with the measurement rather than being left at its old ceiling:
+    // a 112 kB budget would have passed just as happily on the day the block stopped
+    // deferring, which is the regression this number now catches. `docs/ssr.md`.
+    maximum: '4kB',
   },
   {
     path: '/register',

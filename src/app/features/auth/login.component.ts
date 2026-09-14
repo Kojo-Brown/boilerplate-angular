@@ -1,15 +1,44 @@
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthFacade } from '@/app/core/auth';
-import { controlErrorSignal } from '@/app/core/reactivity';
-import { zodValidator } from '@/app/core/validators/zod-validator';
-import { loginSchema } from './auth.schemas';
+import { LoginFormComponent } from './login-form.component';
 
+/**
+ * `/login`, and the one page in this application where incremental hydration applies.
+ *
+ * It is prerendered (`app.routes.server.ts`), so the whole card — heading, error banner,
+ * every field, the button — arrives as HTML that needs no JavaScript to be *visible*.
+ * What it needs JavaScript for is being *usable*, and that is 101.89 kB of
+ * `@angular/forms` and Zod against roughly 5 kB for everything else on the page.
+ *
+ * `@defer (hydrate on interaction)` separates the two. The server still renders the
+ * form — a `hydrate` trigger renders the main block, never the placeholder, which is the
+ * difference between incremental hydration and ordinary deferring — and the browser
+ * holds off on downloading and hydrating it until the visitor clicks or types. So the
+ * page is interactive-looking immediately and actually interactive one round trip after
+ * the first touch, with `withEventReplay()` (see `app.config.ts`) delivering that first
+ * touch to the component once it exists.
+ *
+ * Two things this leans on, neither of them obvious:
+ *
+ *   - The block carries no `@placeholder`. A `hydrate` trigger resolves against the
+ *     block's *main* view rather than a placeholder's root node, so there is nothing for
+ *     a placeholder to be the trigger surface of. On a client-rendered visit — a
+ *     navigation into `/login` from inside the app, or any unit test — there is no
+ *     dehydrated markup to trigger against at all, so the compiler's implicit `on idle`
+ *     applies and the form loads on its own.
+ *   - The form's markup has to be *inert* before hydration, not merely unhydrated.
+ *     `login-form.component.ts` explains what that costs and why event replay does not
+ *     cover it.
+ *
+ * The error banner and the link to `/register` stay outside the block deliberately: both
+ * are meaningful on the prerendered page, and the banner in particular is what a visitor
+ * bounced back here by a failed sign-in needs to read before touching anything.
+ */
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [RouterLink, LoginFormComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4">
@@ -33,65 +62,9 @@ import { loginSchema } from './auth.schemas';
             </div>
           }
 
-          <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-            <div class="space-y-4">
-              <div>
-                <label
-                  for="email"
-                  class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
-                >
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  formControlName="email"
-                  autocomplete="email"
-                  placeholder="you@example.com"
-                  class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  [class.border-red-400]="emailError()"
-                  [class.border-[var(--color-border)]]="!emailError()"
-                />
-                @if (emailError()) {
-                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ emailError() }}</p>
-                }
-              </div>
-
-              <div>
-                <label
-                  for="password"
-                  class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
-                >
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  formControlName="password"
-                  autocomplete="current-password"
-                  placeholder="••••••••"
-                  class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  [class.border-red-400]="passwordError()"
-                  [class.border-[var(--color-border)]]="!passwordError()"
-                />
-                @if (passwordError()) {
-                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ passwordError() }}</p>
-                }
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              [disabled]="auth.isBusy()"
-              class="mt-6 w-full rounded-md bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              @if (auth.isBusy()) {
-                Signing in…
-              } @else {
-                Sign in
-              }
-            </button>
-          </form>
+          @defer (hydrate on interaction) {
+            <app-login-form />
+          }
 
           <p class="mt-6 text-center text-sm text-[var(--color-muted-foreground)]">
             Don't have an account?
@@ -108,15 +81,9 @@ import { loginSchema } from './auth.schemas';
   `,
 })
 export class LoginComponent {
-  private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   protected readonly auth = inject(AuthFacade);
-
-  protected readonly form = this.fb.group({
-    email: ['', [zodValidator(loginSchema.shape.email)]],
-    password: ['', [zodValidator(loginSchema.shape.password)]],
-  });
 
   constructor() {
     effect(() => {
@@ -126,27 +93,5 @@ export class LoginComponent {
         void this.router.navigateByUrl(returnUrl);
       }
     });
-  }
-
-  /**
-   * Validation messages as signals rather than getters. A getter is re-read on every
-   * refresh and so is never *wrong*, but under zoneless nothing refreshes the view
-   * unless it is told to, and a reactive-forms control does not tell anyone: it
-   * publishes on `AbstractControl.events`, outside the reactive graph.
-   * `controlErrorSignal` bridges that stream with `toSignal`, so a message appears when
-   * the control's state changes rather than when the next unrelated refresh happens to
-   * come along. See `docs/rxjs-interop.md`.
-   */
-  protected readonly emailError = controlErrorSignal(this.form.controls.email, 'zod');
-  protected readonly passwordError = controlErrorSignal(this.form.controls.password, 'zod');
-
-  protected onSubmit(): void {
-    this.form.markAllAsTouched();
-    if (this.form.invalid) return;
-
-    const result = loginSchema.safeParse(this.form.getRawValue());
-    if (!result.success) return;
-
-    this.auth.signIn(result.data);
   }
 }
