@@ -25,6 +25,12 @@ import {
   provideApiErrorMappers,
 } from '@/app/core/http/errors/api-error-mappers';
 import { AuthStore } from '@/app/store/auth/auth.store';
+import {
+  WEB_VITALS_SINK,
+  consoleWebVitalsSink,
+  provideWebVitals,
+  provideWebVitalsBeacon,
+} from '@/app/core/vitals';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -93,6 +99,27 @@ export const appConfig: ApplicationConfig = {
 
     provideTanStackQuery(createQueryClient()),
     { provide: TitleStrategy, useClass: AppTitleStrategy },
+
+    // Field data for LCP, INP, CLS, FCP and TTFB — what this page load actually cost the
+    // person who made it, as against what it costs a build agent. Browser-only, and by
+    // construction rather than by a platform check: the work is registered through
+    // `afterNextRender`, which has no server-side counterpart. The measuring library is
+    // behind a dynamic import, so it is its own 8.80 kB chunk and not part of the initial
+    // bundle; the server build emits that chunk too and never loads it.
+    // `docs/web-vitals.md` covers what is measured, what it is attributed to, and what a
+    // routed single-page application can and cannot ask of a metric that belongs to a
+    // page *load*.
+    provideWebVitals(),
+
+    // Where those reports go. Empty `vitalsUrl` is the checked-in default and the
+    // comparison is a build-time constant, so a build with no collector configured drops
+    // the beacon entirely rather than shipping it unused — and sends nothing anywhere,
+    // which is the same call `HTTP_TELEMETRY_SINK` makes by defaulting to a sink that
+    // discards. The console sink then prints each metric in development and is silent in
+    // production.
+    environment.vitalsUrl === ''
+      ? { provide: WEB_VITALS_SINK, useValue: consoleWebVitalsSink }
+      : provideWebVitalsBeacon({ url: environment.vitalsUrl }),
 
     // Turn tokens restored from storage into a real session, before the router's
     // initial navigation runs its guards. Deliberately synchronous and non-blocking:

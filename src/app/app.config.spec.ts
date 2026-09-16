@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { appConfig } from './app.config';
 import { AuthStore } from '@/app/store/auth/auth.store';
+import { SUBSCRIBE_WEB_VITALS } from '@/app/core/vitals';
 import { host, requireEl } from '@/testing';
 
 /**
@@ -29,9 +30,21 @@ describe('appConfig', () => {
     // request lands on a controller instead of the network. Storage is cleared because
     // that initializer reads it, and a token left behind by another spec would make
     // these specs issue a request they never asked for.
+    //
+    // `SUBSCRIBE_WEB_VITALS` is stubbed for the same reason storage is cleared: these
+    // specs bootstrap the real configuration many times over, and the real subscriber
+    // loads `web-vitals` and registers a fresh set of `PerformanceObserver`s and
+    // page-lifecycle listeners on each one — none of which a `TestBed` teardown removes,
+    // because they belong to the page rather than to the injector. They then report
+    // against Karma's own document as the suite ends. What these specs are about is
+    // change detection; `core/vitals/` has its own.
     localStorage.clear();
     TestBed.configureTestingModule({
-      providers: [...appConfig.providers, provideHttpClientTesting()],
+      providers: [
+        ...appConfig.providers,
+        provideHttpClientTesting(),
+        { provide: SUBSCRIBE_WEB_VITALS, useValue: async () => undefined },
+      ],
     });
   });
 
