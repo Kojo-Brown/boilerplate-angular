@@ -599,5 +599,50 @@ statically — none of which moves a total anything else watches.
 [`docs/route-budgets.md`](./docs/route-budgets.md) has the full audit, the
 measurement, and what to do when a budget is crossed.
 
+## Core Web Vitals
+
+Every gate above measures the *artifact* — kilobytes, chunk graphs, budgets — on a
+build agent with a fast disk and no network. None of them can tell you that the
+dashboard's largest image takes four seconds to paint on a phone in a lift.
+`src/app/core/vitals/` measures the five metrics the browser computes during a
+real page load and hands them to a sink.
+
+LCP, INP and CLS are the Core Web Vitals proper; FCP and TTFB are here because
+LCP alone does not say what to fix. The measuring is `web-vitals` v6 — CLS's
+session windows and INP's per-page percentile are not worth re-deriving — behind
+a dynamic `import()`, so it is its own **8.80 kB** chunk rather than part of the
+565 kB initial bundle, requested after the first paint. That is not about the
+kilobytes: an analytics library downloaded *during* page load competes with the
+page whose load it is measuring.
+
+The part that is specific to a single-page application is that **a Core Web Vital
+belongs to a page load, not to a route**. The router can move someone through four
+screens without a page load, so every report carries two paths — `entryPath`,
+read from `DOCUMENT.location.pathname` before the router's first navigation so a
+guard redirect cannot rewrite it, and `path`, the route in view when the metric
+settled. An INP of 600 ms reported from `/dashboard/activity` on a page load that
+entered at `/login` is a slow interaction on the activity table, and a
+single-path report would have pinned it on the sign-in form.
+
+Reports go to `WEB_VITALS_SINK`, which defaults to discarding for the same reason
+`HTTP_TELEMETRY_SINK` does — a boilerplate has no collector to name. Setting
+`environment.vitalsUrl` swaps the console sink for a batching beacon that flushes
+on `visibilitychange` and `pagehide`, prefers `navigator.sendBeacon`, and falls
+back to `fetch(…, { keepalive: true })`.
+
+Two findings came out of building it, both now pinned by specs. `web-vitals`
+reports its three late metrics from its own `visibilitychange` listener, so which
+of the two listeners runs first depends on when a lazy chunk finished loading —
+the sink remembers that the page has been hidden and sends on arrival instead of
+assuming an order. And `{ ...metric }` leaks: the handed-over object carries the
+live `PerformanceEntry` objects behind the measurement, including the URL of the
+element that produced the largest paint, none of which the six-field type
+declares and none of which the type system objects to copying.
+
+See [docs/web-vitals.md](./docs/web-vitals.md) for why FID is gone, what the
+deferred load biases the dataset towards, why the beacon sends JSON labelled
+`text/plain`, why soft navigations are not opted into, and the 8.80 kB chunk that
+no budget in this repository watches.
+
 ## Spec Progress
 See [SPEC.md](./SPEC.md).
