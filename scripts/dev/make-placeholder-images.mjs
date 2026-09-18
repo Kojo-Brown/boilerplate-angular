@@ -8,9 +8,20 @@
 // the fixtures are generated, checked in, and this script is how they are reproduced.
 //
 // Generated rather than drawn, for the same reason `activity-log.data.ts` generates its
-// rows: a fixture nobody can rebuild is a fixture nobody can change. The output is
-// byte-identical on every run — fixed palette, fixed geometry, no timestamp, deflate at a
-// fixed level — so re-running this on an unmodified tree produces no diff.
+// rows: a fixture nobody can rebuild is a fixture nobody can change. Everything that goes
+// into the output is fixed — palette, geometry, deflate level, and no timestamp chunk — so
+// re-running this on an unmodified tree produces no diff, and `--check` in CI says so.
+//
+// One caveat on that, because this repository has already been bitten by it once.
+// `--check` compares bytes, and the bytes include deflate's output; `docs/route-budgets.md`
+// records that zlib's output "moves a few bytes between Node builds", which is why the
+// transfer sizes in that gate are reported and never asserted on. Here it is asserted on,
+// deliberately: the CI matrix runs this check on every Node major in `engines.node`, and
+// all three currently agree byte for byte, so asserting is what *proves* the fixtures are
+// reproducible rather than merely reproducible-on-my-machine. If a future Node changes
+// zlib's output, one matrix leg will fail this check while the others pass — so the failure
+// message below names that possibility rather than only telling you to re-run the script.
+// The fix then is to compare decoded scanlines (via `inflateSync`) instead of file bytes.
 //
 // They are deliberately plain: flat bands of colour and a diagonal, obviously placeholder
 // art. An avatar fixture that looked like a photograph of a person would invite someone to
@@ -167,7 +178,18 @@ for (const image of IMAGES) {
       existing = null;
     }
     if (existing === null || !existing.equals(bytes)) {
-      console.error(`::error file=${path}::out of date — run node scripts/dev/make-placeholder-images.mjs`);
+      const reason =
+        existing === null
+          ? 'missing'
+          : existing.length === bytes.length
+            ? `differs from what this script draws (${bytes.length} bytes either way)`
+            : `differs in length (checked in: ${existing.length} bytes, generated: ${bytes.length})`;
+      console.error(
+        `::error file=${path}::${reason}. Run \`node scripts/dev/make-placeholder-images.mjs\` ` +
+          `and commit the result. If this fails on one Node major while the others pass, ` +
+          `nothing is out of date — zlib's deflate output has changed between runtimes, and ` +
+          `the header of this script says what to do about it.`
+      );
       changed += 1;
     }
     continue;

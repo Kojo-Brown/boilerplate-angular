@@ -159,8 +159,14 @@ intrinsic dimensions off the decoded image to check them against the declared
 cannot be demonstrated, gated or measured without real files, and this application has no
 image data of its own.
 
-`scripts/dev/make-placeholder-images.mjs` produces them, byte-identically on every run, and
-`pnpm check:fixtures` fails if they have drifted from it. Generated rather than drawn for the
+`scripts/dev/make-placeholder-images.mjs` produces them and `pnpm check:fixtures` fails if
+they have drifted from it. That check compares bytes, deflate's output included, which is a
+stronger claim than [`docs/route-budgets.md`](./route-budgets.md) is willing to make about
+zlib — it reports transfer sizes and never asserts on them, because "zlib's output moves a
+few bytes between Node builds". Asserting here is deliberate: the CI matrix runs this check
+on every Node major in `engines.node` and all three agree byte for byte, which is what turns
+"reproducible" from a claim into a result. The script's header says what to do if a future
+runtime breaks that. Generated rather than drawn for the
 reason `activity-log.data.ts` generates its rows: a fixture nobody can rebuild is a fixture
 nobody can change. They are deliberately plain flat bands of colour — an avatar that looked
 like a photograph of a person would invite someone to ship it, the same reasoning that makes
