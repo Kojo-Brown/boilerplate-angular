@@ -18,4 +18,21 @@ export interface Environment {
    * rather than shipped unused.
    */
   vitalsUrl: string;
+
+  /**
+   * Origin (and optional path prefix) of an image CDN, or `''` to serve images from this
+   * application's own origin.
+   *
+   * Empty in both checked-in builds, for the reason `vitalsUrl` is: a boilerplate has no
+   * CDN to name, and a default that guessed at one would route every downstream
+   * application's images through somewhere its author never chose.
+   *
+   * With this empty, `provideAppImageLoader` provides *nothing* rather than a pass-through
+   * loader — `NgOptimizedImage` compares the injected loader against its own no-op by
+   * identity to decide whether a `srcset` is worth emitting, so a pass-through would make
+   * it advertise density variants that are all the same file. `docs/images.md` has the
+   * whole finding. The comparison against `''` is a build-time constant, so a build with no
+   * CDN configured drops `createImageLoader` rather than shipping it unused.
+   */
+  imageCdnUrl: string;
 }

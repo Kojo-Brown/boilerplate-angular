@@ -11,6 +11,9 @@ export { ToastItemComponent, ToastContainerComponent } from './toast/toast.compo
 export { ToastService, TOAST_ID_FACTORY, TOAST_SCHEDULER } from './toast/toast.service';
 export type { Toast, ToastOptions, ToastScheduler, ToastType } from './toast/toast.service';
 
+export { BrandBannerComponent } from './brand/brand-banner.component';
+export { BrandMarkComponent } from './brand/brand-mark.component';
+
 export { ThemeToggleComponent } from './theme-toggle/theme-toggle.component';
 
 export { LayoutShellComponent } from './layout/layout-shell.component';

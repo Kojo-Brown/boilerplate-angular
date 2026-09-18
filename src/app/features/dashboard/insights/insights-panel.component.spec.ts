@@ -1,7 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import type { ComponentFixture } from '@angular/core/testing';
 import { QueryClient, provideTanStackQuery } from '@tanstack/angular-query-experimental';
-import { host, requireEl, settleUntil } from '@/testing';
+import {
+  expectDistinctNodes,
+  expectSameNodes,
+  expectUniqueKeys,
+  host,
+  requireEl,
+  settleUntil,
+  trackedNodes,
+} from '@/testing';
 import { createMockPost } from '@/testing/mock-factories';
 import { IN_MEMORY_POSTS_SEED, InMemoryPostsService } from '../../posts/in-memory-posts.service';
 import type { Post } from '../../posts/posts.models';
@@ -54,6 +62,24 @@ describe('tallyByAuthor', () => {
     // The brand-new-account path. A `NaN` share would reach the template as a bar of
     // width `NaN%`, which renders as a full-width bar in some browsers and none in others.
     expect(tallyByAuthor([])).toEqual([]);
+  });
+
+  it('produces one row per author, so `track tally.authorId` is unique', () => {
+    // The uniqueness half of the track expression, which no static check can see and which
+    // Angular only reports (NG0955) from a render that reaches the duplicate. It holds
+    // because the rows come out of a `Map` keyed by `authorId` — asserted rather than
+    // assumed, since a later change to group by something else would break it silently.
+    const tallies = tallyByAuthor([post('ama'), post('ama'), post('kofi'), post('yaa')]);
+
+    expectUniqueKeys(tallies, (tally) => tally.authorId);
+  });
+
+  it('resolves each author a stable avatar on the row rather than in the template', () => {
+    const [first] = tallyByAuthor([post('ama')]);
+    const [again] = tallyByAuthor([post('ama')]);
+
+    expect(first.avatarUrl).toMatch(/^\/img\/avatar-[1-6]\.png$/);
+    expect(again.avatarUrl).toBe(first.avatarUrl);
   });
 });
 
@@ -125,5 +151,38 @@ describe('InsightsPanelComponent', () => {
 
     expect(host(fixture).querySelector('[data-testid="insights-empty"]')).not.toBeNull();
     expect(host(fixture).querySelectorAll('[data-testid="author-bar"]').length).toBe(0);
+  });
+
+  it('draws each author a lazily-loaded avatar', async () => {
+    const fixture = await render([post('ama'), post('kofi')]);
+
+    const avatars = Array.from(host(fixture).querySelectorAll<HTMLImageElement>('dt img'));
+    expect(avatars.length).toBe(2);
+    for (const avatar of avatars) {
+      // `src`, not `ngSrc`: an `<img ngSrc>` in a component that forgot to import
+      // NgOptimizedImage keeps a literal `ngsrc` attribute and never gets a `src` at all.
+      expect(avatar.getAttribute('src')).toMatch(/^\/img\/avatar-[1-6]\.png$/);
+      expect(avatar.getAttribute('loading')).toBe('lazy');
+      expect(avatar.getAttribute('width')).toBe('32');
+      expect(avatar.getAttribute('height')).toBe('32');
+      // The author id is the text beside it, so the image is decorative.
+      expect(avatar.getAttribute('alt')).toBe('');
+    }
+  });
+
+  it('reuses each author row — and its avatar — when the query refetches', async () => {
+    // What `track tally.authorId` buys, as the only thing that observes it: the rendered
+    // text is identical either way, and keyed by object identity every row here would be
+    // destroyed and rebuilt on a refetch, re-requesting each avatar. `tallies` is a
+    // `computed` over fresh objects, so the refetch below really does hand `@for` a new
+    // array of new rows.
+    const fixture = await render([post('ama'), post('ama'), post('kofi')]);
+    const before = trackedNodes(fixture, 'dt img');
+    expectDistinctNodes(before);
+
+    await TestBed.inject(QueryClient).refetchQueries();
+    await fixture.whenStable();
+
+    expectSameNodes(before, trackedNodes(fixture, 'dt img'));
   });
 });

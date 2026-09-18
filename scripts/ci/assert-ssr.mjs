@@ -21,6 +21,10 @@
 //      block, with the `jsaction` attributes that make the first click hydrate it. That
 //      is the whole claim of incremental hydration, and it is invisible in `dist/` any
 //      other way: the server renders the block's content whether or not it is deferred.
+//   3b. The prerendered `/login` and `/register` carry a `<link rel="preload" as="image">`
+//      for their LCP image. That link is the entire point of marking the banner
+//      `priority` on a prerendered page — it starts the fetch from the static HTML — and
+//      it exists only in the server render, so no browser-run spec can see it.
 //   4. Against a running server: a prerendered route is served, a `RenderMode.Client`
 //      route is served as the shell and not rendered, the router's redirects resolve
 //      server-side, and a request carrying a `Host` outside `NG_ALLOWED_HOSTS` is
@@ -51,6 +55,20 @@ const distDir = resolve(repoRoot, process.argv[2] ?? 'dist/boilerplate-angular')
  * losing one.
  */
 const PRERENDERED_ROUTES = ['/login', '/register', '/unauthorized'];
+
+/**
+ * Prerendered routes that carry a `priority` image, and the source it must be preloaded at.
+ *
+ * `NgOptimizedImage` emits the preload link only while rendering on the server, so this is
+ * the one place the claim can be checked. It is asserted per route rather than globally
+ * because the failure it guards against is per route: dropping `<app-brand-banner />` from
+ * one page, or letting the component lose its `priority`, leaves every other page's link
+ * in place and the initial bundle untouched.
+ */
+const PRELOADED_IMAGES = [
+  { route: '/login', src: '/img/auth-banner.png' },
+  { route: '/register', src: '/img/auth-banner.png' },
+];
 
 /** A route that must *not* be prerendered, and a string only its rendered output has. */
 const CLIENT_ROUTE = { path: '/dashboard', contentMarker: 'Dashboard' };
@@ -168,6 +186,64 @@ function checkPrerenderedRoutes() {
       / ngh="/.test(html),
       `${route} carries no "ngh" hydration annotations. The browser will discard this ` +
         `markup and render the page again — check provideClientHydration() in app.config.ts.`
+    );
+  }
+}
+
+/**
+ * The `priority` image claim, checked against the prerendered bytes.
+ *
+ * Three separate things have to be true and each fails independently: the `<img>` is in the
+ * markup at all, it is eager rather than lazy, and the `<link rel="preload">` went into the
+ * `<head>`. The last is the one that only exists on the server — a browser-run spec can
+ * assert `loading="eager"` and `fetchpriority="high"` (and `brand-banner.component.spec.ts`
+ * does) but never the link, because `PreloadLinkCreator` is server-only.
+ */
+function checkPriorityImagePreloads() {
+  for (const { route, src } of PRELOADED_IMAGES) {
+    const file = join(distDir, 'browser', route.replace(/^\//, ''), 'index.html');
+    if (!existsSync(file)) continue; // already reported by checkPrerenderedRoutes
+    const html = readFileSync(file, 'utf8');
+
+    const image = new RegExp(`<img[^>]*src="${src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`);
+    const tag = html.match(image)?.[0];
+
+    if (
+      !check(
+        tag !== undefined,
+        `${route} was prerendered without an <img src="${src}">. Either the component is ` +
+          `gone from the page, or NgOptimizedImage is not applying and the element kept a ` +
+          `literal ngsrc attribute with no src at all — see docs/images.md.`
+      )
+    ) {
+      continue;
+    }
+
+    check(
+      tag.includes('loading="eager"') && tag.includes('fetchpriority="high"'),
+      `${route}'s ${src} is prerendered without loading="eager" fetchpriority="high", so ` +
+        `it has lost its \`priority\`. The browser will defer the page's largest image ` +
+        `until the parser reaches the tag.`
+    );
+
+    // Matched as a `<link>` carrying all three, in any attribute order — Angular's
+    // renderer does not promise one, and asserting on a fixed order would make this gate
+    // fail on a framework upgrade that changed nothing observable.
+    const preload = html
+      .match(/<link\b[^>]*>/g)
+      ?.find(
+        (link) =>
+          link.includes('rel="preload"') &&
+          link.includes('as="image"') &&
+          link.includes(`href="${src}"`)
+      );
+
+    check(
+      preload !== undefined,
+      `${route} has no <link rel="preload" as="image" href="${src}"> in its prerendered ` +
+        `HTML. That link is what makes \`priority\` worth anything on a prerendered page: ` +
+        `without it the request waits for the parser to reach the <img>. It is emitted by ` +
+        `NgOptimizedImage during server rendering only, so nothing else can catch its loss.`
     );
   }
 }
@@ -394,6 +470,7 @@ async function main() {
   checkBuildShape();
   checkPrerenderedRoutes();
   checkIncrementalHydration();
+  checkPriorityImagePreloads();
   await checkRunningServer();
   await checkStartupRefusesWithoutAllowedHosts();
 
@@ -405,7 +482,8 @@ async function main() {
 
   console.log(
     `assert-ssr: clean (${PRERENDERED_ROUTES.length} prerendered route(s) verified, ` +
-      `${CLIENT_ROUTE.path} served as the shell, incremental hydration live on /login)`
+      `${CLIENT_ROUTE.path} served as the shell, incremental hydration live on /login, ` +
+      `${PRELOADED_IMAGES.length} priority image(s) preloaded)`
   );
 }
 

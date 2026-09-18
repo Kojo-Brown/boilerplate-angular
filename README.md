@@ -644,5 +644,63 @@ deferred load biases the dataset towards, why the beacon sends JSON labelled
 `text/plain`, why soft navigations are not opted into, and the 8.80 kB chunk that
 no budget in this repository watches.
 
+## `@for` track expressions and images
+
+Two halves of one problem: both are silent, and both are invisible to the kind of
+assertion a suite actually contains.
+
+**A track expression is what `@for` diffs by.** The clause is mandatory — the
+compiler rejects the block without it — but whether the expression *identifies the
+row* is checked by nothing. Keyed by `$index`, filtering a list leaves the first
+nodes in place with different data poured into them, along with the focus, the
+half-typed input and the decoded image the DOM was holding. Keyed by the item
+object, every TanStack refetch hands `@for` fresh objects that are `===` to
+nothing, so every row is destroyed and rebuilt on data that did not change. In
+both cases the rendered text is identical, which is why an assertion on
+`textContent` passes either way.
+
+`scripts/ci/assert-for-track.mjs` parses every template with the Angular
+compiler's own parser and classifies each track expression. A property path rooted
+at the loop item passes; the item itself, `$index`, a call, or a path rooted
+elsewhere is allowed but must carry a `<!-- track: … -->` sentence above the block
+— the same "declare and justify" shape as the DEP0205 allow-list. The audit lands
+in the job summary. `src/testing/track.ts` covers the half no static check can:
+`expectSameNodes` asserts the DOM nodes that should have been reused were reused,
+and `expectUniqueKeys` catches a key that is unique in a five-row fixture and not
+in ten thousand.
+
+**`NgOptimizedImage` matches on `ngSrc`,** so an `<img src>` is simply not
+optimised and nothing says so. The sharpest version: `ngSrc` is an *attribute*, so
+an `<img ngSrc>` in a component that forgot to import the directive keeps a literal
+`ngsrc`, never gets a `src` at all, and produces no compiler error, no lint error
+and no runtime warning. `scripts/ci/assert-image-hygiene.mjs` enforces six rules
+including that one, two of them structural rather than attribute-level: a
+`priority` image may not sit inside `@for` or `@defer`, and there is at most one
+per template. Both are about the same mistake — `priority` claims an element is the
+*largest one painted in the first frame*, and a repeated or deferred image cannot
+be, so marking it reads as careful optimisation and is strictly worse than nothing.
+
+The one genuine LCP image is the banner on `/login` and `/register`. Both are
+prerendered, which is what makes `priority` pay: Angular emits a
+`<link rel="preload" as="image">` into the static `<head>`, so the request leaves
+before the parser reaches the tag. That link exists only in the server render, so
+`assert-ssr.mjs` reads the prerendered HTML for it — no browser-run spec can.
+
+`environment.imageCdnUrl` is empty by default and `provideAppImageLoader` then
+provides **nothing**, which is load-bearing rather than lazy: the directive tells a
+real loader from its own no-op *by identity*, so a pass-through loader would make
+it advertise `img.png 1x, img.png 2x` from a loader that ignores width — two
+identical files, one of them claimed to be twice the density.
+
+The `initial` budget moved 567 kB → 574 kB, and not because of the images: 5.16 kB
+of it is `@angular/common`'s `common.mjs` surviving tree-shaking in `main`, where
+that module's chunk was already assigned. Providing the loader from the lazy route
+trees instead was measured and recovers 1.02 kB of 6.41 kB, so no route change can
+shift it. Every per-route budget held.
+
+See [docs/track-expressions.md](./docs/track-expressions.md) for the three failure
+modes and what each gate cannot do, and [docs/images.md](./docs/images.md) for the
+pass-through-loader finding, the six rules, and the full measurement.
+
 ## Spec Progress
 See [SPEC.md](./SPEC.md).

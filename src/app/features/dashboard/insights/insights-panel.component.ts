@@ -1,4 +1,6 @@
+import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core';
+import { avatarFor } from '@/app/core/images';
 import { AsyncDirective, querySnapshot } from '@/app/shared/directives';
 import { PanelSkeletonComponent } from '@/app/shared/ui/skeleton/panel-skeleton.component';
 import type { Post } from '../../posts/posts.models';
@@ -10,6 +12,16 @@ export interface AuthorTally {
   readonly posts: number;
   /** Share of the busiest author's count, 0–1. What the bar's width is drawn from. */
   readonly share: number;
+  /**
+   * The author's avatar.
+   *
+   * Resolved here rather than in the template so the URL is a property of the row, which
+   * is what lets `@for` reuse the `<img>` node across a refetch: the element keeps its
+   * `src`, so the browser keeps the decoded image instead of re-requesting it. Calling
+   * `avatarFor(...)` from the template would return an equal string every time and still
+   * be a fresh binding evaluation on every change-detection pass.
+   */
+  readonly avatarUrl: string;
 }
 
 /** How many authors the chart shows before it stops. */
@@ -44,6 +56,7 @@ export function tallyByAuthor(posts: readonly Post[]): readonly AuthorTally[] {
     authorId,
     posts: count,
     share: count / busiest,
+    avatarUrl: avatarFor(authorId),
   }));
 }
 
@@ -82,7 +95,7 @@ export function tallyByAuthor(posts: readonly Post[]): readonly AuthorTally[] {
   selector: 'app-insights-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AsyncDirective, PanelSkeletonComponent],
+  imports: [AsyncDirective, NgOptimizedImage, PanelSkeletonComponent],
   template: `
     <ng-template #skeleton>
       <app-panel-skeleton label="publishing activity" rows="5" />
@@ -113,8 +126,27 @@ export function tallyByAuthor(posts: readonly Post[]): readonly AuthorTally[] {
         <dl class="mt-4 space-y-3">
           @for (tally of tallies(); track tally.authorId) {
             <div class="grid grid-cols-[8rem_1fr_2.5rem] items-center gap-3">
-              <dt class="truncate text-xs text-[var(--color-muted-foreground)]">
-                {{ tally.authorId }}
+              <dt class="flex min-w-0 items-center gap-2">
+                <!--
+                  Lazy, which is the default and correct here: this panel is itself behind
+                  \`@defer (on viewport)\`, so by the time these rows exist the reader has
+                  scrolled to them — and an avatar is never a page's largest element.
+                  \`alt=""\` because the author's id is the text immediately beside it.
+
+                  The \`<img>\` is also why \`track tally.authorId\` above matters more here
+                  than in a list of text: keyed by anything unstable, every refetch would
+                  destroy these nodes and the browser would re-request each avatar.
+                -->
+                <img
+                  [ngSrc]="tally.avatarUrl"
+                  [width]="avatarSize"
+                  [height]="avatarSize"
+                  alt=""
+                  class="shrink-0 rounded-full"
+                />
+                <span class="truncate text-xs text-[var(--color-muted-foreground)]">
+                  {{ tally.authorId }}
+                </span>
               </dt>
               <!--
                 The bar is decoration: the number beside it is the same information, and a
@@ -148,4 +180,13 @@ export class InsightsPanelComponent {
   protected readonly posts = querySnapshot(this.query);
 
   protected readonly tallies = computed(() => tallyByAuthor(this.query.data()?.data ?? []));
+
+  /**
+   * Rendered avatar size in CSS pixels.
+   *
+   * Well inside the 128-pixel intrinsic size of the fixtures (`AVATAR_INTRINSIC_SIZE`), so
+   * a 2× display still gets a real 2× image rather than an upscale once a CDN is
+   * configured.
+   */
+  protected readonly avatarSize = 32;
 }

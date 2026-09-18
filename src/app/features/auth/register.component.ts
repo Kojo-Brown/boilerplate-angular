@@ -9,6 +9,7 @@ import {
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthFacade } from '@/app/core/auth';
+import { BrandBannerComponent } from '@/app/shared/ui/brand/brand-banner.component';
 import { typedBeforeHydration } from '@/app/core/platform/pre-hydration-input';
 import { controlErrorSignal, controlSignal } from '@/app/core/reactivity';
 import { zodValidator, zodGroupValidator } from '@/app/core/validators/zod-validator';
@@ -17,7 +18,7 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, BrandBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -27,7 +28,10 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
         <div
           class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900"
         >
-          <div class="mb-8">
+          <!-- Same reasoning as /login: prerendered, and the largest element in the card. -->
+          <app-brand-banner />
+
+          <div class="mt-6 mb-8">
             <h1 class="text-2xl font-bold text-[var(--color-foreground)]">Create an account</h1>
             <p class="mt-1 text-sm text-[var(--color-muted-foreground)]">
               Get started with your free account today
