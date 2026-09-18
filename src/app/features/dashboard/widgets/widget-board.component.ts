@@ -39,6 +39,13 @@ const RANGE_BUTTON_ACTIVE = 'bg-[var(--color-primary)] text-[var(--color-primary
     <section>
       <header class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex gap-1" role="group" aria-label="Reporting window">
+          <!--
+            track: \`ranges\` is \`STAT_RANGES\`, a readonly tuple of string literals, so the
+            value *is* the identity — there is no field to key on and no refetch that could
+            hand these buttons a fresh set of equal-but-different objects. Keying by
+            \`$index\` would be equally correct today and would silently start reusing the
+            wrong button's DOM the moment a range is inserted rather than appended.
+          -->
           @for (option of ranges; track option) {
             <button
               type="button"

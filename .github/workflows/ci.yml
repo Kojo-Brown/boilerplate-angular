@@ -21,6 +21,19 @@ concurrency:
 #   - `scripts/ci/assert-no-warnings.sh` fails the build and test jobs on any esbuild
 #     or Angular CLI warning. `ng build` exits 0 on a bundle-budget overrun, so without
 #     this the budget is advisory.
+#   - `scripts/ci/assert-for-track.mjs` and `scripts/ci/assert-image-hygiene.mjs` read every
+#     component template through the Angular compiler's own parser and check two things a
+#     rendered assertion cannot see: that a `@for`'s track expression identifies the row, and
+#     that every `<img>` is under `NgOptimizedImage` correctly. Both failures are silent —
+#     a wrong track expression renders the right text while rebuilding every node, and an
+#     `<img ngSrc>` in a component that forgot to import the directive keeps a literal
+#     `ngsrc` attribute and no `src` at all. Neither the compiler nor ESLint says a word
+#     about either. They run in the `lint` job because they read source and need no build,
+#     and each proves its own rules against fixtures before certifying the repository.
+#     See `docs/track-expressions.md` and `docs/images.md`.
+#   - `scripts/dev/make-placeholder-images.mjs --check` fails if the generated fixtures in
+#     `public/img/` no longer match the script that produces them, so the checked-in binaries
+#     stay reproducible rather than becoming art nobody can rebuild.
 #   - `scripts/ci/assert-no-zonejs.sh` fails the build job if ZoneJS reaches the bundle.
 #     Unlike the gates above this one is not about warnings: nothing warns when ZoneJS
 #     comes back, which is exactly why it needs its own check (see `docs/zoneless.md`).
@@ -81,6 +94,19 @@ jobs:
       # why. This assertion is the source-level counterpart of the runtime rule.
       - name: Assert OnPush on every production component
         run: pnpm check:onpush
+
+      # Source-level, so they belong here rather than in `build`: both read the templates
+      # through `@angular/compiler` and need no bundle. One Node major would be enough for
+      # a pure function of the source, but the matrix costs nothing for a parse and catches
+      # a TypeScript or compiler API that behaves differently on a newer runtime.
+      - name: Assert every @for tracks its row
+        run: pnpm check:tracks
+
+      - name: Assert every <img> is optimised
+        run: pnpm check:images
+
+      - name: Assert the generated image fixtures are reproducible
+        run: pnpm check:fixtures
 
   typecheck:
     name: Typecheck (Node ${{ matrix.node-version }})

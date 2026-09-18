@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthFacade } from '@/app/core/auth';
+import { BrandBannerComponent } from '@/app/shared/ui/brand/brand-banner.component';
 import { LoginFormComponent } from './login-form.component';
 
 /**
@@ -38,7 +39,7 @@ import { LoginFormComponent } from './login-form.component';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [RouterLink, LoginFormComponent],
+  imports: [RouterLink, BrandBannerComponent, LoginFormComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4">
@@ -46,7 +47,16 @@ import { LoginFormComponent } from './login-form.component';
         <div
           class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900"
         >
-          <div class="mb-8">
+          <!--
+            The page's LCP element, and prerendered, which is what makes marking it
+            \`priority\` pay: the directive puts a \`<link rel="preload">\` in the static
+            \`<head>\`, so the request leaves before the parser reaches the tag and long
+            before any JavaScript runs. \`assert-ssr.mjs\` checks that the link is really
+            there. See docs/images.md.
+          -->
+          <app-brand-banner />
+
+          <div class="mt-6 mb-8">
             <h1 class="text-2xl font-bold text-[var(--color-foreground)]">Welcome back</h1>
             <p class="mt-1 text-sm text-[var(--color-muted-foreground)]">
               Sign in to your account to continue

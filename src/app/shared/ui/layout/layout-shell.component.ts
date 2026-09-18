@@ -11,6 +11,7 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { mediaQuerySignal } from '@/app/core/reactivity';
+import { BrandMarkComponent } from '../brand/brand-mark.component';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 
 /** Matches Tailwind's `md` breakpoint, where the drawer becomes a static sidebar. */
@@ -25,7 +26,7 @@ const SIDEBAR_BASE =
   selector: 'app-layout-shell',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, ThemeToggleComponent],
+  imports: [RouterOutlet, BrandMarkComponent, ThemeToggleComponent],
   template: `
     <!-- Mobile topbar (hidden on md+) -->
     <header
@@ -100,13 +101,28 @@ const SIDEBAR_BASE =
           class="hidden h-14 shrink-0 items-center justify-between
                  border-b border-[var(--color-border)] px-4 md:flex"
         >
-          <span class="text-sm font-semibold text-[var(--color-foreground)]">{{ brandName }}</span>
+          <span class="flex items-center gap-2">
+            <!--
+              Lazy and unprioritised, which is the ordinary case: the sidebar mark is 28
+              pixels square and is never a page's largest painted element. The product
+              name is the text beside it, so the image carries no \`alt\` of its own.
+            -->
+            <app-brand-mark />
+            <span class="text-sm font-semibold text-[var(--color-foreground)]">
+              {{ brandName }}
+            </span>
+          </span>
           <app-theme-toggle />
         </div>
 
         <!-- Mobile sidebar header with close button -->
         <div class="flex h-14 shrink-0 items-center justify-between px-4 md:hidden">
-          <span class="text-sm font-semibold text-[var(--color-foreground)]">{{ brandName }}</span>
+          <span class="flex items-center gap-2">
+            <app-brand-mark />
+            <span class="text-sm font-semibold text-[var(--color-foreground)]">
+              {{ brandName }}
+            </span>
+          </span>
           <button
             type="button"
             (click)="closeDrawer()"

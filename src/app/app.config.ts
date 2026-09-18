@@ -25,6 +25,7 @@ import {
   provideApiErrorMappers,
 } from '@/app/core/http/errors/api-error-mappers';
 import { AuthStore } from '@/app/store/auth/auth.store';
+import { provideAppImageLoader } from '@/app/core/images';
 import {
   WEB_VITALS_SINK,
   consoleWebVitalsSink,
@@ -120,6 +121,15 @@ export const appConfig: ApplicationConfig = {
     environment.vitalsUrl === ''
       ? { provide: WEB_VITALS_SINK, useValue: consoleWebVitalsSink }
       : provideWebVitalsBeacon({ url: environment.vitalsUrl }),
+
+    // How `<img ngSrc>` URLs are built. Nothing is provided while `imageCdnUrl` is empty,
+    // which is the checked-in default: images then come from `public/` on this
+    // application's own origin and `NgOptimizedImage` emits `src` alone. That "nothing" is
+    // load-bearing rather than lazy — the directive tells a real loader from its own no-op
+    // by identity, so a pass-through would make it advertise a density `srcset` whose
+    // candidates are the same file. `docs/images.md` covers that and what a configured CDN
+    // then changes.
+    provideAppImageLoader(environment.imageCdnUrl),
 
     // Turn tokens restored from storage into a real session, before the router's
     // initial navigation runs its guards. Deliberately synchronous and non-blocking:

@@ -5,4 +5,5 @@ export const environment: Environment = {
   apiUrl: '/api/v1',
   googleClientId: '',
   vitalsUrl: '',
+  imageCdnUrl: '',
 };
