@@ -75,7 +75,14 @@ const ABSOLUTE_OR_INLINE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
  *     zero width answers with either an error or a 1-pixel image.
  */
 export function createImageLoader(options: ImageLoaderOptions): ImageLoader {
-  const { format, quality, placeholderWidth } = { ...DEFAULT_OPTIONS, ...options };
+  // Field by field with `??` rather than `{ ...DEFAULT_OPTIONS, ...options }`. A spread
+  // copies an *explicitly* undefined property over the default, and every option here is
+  // optional — so a caller assembling them from a config object (`{ baseUrl, format:
+  // cfg.format }` with nothing configured) would get `fm=undefined` in every URL. The
+  // types permit that call and the spread reads as if it handles it.
+  const format = options.format ?? DEFAULT_OPTIONS.format;
+  const quality = options.quality ?? DEFAULT_OPTIONS.quality;
+  const placeholderWidth = options.placeholderWidth ?? DEFAULT_OPTIONS.placeholderWidth;
   const base = options.baseUrl.replace(/\/+$/, '');
 
   return (config: ImageLoaderConfig): string => {

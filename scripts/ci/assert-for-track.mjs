@@ -134,7 +134,21 @@ function mentionsIndex(ast) {
       found = true;
       return;
     }
-    for (const key of ['receiver', 'left', 'right', 'exp', 'condition', 'trueExp', 'falseExp']) {
+    // `key` and `obj` cover indexed access — `track rows[$index].id` keys on the position
+    // through a subscript rather than by naming `$index` at the top level. Without them it
+    // still fails the gate, but as "other" rather than as the index key it actually is,
+    // and the error message would point at the wrong hazard.
+    for (const key of [
+      'receiver',
+      'left',
+      'right',
+      'exp',
+      'condition',
+      'trueExp',
+      'falseExp',
+      'key',
+      'obj',
+    ]) {
       visit(node[key]);
     }
     for (const key of ['args', 'expressions', 'keys', 'values']) {
@@ -228,6 +242,8 @@ const SELF_TEST_CASES = [
   // on the second row rather than a subtle reuse bug.
   { track: 'selection.id', item: 'row', expect: 'other' },
   { track: 'row.id ?? row.slug', item: 'row', expect: 'other' },
+  // Indexed access: the position, reached through a subscript instead of named directly.
+  { track: 'rows[$index].id', item: 'row', expect: 'index' },
 ];
 
 /** A component source carrying one `@for`, for driving the parser end to end. */

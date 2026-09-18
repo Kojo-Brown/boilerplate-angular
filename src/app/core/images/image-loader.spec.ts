@@ -107,6 +107,24 @@ describe('createImageLoader', () => {
     expect(url.searchParams.has('fit')).toBeFalse();
   });
 
+  it('falls back to the defaults when an option is explicitly undefined', () => {
+    // The shape a caller assembling options from a config object produces —
+    // `{ baseUrl, format: cfg.format }` with nothing configured. The types allow it, and
+    // an object spread over the defaults would copy the undefined straight through and put
+    // `fm=undefined&q=undefined` in every URL the CDN is asked for.
+    const sparse = createImageLoader({
+      baseUrl: 'https://images.example.test',
+      format: undefined,
+      quality: undefined,
+      placeholderWidth: undefined,
+    });
+    const url = new URL(sparse({ src: 'a.png', width: 64 }));
+
+    expect(url.searchParams.get('fm')).toBe('auto');
+    expect(url.searchParams.get('q')).toBe('75');
+    expect(new URL(sparse({ src: 'a.png', isPlaceholder: true })).searchParams.get('w')).toBe('30');
+  });
+
   it('honours a configured format and quality', () => {
     const configured = createImageLoader({
       baseUrl: 'https://images.example.test',
