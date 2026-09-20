@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { AuthFacade } from '@/app/core/auth';
+import { schemaGroup } from '@/app/core/forms';
 import { typedBeforeHydration } from '@/app/core/platform/pre-hydration-input';
 import { controlErrorSignal } from '@/app/core/reactivity';
-import { zodValidator } from '@/app/core/validators/zod-validator';
 import { loginSchema } from './auth.schemas';
 
 /**
@@ -108,7 +108,6 @@ import { loginSchema } from './auth.schemas';
   `,
 })
 export class LoginFormComponent {
-  private readonly fb = inject(FormBuilder);
   protected readonly auth = inject(AuthFacade);
 
   /**
@@ -122,9 +121,15 @@ export class LoginFormComponent {
     ['email', 'password'] as const
   );
 
-  protected readonly form = this.fb.group({
-    email: [this.typed.email ?? '', [zodValidator(loginSchema.shape.email)]],
-    password: [this.typed.password ?? '', [zodValidator(loginSchema.shape.password)]],
+  /**
+   * The form, its field types and its per-field rules all from `loginSchema`. See
+   * `docs/typed-forms.md`: `FormBuilder.group()` infers the model *from* the spec, so it
+   * agrees with whatever was written — the fields are only checked against
+   * `LoginFormData` because `schemaGroup` is given the schema that defines it.
+   */
+  protected readonly form = schemaGroup(loginSchema, {
+    email: this.typed.email ?? '',
+    password: this.typed.password ?? '',
   });
 
   /**
@@ -139,6 +144,14 @@ export class LoginFormComponent {
   protected readonly emailError = controlErrorSignal(this.form.controls.email, 'zod');
   protected readonly passwordError = controlErrorSignal(this.form.controls.password, 'zod');
 
+  /**
+   * The parse stays, now that `getRawValue()` is typed `LoginFormData` rather than
+   * `{ email: string | null; password: string | null }`. It is not defensive duplication:
+   * the controls hold the schema's *input* type and `signIn` wants its output, and the
+   * two coincide here only because `loginSchema` has no transform. The parse is what
+   * makes that a checked fact instead of an assumption — and the group's own validity is
+   * a statement about each field in isolation, not about the object.
+   */
   protected onSubmit(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
