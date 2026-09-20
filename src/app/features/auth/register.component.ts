@@ -6,13 +6,14 @@ import {
   effect,
   inject,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthFacade } from '@/app/core/auth';
+import { schemaGroup } from '@/app/core/forms';
 import { BrandBannerComponent } from '@/app/shared/ui/brand/brand-banner.component';
 import { typedBeforeHydration } from '@/app/core/platform/pre-hydration-input';
 import { controlErrorSignal, controlSignal } from '@/app/core/reactivity';
-import { zodValidator, zodGroupValidator } from '@/app/core/validators/zod-validator';
+import { zodGroupValidator } from '@/app/core/validators/zod-validator';
 import { registerBaseSchema, registerSchema } from './auth.schemas';
 
 @Component({
@@ -168,7 +169,6 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
   `,
 })
 export class RegisterComponent {
-  private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthFacade);
 
@@ -183,15 +183,23 @@ export class RegisterComponent {
     ['name', 'email', 'password', 'confirmPassword'] as const
   );
 
-  protected readonly form = this.fb.group(
+  /**
+   * Four fields and their rules from `registerBaseSchema`, plus the one rule that is not
+   * a property of any single field.
+   *
+   * The base schema and not `registerSchema`: `.refine()` returns a `ZodEffects`, which
+   * has no `.shape` to read — the per-field rules have to come from the object schema
+   * underneath it, and the refinement arrives as a group validator. That split is not an
+   * accident of the API, it is the same one the template makes: three messages render
+   * under their own input, and "passwords don't match" belongs to the pair.
+   */
+  protected readonly form = schemaGroup(
+    registerBaseSchema,
     {
-      name: [this.typed.name ?? '', [zodValidator(registerBaseSchema.shape.name)]],
-      email: [this.typed.email ?? '', [zodValidator(registerBaseSchema.shape.email)]],
-      password: [this.typed.password ?? '', [zodValidator(registerBaseSchema.shape.password)]],
-      confirmPassword: [
-        this.typed.confirmPassword ?? '',
-        [zodValidator(registerBaseSchema.shape.confirmPassword)],
-      ],
+      name: this.typed.name ?? '',
+      email: this.typed.email ?? '',
+      password: this.typed.password ?? '',
+      confirmPassword: this.typed.confirmPassword ?? '',
     },
     { validators: zodGroupValidator(registerSchema) }
   );

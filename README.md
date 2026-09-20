@@ -6,15 +6,15 @@ Enterprise Angular starter with modern patterns (no NgModules).
 
 ## Stack
 
-| Layer | Tech |
-|-------|------|
-| Framework | Angular 22 |
-| Language | TypeScript 6 |
-| Styles | TailwindCSS 4 |
-| State | NgRx Signal Store |
-| Forms | Angular Reactive Forms + Zod |
+| Layer     | Tech                                                             |
+| --------- | ---------------------------------------------------------------- |
+| Framework | Angular 22                                                       |
+| Language  | TypeScript 6                                                     |
+| Styles    | TailwindCSS 4                                                    |
+| State     | NgRx Signal Store                                                |
+| Forms     | Angular Reactive Forms + Zod                                     |
 | Rendering | Prerendered public routes + Node SSR, with incremental hydration |
-| Testing | Jasmine + Karma + Playwright |
+| Testing   | Jasmine + Karma + Playwright                                     |
 
 ## Requirements
 
@@ -51,22 +51,22 @@ NG_ALLOWED_HOSTS=localhost pnpm serve:ssr  # http://localhost:4000
 
 ## Scripts
 
-| Script             | What it does                                              |
-| ------------------ | --------------------------------------------------------- |
-| `pnpm start`       | Dev server on http://localhost:4200                        |
-| `pnpm build`       | Production bundle into `dist/` — browser, server, and prerendered pages |
-| `pnpm serve:ssr`   | Runs the built Node server (needs `NG_ALLOWED_HOSTS`)       |
-| `pnpm typecheck`   | `tsc --noEmit` against `tsconfig.app.json`                  |
-| `pnpm lint`        | ESLint over `src/`, `--max-warnings=0`                       |
-| `pnpm format:check`| Prettier check (use `pnpm format` to rewrite)               |
-| `pnpm test`        | Karma unit tests, single run                                |
-| `pnpm test:ci`     | Same, pinned to the sandboxed `ChromeHeadlessCI` launcher   |
-| `pnpm e2e`         | Playwright end-to-end tests                                 |
-| `pnpm check:onpush`| Fails on a production component without `OnPush`            |
-| `pnpm stats`       | Production build into `.stats/`, carrying the bundler metafile |
-| `pnpm check:defer` | Fails when a `@defer` block has stopped splitting its chunk |
-| `pnpm check:routes`| Fails when a route exceeds its bundle budget, and prints the audit |
-| `pnpm check:ssr`   | Starts the built server and checks what each route answers  |
+| Script              | What it does                                                            |
+| ------------------- | ----------------------------------------------------------------------- |
+| `pnpm start`        | Dev server on http://localhost:4200                                     |
+| `pnpm build`        | Production bundle into `dist/` — browser, server, and prerendered pages |
+| `pnpm serve:ssr`    | Runs the built Node server (needs `NG_ALLOWED_HOSTS`)                   |
+| `pnpm typecheck`    | `tsc --noEmit` against `tsconfig.app.json`                              |
+| `pnpm lint`         | ESLint over `src/`, `--max-warnings=0`                                  |
+| `pnpm format:check` | Prettier check (use `pnpm format` to rewrite)                           |
+| `pnpm test`         | Karma unit tests, single run                                            |
+| `pnpm test:ci`      | Same, pinned to the sandboxed `ChromeHeadlessCI` launcher               |
+| `pnpm e2e`          | Playwright end-to-end tests                                             |
+| `pnpm check:onpush` | Fails on a production component without `OnPush`                        |
+| `pnpm stats`        | Production build into `.stats/`, carrying the bundler metafile          |
+| `pnpm check:defer`  | Fails when a `@defer` block has stopped splitting its chunk             |
+| `pnpm check:routes` | Fails when a route exceeds its bundle budget, and prints the audit      |
+| `pnpm check:ssr`    | Starts the built server and checks what each route answers              |
 
 CI runs lint, typecheck, format, and tests in parallel on Node 22, 24, and 26,
 then builds on all three once they are green — see
@@ -102,7 +102,7 @@ positional arguments and abort before Karma starts.
 the Angular CLI's generated test entry point would otherwise put the suite back on
 zone-driven change detection. `fixture.detectChanges()` only refreshes views that
 something has marked dirty, so assigning to a plain field on a host component does
-*not* re-render the component under test — the assertion then sees stale DOM and
+_not_ re-render the component under test — the assertion then sees stale DOM and
 fails in a way that looks like a component bug. Hold host state in **signals**:
 
 ```ts
@@ -216,8 +216,8 @@ refresh, the patterns that need converting, and how to migrate an existing app.
 
 ## Change detection
 
-Every production component is `OnPush`. Zoneless changes *when* a refresh runs;
-`OnPush` changes *how much* of the tree it visits — under the same set of
+Every production component is `OnPush`. Zoneless changes _when_ a refresh runs;
+`OnPush` changes _how much_ of the tree it visits — under the same set of
 notifications, Default re-checks every descendant view and OnPush skips
 subtrees whose inputs and signals have not changed. Neither the compiler nor
 ESLint flags a Default component, so
@@ -378,7 +378,7 @@ for the breakdown behind a disclosure button, and `on timer(4s); prefetch on
 idle` for the "what's new" strip, where the delay is the design and not a
 stand-in for `on idle`.
 
-Prefetching fetches *code*, never data, so a deferred block that then reads
+Prefetching fetches _code_, never data, so a deferred block that then reads
 something has two waits in a row. `PanelSkeletonComponent` covers both: it is
 the block's `@placeholder` and it is the `loading:` template of the `*appAsync`
 inside the deferred component, so the frame holds still from first paint until
@@ -407,13 +407,13 @@ renders it, and a static HTML file for every route that can be produced ahead of
 time. Which is which is one line per route in
 [`src/app/app.routes.server.ts`](./src/app/app.routes.server.ts):
 
-| Route | Mode | Why |
-| ----- | ---- | --- |
-| `/login`, `/register`, `/unauthorized` | `Prerender` | Identical bytes for everyone. |
-| everything else | `Client` | Depends on who is asking, which the server cannot know. |
+| Route                                  | Mode        | Why                                                     |
+| -------------------------------------- | ----------- | ------------------------------------------------------- |
+| `/login`, `/register`, `/unauthorized` | `Prerender` | Identical bytes for everyone.                           |
+| everything else                        | `Client`    | Depends on who is asking, which the server cannot know. |
 
 The session lives in `localStorage` and nothing carries it to the server, so on
-the server `AuthStore` is signed out for *everyone* — signed-in visitors
+the server `AuthStore` is signed out for _everyone_ — signed-in visitors
 included. Rendering `/dashboard` there therefore has two possible outcomes and
 both are wrong: run `authGuard` and every request is a 302 to `/login`, or skip
 it and an anonymous request is served a dashboard frame the client takes back
@@ -429,27 +429,27 @@ why `withIncrementalHydration()` is deprecated and absent here.
 ### Incremental hydration
 
 `/login` is prerendered, so the whole sign-in card is visible with no JavaScript
-at all. Being *usable* is what costs: 101.89 kB of `@angular/forms` and Zod
+at all. Being _usable_ is what costs: 101.89 kB of `@angular/forms` and Zod
 against ~5 kB for the rest of the page. `@defer (hydrate on interaction)` splits
 the two — the server renders the form's real markup, and the browser fetches and
 hydrates it on the first click or keystroke.
 
-| | `/login` | `/register` (the control) |
-| --- | ---: | ---: |
-| Lazy JS to reach the route | **2.94 kB** | 111.15 kB |
-| …before | 109.65 kB | 111.74 kB |
+|                            |    `/login` | `/register` (the control) |
+| -------------------------- | ----------: | ------------------------: |
+| Lazy JS to reach the route | **2.94 kB** |                 111.15 kB |
+| …before                    |   109.65 kB |                 111.74 kB |
 
 Two hazards came out of it, both measured against the production build with
 scripts delayed.
 
-A dehydrated form is live HTML. Angular's event replay runs *after* the browser
+A dehydrated form is live HTML. Angular's event replay runs _after_ the browser
 has dispatched the event and suppresses the default action of nothing but a
 click on an `<a>`, so a `<button type="submit">` inside the block still submits
 the form natively on a pre-hydration click — a navigation back to `/login` that
 discards what was typed. The markup is made inert instead: a `type="button"`
 submit control, and Enter bound on the fields.
 
-And hydrating a reactive form *empties* it: `setUpControl` writes each control's
+And hydrating a reactive form _empties_ it: `setUpControl` writes each control's
 initial value over the node the visitor has been typing into. That one is not
 about `@defer` — `/register` lost a typed value after 2.5 s and `/login` after
 5.1 s — so both forms now seed their controls from the server-rendered DOM in
@@ -498,7 +498,7 @@ describe a document that does not exist; and the zebra stripe is bound from the
 data index, because `:nth-child(even)` counts the sliding window and strobes as
 it scrolls.
 
-See [docs/virtual-scrolling.md](./docs/virtual-scrolling.md) for when *not* to
+See [docs/virtual-scrolling.md](./docs/virtual-scrolling.md) for when _not_ to
 use it (the CDK costs 24.39 kB against 9.22 kB of table), why sorting belongs to
 the caller, what a cell cannot contain and why, and the five things this
 deliberately does not do — a paged `DataSource` among them.
@@ -522,7 +522,7 @@ Two deliberate `pnpm` overrides live in `package.json`:
 
 `angular.json` declares budgets with `maximumError` only — no `maximumWarning`
 band. A warning nobody can merge past is just an error with extra steps, and a
-warning CI *does* let through is a budget that does not exist: `ng build` exits 0
+warning CI _does_ let through is a budget that does not exist: `ng build` exits 0
 when a budget is exceeded, so for its first weeks this template shipped 79 kB
 over its 500 kB initial budget with a green pipeline.
 
@@ -541,7 +541,7 @@ number. Route-level code splitting is
 already in place — every feature under `src/app/features/` is lazy — so growth in
 the initial chunk means something leaked into a shared eager import.
 
-`initial` has been *lowered* once, from 571 kB, when server-side rendering was
+`initial` has been _lowered_ once, from 571 kB, when server-side rendering was
 turned on: the builder stopped emitting one 535 kB `main` chunk and started
 emitting thirteen initial chunks sharing code with the server graph, which took
 4.49 kB off the raw total. The headroom was kept at its old ~4 kB rather than
@@ -554,12 +554,12 @@ is recorded here rather than hidden behind the number that improved.)
 item — and only after establishing that the 5.30 kB it added was unreachable from
 any route-level change. 13 eager files import the `rxjs` barrel, which
 chunk-assigns every rxjs module to `main`; the CDK's `auditTime` and
-animation-frame scheduler therefore *survive* tree-shaking in the initial bundle
+animation-frame scheduler therefore _survive_ tree-shaking in the initial bundle
 rather than moving into the lazy chunk that uses them. The lever is the barrel
 imports, not the route. See
 [`docs/virtual-scrolling.md`](./docs/virtual-scrolling.md#the-530-kb-that-lands-in-main).
 
-What a budget cannot see is code moving *between* lazy chunks, which is exactly
+What a budget cannot see is code moving _between_ lazy chunks, which is exactly
 what a de-optimised `@defer` block does: the initial total is unchanged to the
 byte while a panel that used to arrive on scroll now arrives with the route.
 `pnpm check:defer` is the gate for that half; see
@@ -567,7 +567,7 @@ byte while a panel that used to arrive on scroll now arrives with the route.
 
 ### Per-route budgets
 
-`initial` also cannot see what a route costs *after* the first paint, which is the
+`initial` also cannot see what a route costs _after_ the first paint, which is the
 whole point of putting every feature behind a lazy route. `pnpm check:routes`
 prices each one — the union of every chunk the browser has downloaded once the
 route is on screen, minus what the initial bundle already provided — and fails
@@ -588,7 +588,7 @@ when a route exceeds its own budget:
 difference is the form: both render one, and both draw it from the same 101.89 kB
 chunk of Zod v3 (51 kB) and `@angular/forms` (39 kB). `/login` is prerendered and
 hydrates its form on first interaction, so that chunk is no longer part of
-*reaching* the route — see [Incremental hydration](#incremental-hydration).
+_reaching_ the route — see [Incremental hydration](#incremental-hydration).
 `/login`'s budget moved from 112 kB to 4 kB in the same commit, because a budget
 left at its old ceiling would pass just as happily on the day the block stopped
 deferring.
@@ -601,7 +601,7 @@ measurement, and what to do when a budget is crossed.
 
 ## Core Web Vitals
 
-Every gate above measures the *artifact* — kilobytes, chunk graphs, budgets — on a
+Every gate above measures the _artifact_ — kilobytes, chunk graphs, budgets — on a
 build agent with a fast disk and no network. None of them can tell you that the
 dashboard's largest image takes four seconds to paint on a phone in a lift.
 `src/app/core/vitals/` measures the five metrics the browser computes during a
@@ -612,7 +612,7 @@ LCP alone does not say what to fix. The measuring is `web-vitals` v6 — CLS's
 session windows and INP's per-page percentile are not worth re-deriving — behind
 a dynamic `import()`, so it is its own **8.80 kB** chunk rather than part of the
 565 kB initial bundle, requested after the first paint. That is not about the
-kilobytes: an analytics library downloaded *during* page load competes with the
+kilobytes: an analytics library downloaded _during_ page load competes with the
 page whose load it is measuring.
 
 The part that is specific to a single-page application is that **a Core Web Vital
@@ -650,8 +650,8 @@ Two halves of one problem: both are silent, and both are invisible to the kind o
 assertion a suite actually contains.
 
 **A track expression is what `@for` diffs by.** The clause is mandatory — the
-compiler rejects the block without it — but whether the expression *identifies the
-row* is checked by nothing. Keyed by `$index`, filtering a list leaves the first
+compiler rejects the block without it — but whether the expression _identifies the
+row_ is checked by nothing. Keyed by `$index`, filtering a list leaves the first
 nodes in place with different data poured into them, along with the focus, the
 half-typed input and the decoded image the DOM was holding. Keyed by the item
 object, every TanStack refetch hands `@for` fresh objects that are `===` to
@@ -670,14 +670,14 @@ and `expectUniqueKeys` catches a key that is unique in a five-row fixture and no
 in ten thousand.
 
 **`NgOptimizedImage` matches on `ngSrc`,** so an `<img src>` is simply not
-optimised and nothing says so. The sharpest version: `ngSrc` is an *attribute*, so
+optimised and nothing says so. The sharpest version: `ngSrc` is an _attribute_, so
 an `<img ngSrc>` in a component that forgot to import the directive keeps a literal
 `ngsrc`, never gets a `src` at all, and produces no compiler error, no lint error
 and no runtime warning. `scripts/ci/assert-image-hygiene.mjs` enforces six rules
 including that one, two of them structural rather than attribute-level: a
 `priority` image may not sit inside `@for` or `@defer`, and there is at most one
 per template. Both are about the same mistake — `priority` claims an element is the
-*largest one painted in the first frame*, and a repeated or deferred image cannot
+_largest one painted in the first frame_, and a repeated or deferred image cannot
 be, so marking it reads as careful optimisation and is strictly worse than nothing.
 
 The one genuine LCP image is the banner on `/login` and `/register`. Both are
@@ -688,7 +688,7 @@ before the parser reaches the tag. That link exists only in the server render, s
 
 `environment.imageCdnUrl` is empty by default and `provideAppImageLoader` then
 provides **nothing**, which is load-bearing rather than lazy: the directive tells a
-real loader from its own no-op *by identity*, so a pass-through loader would make
+real loader from its own no-op _by identity_, so a pass-through loader would make
 it advertise `img.png 1x, img.png 2x` from a loader that ignores width — two
 identical files, one of them claimed to be twice the density.
 
@@ -702,5 +702,55 @@ See [docs/track-expressions.md](./docs/track-expressions.md) for the three failu
 modes and what each gate cannot do, and [docs/images.md](./docs/images.md) for the
 pass-through-loader finding, the six rules, and the full measurement.
 
+## Typed forms
+
+Angular's reactive forms have been typed since v14, and the problem is not that
+they are untyped — it is the **direction**. `fb.group({ email: [''] })` infers the
+model _from_ the spec, so the form is whatever was written and agrees with itself
+by construction; nothing compares it to the interface it exists to fill. A form
+missing a field, carrying an extra one, or holding `string | null` where the
+payload wants `string` compiles, renders, and passes every assertion a form spec
+normally contains.
+
+`typedGroup<LoginFormData>()({ … })` turns the model into an input: the spec is
+checked against it — every field, no extras, each control's value type exact —
+while the controls are still inferred, so `form.controls.email` stays a
+`FormControl<string>` and what comes back is an ordinary `FormGroup`.
+`schemaGroup(loginSchema, initial)` goes one step further and derives the fields,
+their types and their per-field validators from one Zod schema, which is what
+`/login` and `/register` now use.
+
+**`nonNullable` is a statement about `reset()`, not a strictness preference.** A
+control built without it resets to `null` — which is why `new FormControl('')` is
+honestly typed `FormControl<string | null>` — so a "clear the form" button writes
+`null` into a field the schema then rejects, in an input nobody touched.
+
+**`z.infer` is the schema's output type; a form holds its input.** They coincide
+until someone adds a `.transform()`, at which point typing the controls on the
+output would mean a `FormControl<number>` bound to a text input. `schemaGroup`
+types the input side, so `safeParse` at submit is what crosses the gap rather than
+redundant re-validation.
+
+**The phantom that makes it work:** Angular's controls carry their value type
+through `setValue` and `patchValue`, which are _methods_, and methods compare
+bivariantly — so a `FormControl<string | null>` satisfies a slot asking for
+`string`. A structural check cannot see the one mistake the helper exists to
+prevent. `FieldSpec` therefore carries a never-called
+`rawValue: (raw: TRaw) => TRaw`, a function _property_, which is invariant and
+does.
+
+Because the product is types, the tests are type tests: `expectTypeEquals` in the
+specs for what must compile, and `scripts/ci/fixtures/form-types/` — ten files that
+are _supposed_ to fail, each annotated with the diagnostic code and message it must
+produce — for what must not. `pnpm check:form-types` fails on an unannotated error
+as well as on a missing one, which is what `@ts-expect-error` cannot do.
+
+Moving both auth forms off `FormBuilder` took `/register` from 111.88 kB to
+108.22 kB of lazy JS; re-injecting one `FormBuilder` puts 3.81 kB straight back.
+
+See [docs/typed-forms.md](./docs/typed-forms.md) for the failure table, why the
+builder is curried, and when a bare `FormControl` is still the right answer.
+
 ## Spec Progress
+
 See [SPEC.md](./SPEC.md).

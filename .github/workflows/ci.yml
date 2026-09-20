@@ -108,6 +108,14 @@ jobs:
       - name: Assert the generated image fixtures are reproducible
         run: pnpm check:fixtures
 
+      # The negative half of the typed-form tests. `pnpm typecheck` proves the helpers
+      # compile and `pnpm test` compiles the `expectTypeEquals` assertions, but neither can
+      # say what the helpers *reject* — code that does not compile cannot be in a spec. This
+      # compiles a directory of fixtures that are supposed to fail and checks each one fails
+      # for the reason it names. See docs/typed-forms.md.
+      - name: Assert the typed-form helpers still reject what they are meant to
+        run: pnpm check:form-types
+
   typecheck:
     name: Typecheck (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
