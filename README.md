@@ -751,6 +751,43 @@ Moving both auth forms off `FormBuilder` took `/register` from 111.88 kB to
 See [docs/typed-forms.md](./docs/typed-forms.md) for the failure table, why the
 builder is curried, and when a bare `FormControl` is still the right answer.
 
+## Async cross-field validation
+
+`/register` takes an optional workspace invite code, and whether a code applies is a
+question about the **pair** `(email, code)`: neither field can answer it, and neither
+can the client. `asyncCrossFieldValidator` in `@/app/core/forms` is that check —
+debounced, cancelled, and memoised — with `revalidateWhen` declaring the dependency
+Angular does not track.
+
+**It goes on the field, not on the group**, even though it reads two of them. Angular
+runs a control's async validators only once its _synchronous_ ones pass, and a
+`FormGroup`'s synchronous validator is the whole form: on the group nothing would be
+sent until the name and both passwords were valid, so the invite error would appear
+last instead of beside the input that caused it. `control.parent` supplies the other
+half of the key.
+
+**Debounce and cancellation are one mechanism, not two.** There is no long-lived stream
+to attach `debounceTime` to — Angular calls the validator afresh on each revalidation —
+so the delay is a `timer` _inside_ the returned Observable. That placement is what makes
+`updateValueAndValidity()`'s unsubscribe tear it down, which for a request already in
+flight means an actual abort; the spec asserts it through `TestRequest.cancelled`.
+
+**A control stays `PENDING` until the Observable completes, not until it emits.**
+`HttpClient` completes after one response, which is why a missing `take(1)` works against
+the real transport and hangs against a `Subject` — so it lives inside the validator. The
+same fact one layer up: a pending form's `invalid` is `false`, so `onSubmit` guards on
+`form.pending || form.invalid` and not on `invalid` alone.
+
+**The cache is what makes the dependency affordable.** `revalidateWhen` turns every
+keystroke in `email` into a revalidation of the code field; without memoisation that is
+one request per keystroke in two fields rather than one. A settled key is answered
+synchronously, so the control never re-enters `PENDING` — and a transport failure is
+deliberately never cached.
+
+See [docs/async-validators.md](./docs/async-validators.md) for the four requirements,
+why the default on a failed check is to fail open, and when a plain `AsyncValidatorFn` or
+a `typeahead` is the better tool.
+
 ## Spec Progress
 
 See [SPEC.md](./SPEC.md).

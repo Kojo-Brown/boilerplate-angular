@@ -62,6 +62,35 @@ export async function mockRegisterFailure(
   });
 }
 
+/**
+ * Answers the invite check, and reports how many times it was asked.
+ *
+ * The count is the assertion that matters for a debounced validator: a passing
+ * "the message appeared" test says nothing about whether it cost one request or ten.
+ *
+ * @param problem The verdict for every pair. `null` accepts.
+ */
+export async function mockInviteCheck(
+  page: Page,
+  problem: string | null = null
+): Promise<{ readonly calls: () => number }> {
+  let calls = 0;
+
+  // Playwright matches the most recently registered handler first, so calling this a
+  // second time in one test overrides the first without needing `unroute` — and the
+  // first handler's count stays frozen at whatever it had served.
+  await page.route(`${API_BASE}/auth/invites/check`, (route) => {
+    calls += 1;
+    void route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ problem }),
+    });
+  });
+
+  return { calls: () => calls };
+}
+
 export async function mockProfileSuccess(page: Page): Promise<void> {
   await page.route(`${API_BASE}/auth/me`, (route) => {
     void route.fulfill({
@@ -73,13 +102,10 @@ export async function mockProfileSuccess(page: Page): Promise<void> {
 }
 
 export async function seedAuthSession(page: Page): Promise<void> {
-  await page.evaluate(
-    ({ accessToken, refreshToken }) => {
-      localStorage.setItem('auth_access_token', accessToken);
-      localStorage.setItem('auth_refresh_token', refreshToken);
-    },
-    MOCK_TOKENS
-  );
+  await page.evaluate(({ accessToken, refreshToken }) => {
+    localStorage.setItem('auth_access_token', accessToken);
+    localStorage.setItem('auth_refresh_token', refreshToken);
+  }, MOCK_TOKENS);
 }
 
 export async function clearAuthSession(page: Page): Promise<void> {

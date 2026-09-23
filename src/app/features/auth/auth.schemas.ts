@@ -17,6 +17,17 @@ export const registerBaseSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
   confirmPassword: z.string().min(1, 'Please confirm your password'),
+  /**
+   * Optional, so the only synchronous rule is a length bound — a blank code is a
+   * complete form, not an incomplete one.
+   *
+   * Whether a code that *is* filled in applies to the address above it is not knowable
+   * here: it depends on the invite table, so it is an asynchronous check on the pair.
+   * `RegisterComponent` hangs `asyncCrossFieldValidator` on this field for it, and
+   * Angular runs a field's async validators only once its synchronous ones pass — which
+   * is why the bound below stays cheap and local.
+   */
+  inviteCode: z.string().max(32, 'Invite codes are at most 32 characters'),
 });
 
 export const registerSchema = registerBaseSchema.refine(

@@ -8,5 +8,7 @@ export {
   resolveFieldError,
 } from './error-messages';
 export type { FieldErrorContext, FieldErrorMessage, FieldErrorMessages } from './error-messages';
+export { asyncCrossFieldValidator, revalidateWhen } from './async-cross-field';
+export type { AsyncCrossFieldOptions, RevalidateWhenOptions } from './async-cross-field';
 export { hostControl } from './host-control';
 export type { HostControl, HostControlOptions } from './host-control';

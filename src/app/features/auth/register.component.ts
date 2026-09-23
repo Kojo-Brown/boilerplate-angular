@@ -8,13 +8,44 @@ import {
 } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
+import type { AbstractControl, ValidationErrors } from '@angular/forms';
 import { AuthFacade } from '@/app/core/auth';
-import { schemaGroup } from '@/app/core/forms';
+import { asyncCrossFieldValidator, revalidateWhen, schemaGroup } from '@/app/core/forms';
 import { BrandBannerComponent } from '@/app/shared/ui/brand/brand-banner.component';
 import { typedBeforeHydration } from '@/app/core/platform/pre-hydration-input';
 import { controlErrorSignal, controlSignal } from '@/app/core/reactivity';
 import { zodGroupValidator } from '@/app/core/validators/zod-validator';
 import { registerBaseSchema, registerSchema } from './auth.schemas';
+import { InviteService } from './invite.service';
+
+/** The pair the server is asked about. Neither half is checkable on its own. */
+interface InviteKey {
+  readonly email: string;
+  readonly code: string;
+}
+
+/**
+ * The invite field's contribution to the request, or `null` when there is nothing worth
+ * asking about.
+ *
+ * Two of the three reasons to skip are the point of returning a key rather than a
+ * boolean: a blank code is a complete form (the field is optional), and an email the
+ * schema itself would reject cannot be half of a meaningful question — sending
+ * `jane@` and rendering "that code is not valid for this address" would be the form
+ * blaming the wrong field for an address the user is still typing. Reusing
+ * `registerBaseSchema.shape.email` rather than restating the rule keeps the two from
+ * drifting.
+ */
+function inviteKey(control: AbstractControl): InviteKey | null {
+  const code = String(control.value ?? '').trim();
+  if (code.length === 0) return null;
+
+  const email = String(control.parent?.get('email')?.value ?? '').trim();
+  if (!registerBaseSchema.shape.email.safeParse(email).success) return null;
+
+  return { email, code };
+}
 
 @Component({
   selector: 'app-register',
@@ -142,11 +173,44 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
                   </p>
                 }
               </div>
+
+              <div>
+                <label
+                  for="inviteCode"
+                  class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
+                >
+                  Workspace invite code
+                  <span class="font-normal text-[var(--color-muted-foreground)]">(optional)</span>
+                </label>
+                <input
+                  id="inviteCode"
+                  type="text"
+                  formControlName="inviteCode"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="WS-0000-0000"
+                  [attr.aria-invalid]="inviteCodeError() ? 'true' : null"
+                  class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  [class.border-red-400]="inviteCodeError()"
+                  [class.border-[var(--color-border)]]="!inviteCodeError()"
+                />
+                @if (isCheckingInvite()) {
+                  <p class="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                    Checking invite code…
+                  </p>
+                } @else if (inviteCodeError()) {
+                  <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ inviteCodeError() }}</p>
+                } @else {
+                  <p class="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                    Leave blank to create a personal workspace
+                  </p>
+                }
+              </div>
             </div>
 
             <button
               type="submit"
-              [disabled]="auth.isBusy()"
+              [disabled]="auth.isBusy() || isCheckingInvite()"
               class="mt-6 w-full rounded-md bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               @if (auth.isBusy()) {
@@ -171,6 +235,7 @@ import { registerBaseSchema, registerSchema } from './auth.schemas';
 export class RegisterComponent {
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthFacade);
+  private readonly invites = inject(InviteService);
 
   /**
    * This page is prerendered too, so it has the same window as `/login` — narrower, since
@@ -180,7 +245,7 @@ export class RegisterComponent {
    */
   private readonly typed = typedBeforeHydration(
     inject<ElementRef<HTMLElement>>(ElementRef).nativeElement,
-    ['name', 'email', 'password', 'confirmPassword'] as const
+    ['name', 'email', 'password', 'confirmPassword', 'inviteCode'] as const
   );
 
   /**
@@ -200,11 +265,42 @@ export class RegisterComponent {
       email: this.typed.email ?? '',
       password: this.typed.password ?? '',
       confirmPassword: this.typed.confirmPassword ?? '',
+      inviteCode: this.typed.inviteCode ?? '',
     },
     { validators: zodGroupValidator(registerSchema) }
   );
 
   constructor() {
+    const inviteCode = this.form.controls.inviteCode;
+
+    /**
+     * The asynchronous half of the invite rule, added here rather than seeded by
+     * `schemaGroup`: a Zod schema describes values, and "does this code apply to that
+     * address" is a question for the invite table.
+     *
+     * On the **field** and not on the group, though the rule reads two of them. Angular
+     * runs a control's async validators only once its synchronous ones pass, and a
+     * `FormGroup`'s synchronous validator is the whole form — so on the group nothing
+     * would be sent until the password fields were filled in and matching, and the
+     * invite error would appear last instead of next to the input that caused it.
+     * `inviteKey` reaches up through `control.parent` for the other half.
+     *
+     * `equal` because the key is an object: the default `Object.is` would miss every
+     * cache hit, and a cache that never hits turns each keystroke in `email` — which
+     * `revalidateWhen` below forwards here — back into a request.
+     */
+    inviteCode.addAsyncValidators(
+      asyncCrossFieldValidator(
+        inviteKey,
+        (key) => this.invites.check(key.email, key.code).pipe(map(toInviteErrors)),
+        { equal: (a, b) => a.email === b.email && a.code === b.code }
+      )
+    );
+
+    // Without this, correcting a typo in `email` leaves the code's verdict standing —
+    // it was reached against an address that is no longer in the form.
+    revalidateWhen(inviteCode, [this.form.controls.email]);
+
     effect(() => {
       if (this.auth.isSignedIn()) {
         void this.router.navigate(['/dashboard']);
@@ -241,14 +337,51 @@ export class RegisterComponent {
     return typeof groupError === 'string' ? groupError : null;
   });
 
+  private readonly inviteCodeState = controlSignal(this.form.controls.inviteCode);
+
+  /** An invite check is in flight, or waiting out its debounce. */
+  protected readonly isCheckingInvite = computed(() => this.inviteCodeState().pending);
+
+  /**
+   * Gated on `dirty` rather than on `touched`, unlike every other field here.
+   *
+   * The others report a rule the user could have read off the label, so waiting for
+   * blur keeps an untouched form quiet. This one reports the server's answer to a
+   * question only typing could have raised, and the answer arrives while the caret is
+   * still in the field — holding it back until blur would mean showing a stale-looking
+   * error about a code the user has already moved past. `touched` is still honoured so
+   * that submitting an untouched form surfaces it too.
+   */
+  protected readonly inviteCodeError = computed(() => {
+    const { dirty, touched, errors } = this.inviteCodeState();
+    if (!dirty && !touched) return null;
+
+    const ownError = errors?.['zod'];
+    if (typeof ownError === 'string') return ownError;
+
+    const inviteError = errors?.['invite'];
+    return typeof inviteError === 'string' ? inviteError : null;
+  });
+
   protected onSubmit(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+
+    // `pending` and not just `invalid`: a form waiting on an async validator is neither
+    // valid nor invalid, so `invalid` alone is `false` here and submission would go
+    // through with the invite code unchecked. The button is disabled for the same reason;
+    // this is the guard for the paths a disabled button does not cover.
+    if (this.form.pending || this.form.invalid) return;
 
     const result = registerSchema.safeParse(this.form.getRawValue());
     if (!result.success) return;
 
-    const { confirmPassword: _, ...credentials } = result.data;
-    this.auth.signUp(credentials);
+    const { confirmPassword: _, inviteCode, ...credentials } = result.data;
+    const code = inviteCode.trim();
+    this.auth.signUp(code.length > 0 ? { ...credentials, inviteCode: code } : credentials);
   }
+}
+
+/** The validator's view of one answer: a message under `invite`, or no error at all. */
+function toInviteErrors(result: { readonly problem: string | null }): ValidationErrors | null {
+  return result.problem === null ? null : { invite: result.problem };
 }

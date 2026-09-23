@@ -1,10 +1,20 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import type { ComponentFixture } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RegisterComponent } from './register.component';
+import { InviteService } from './invite.service';
 import { AuthFacade } from '@/app/core/auth';
-import { createFakeAuthFacade, fillInput, host, requireEl } from '@/testing';
-import type { FakeAuthFacade } from '@/testing';
+import {
+  createFakeAuthFacade,
+  createFakeInviteChecker,
+  fillInput,
+  host,
+  requireEl,
+} from '@/testing';
+import type { FakeAuthFacade, FakeInviteChecker } from '@/testing';
+
+/** `asyncCrossFieldValidator`'s default, which `RegisterComponent` does not override. */
+const INVITE_DEBOUNCE = 400;
 
 describe('RegisterComponent', () => {
   let fixture: ComponentFixture<RegisterComponent>;
@@ -12,6 +22,7 @@ describe('RegisterComponent', () => {
 
   /** The same double the login spec uses — see the note there. */
   let auth: FakeAuthFacade;
+  let invites: FakeInviteChecker;
 
   // A real Router (not a stub) so `routerLink` can build hrefs, and so `ActivatedRoute`
   // — which RouterLink injects — is present. A spy object supplies neither.
@@ -22,10 +33,15 @@ describe('RegisterComponent', () => {
 
   beforeEach(async () => {
     auth = createFakeAuthFacade();
+    invites = createFakeInviteChecker();
 
     await TestBed.configureTestingModule({
       imports: [RegisterComponent],
-      providers: [{ provide: AuthFacade, useValue: auth }, provideRouter([])],
+      providers: [
+        { provide: AuthFacade, useValue: auth },
+        { provide: InviteService, useValue: invites },
+        provideRouter([]),
+      ],
     }).compileComponents();
 
     navigate = spyOn(TestBed.inject(Router), 'navigate');
@@ -137,5 +153,116 @@ describe('RegisterComponent', () => {
     fixture.detectChanges();
 
     expect(auth.signUp).not.toHaveBeenCalled();
+  });
+  describe('the invite code, checked against the email', () => {
+    /** Fills the form except for the invite code, which each spec drives itself. */
+    function fillCredentials(): HTMLElement {
+      const el = host(fixture);
+      fillInput(el, '#name', 'Jane Smith');
+      fillInput(el, '#email', 'jane@example.com');
+      fillInput(el, '#password', 'Password1');
+      fillInput(el, '#confirmPassword', 'Password1');
+      return el;
+    }
+
+    const inviteMessage = (): string | null =>
+      host(fixture).querySelector('#inviteCode ~ p')?.textContent?.trim() ?? null;
+
+    it('renders the invite field', () => {
+      expect(host(fixture).querySelector('#inviteCode')).toBeTruthy();
+    });
+
+    it('does not check anything while the code is blank', fakeAsync(() => {
+      fillCredentials();
+      tick(INVITE_DEBOUNCE);
+      expect(invites.check).not.toHaveBeenCalled();
+    }));
+
+    it('does not check against an email the schema would reject', fakeAsync(() => {
+      const el = host(fixture);
+      fillInput(el, '#email', 'jane@');
+      fillInput(el, '#inviteCode', 'WS-0000-0001');
+      tick(INVITE_DEBOUNCE);
+      expect(invites.check).not.toHaveBeenCalled();
+    }));
+
+    it('collapses the keystrokes of one code into a single check', fakeAsync(() => {
+      const el = fillCredentials();
+      for (const code of ['W', 'WS', 'WS-0', 'WS-0000-0001']) {
+        fillInput(el, '#inviteCode', code);
+        tick(INVITE_DEBOUNCE / 4);
+      }
+      tick(INVITE_DEBOUNCE);
+
+      expect(invites.check).toHaveBeenCalledOnceWith('jane@example.com', 'WS-0000-0001');
+    }));
+
+    it('reports the check while it is in flight and blocks submission', fakeAsync(() => {
+      const el = fillCredentials();
+      fillInput(el, '#inviteCode', 'WS-0000-0001');
+      fixture.detectChanges();
+
+      expect(submitButton().disabled).toBeTrue();
+      expect(inviteMessage()).toBe('Checking invite code…');
+
+      submitButton().click();
+      fixture.detectChanges();
+      expect(auth.signUp).not.toHaveBeenCalled();
+
+      tick(INVITE_DEBOUNCE);
+      fixture.detectChanges();
+      expect(submitButton().disabled).toBeFalse();
+    }));
+
+    it('renders the message the server sends back', fakeAsync(() => {
+      invites.answer = () => ({ problem: 'That code has expired' });
+
+      const el = fillCredentials();
+      fillInput(el, '#inviteCode', 'WS-0000-0001');
+      tick(INVITE_DEBOUNCE);
+      fixture.detectChanges();
+
+      expect(inviteMessage()).toBe('That code has expired');
+
+      submitButton().click();
+      fixture.detectChanges();
+      expect(auth.signUp).not.toHaveBeenCalled();
+    }));
+
+    it('re-checks the code when the email is corrected', fakeAsync(() => {
+      invites.answer = (email) =>
+        email === 'jane@example.com' ? { problem: 'Issued to another address' } : { problem: null };
+
+      const el = fillCredentials();
+      fillInput(el, '#inviteCode', 'WS-0000-0001');
+      tick(INVITE_DEBOUNCE);
+      fixture.detectChanges();
+      expect(inviteMessage()).toBe('Issued to another address');
+
+      // Nothing touches the invite field here: the code is the same string it always was.
+      fillInput(el, '#email', 'jane@other.example');
+      tick(INVITE_DEBOUNCE);
+      fixture.detectChanges();
+
+      expect(invites.check).toHaveBeenCalledWith('jane@other.example', 'WS-0000-0001');
+      expect(inviteMessage()).toBe('Leave blank to create a personal workspace');
+    }));
+
+    it('submits the trimmed code once the check accepts it', fakeAsync(() => {
+      const el = fillCredentials();
+      fillInput(el, '#inviteCode', '  WS-0000-0001  ');
+      tick(INVITE_DEBOUNCE);
+      fixture.detectChanges();
+
+      submitButton().click();
+      fixture.detectChanges();
+
+      expect(auth.signUp).toHaveBeenCalledWith({
+        name: 'Jane Smith',
+        email: 'jane@example.com',
+        password: 'Password1',
+        inviteCode: 'WS-0000-0001',
+      });
+    }));
   });
 });
