@@ -1,5 +1,6 @@
 export * from './auth-facade';
 export * from './dom';
+export * from './invite-checker';
 export * from './media-query';
 export * from './mock-factories';
 export * from './routes';

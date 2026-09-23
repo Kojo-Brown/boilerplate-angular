@@ -27,6 +27,11 @@ export interface LoginCredentials {
 
 export interface RegisterCredentials extends LoginCredentials {
   name: string;
+  /**
+   * Workspace invite code, when one was supplied. Omitted rather than sent empty: the
+   * register endpoint distinguishes "no invite" from "this invite", and `''` is neither.
+   */
+  inviteCode?: string;
 }
 
 export interface AuthTokens {
