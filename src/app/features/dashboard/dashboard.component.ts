@@ -57,7 +57,13 @@ import { WidgetBoardComponent } from './widgets/widget-board.component';
     ReleaseNotesComponent,
   ],
   template: `
-    <h2 class="text-lg font-semibold text-[var(--color-foreground)]">Overview</h2>
+    <!--
+      \`<h1>\`, not \`<h2>\`: this is the route's own title, and nothing above it in the
+      shell renders a heading. As an \`<h2>\` the page had no level-one heading at all,
+      which is what the axe gate reported — /dashboard/posts and /dashboard/activity, the
+      two sibling routes, already start at \`<h1>\`.
+    -->
+    <h1 class="text-lg font-semibold text-[var(--color-foreground)]">Overview</h1>
     <div class="mt-4">
       <app-widget-board />
     </div>

@@ -62,14 +62,16 @@ NG_ALLOWED_HOSTS=localhost pnpm serve:ssr  # http://localhost:4000
 | `pnpm test`         | Karma unit tests, single run                                            |
 | `pnpm test:ci`      | Same, pinned to the sandboxed `ChromeHeadlessCI` launcher               |
 | `pnpm e2e`          | Playwright end-to-end tests                                             |
+| `pnpm e2e:a11y`     | WCAG 2.2 AA audit with axe over every route, both themes                |
 | `pnpm check:onpush` | Fails on a production component without `OnPush`                        |
 | `pnpm stats`        | Production build into `.stats/`, carrying the bundler metafile          |
 | `pnpm check:defer`  | Fails when a `@defer` block has stopped splitting its chunk             |
 | `pnpm check:routes` | Fails when a route exceeds its bundle budget, and prints the audit      |
 | `pnpm check:ssr`    | Starts the built server and checks what each route answers              |
 
-CI runs lint, typecheck, format, and tests in parallel on Node 22, 24, and 26,
-then builds on all three once they are green — see
+CI runs lint, typecheck, format, tests, and the accessibility audit in parallel
+on Node 22, 24, and 26 (the audit on 22 only), then builds on all three once
+they are green — see
 [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
 
 **Warnings fail the build.** `--max-warnings=0` covers ESLint;
@@ -787,6 +789,48 @@ deliberately never cached.
 See [docs/async-validators.md](./docs/async-validators.md) for the four requirements,
 why the default on a failed check is to fail open, and when a plain `AsyncValidatorFn` or
 a `typeahead` is the better tool.
+
+## Accessibility
+
+Every route is audited against **WCAG 2.2 Level AA** with axe-core, in **both
+themes**, in CI, and any violation fails the build. No allow-list, no severity
+floor, no baseline file.
+
+```bash
+pnpm e2e:a11y
+```
+
+**It is an end-to-end gate, not a unit test, because most of what axe checks is a
+property of the page.** Contrast needs the cascade — a token on `:root`,
+overridden by `.dark`, read through a Tailwind arbitrary value, painted over
+whatever background the nearest positioned ancestor has. Landmarks and heading
+level are answered jointly by `LayoutShellComponent`, the routed page, and the
+toast container `AppComponent` renders beside `<router-outlet>`. `target-size`
+needs layout. A `TestBed` fixture has none of it.
+
+**Both themes is the half that earns its keep.** Turning the gate on found that
+Tailwind's `dark:` variant had never been connected to the theme toggle: Tailwind
+4 compiles `dark:` to `@media (prefers-color-scheme: dark)`, `ThemeService`
+switches a `.dark` class, and so the toggle rewrote the custom properties and
+left every `dark:bg-*`/`dark:text-*` utility inert. The auth card stayed
+`bg-white` while `--color-foreground` went near-white — 1.06:1 body text on
+`/login` and `/register`, shipped since Phase 1. Nothing else in the repository
+looked at dark mode.
+
+It also found `--color-primary` failing AA as a brand colour (4.27:1 under its
+own foreground), `--color-primary-foreground` inverted in dark mode (2.90:1), an
+`aria-label` on a roleless `<div>`, four routes with no `<main>`, and a
+`/dashboard` with no `<h1>`.
+
+**Two ways this gate can lie, both guarded by tests.** `wcag22aa` alone selects
+the one rule 2.2 added, because axe tags a rule by the version that introduced
+it — so the tag set is the union. And `target-size`, that one rule, ships
+`enabled: false`, so a gate that passes the tag and stops there audits WCAG 2.1
+under a 2.2 name.
+
+See [docs/accessibility.md](./docs/accessibility.md) for what the gate cannot
+see — prerendered HTML, focus order, whether an `alt` says anything true — and
+for how to add a route or an interaction state.
 
 ## Spec Progress
 

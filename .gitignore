@@ -28,3 +28,8 @@ Thumbs.db
 
 # Coverage
 coverage/
+
+# Playwright — the HTML report and the per-test traces/screenshots the a11y gate
+# uploads as a CI artifact on failure
+playwright-report/
+test-results/

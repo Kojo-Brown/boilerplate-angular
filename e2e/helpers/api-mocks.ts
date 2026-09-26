@@ -91,6 +91,59 @@ export async function mockInviteCheck(
   return { calls: () => calls };
 }
 
+/**
+ * Three posts, fixed. The dates and ids are literals rather than generated so a failure
+ * screenshot and a failure message name the same row.
+ */
+export const MOCK_POSTS = [1, 2, 3].map((n) => ({
+  id: `post-${n}`,
+  title: `Sample post ${n}`,
+  body: `Body copy for sample post ${n}. `.repeat(6).trim(),
+  authorId: MOCK_USER.id,
+  createdAt: `2026-01-0${n}T09:00:00.000Z`,
+  updatedAt: `2026-01-0${n}T09:00:00.000Z`,
+}));
+
+/**
+ * Serves the posts list and every post detail from {@link MOCK_POSTS}.
+ *
+ * Two globs, and both halves of each matter. `/posts*` rather than `/posts?*`: the
+ * dashboard's insights panel calls `injectPostsQuery()` with no parameters, so its URL
+ * carries no query string at all and a pattern anchored on `?` misses it — which reads,
+ * on screen, as the panel's error branch rather than as a missing mock. A Playwright glob
+ * `*` does not cross `/`, so `/posts*` still leaves `/posts/post-1` to the second route.
+ *
+ * Order matters too: Playwright matches the most recently registered handler first, so
+ * the detail route is registered after the collection and wins for `/posts/post-1`.
+ * Registering them the other way round gives every detail page a paginated envelope and
+ * a blank article.
+ */
+export async function mockPosts(page: Page): Promise<void> {
+  await page.route(`${API_BASE}/posts*`, (route) => {
+    void route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: MOCK_POSTS,
+        total: MOCK_POSTS.length,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
+      }),
+    });
+  });
+
+  await page.route(`${API_BASE}/posts/*`, (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').pop();
+    const post = MOCK_POSTS.find((p) => p.id === id);
+    void route.fulfill({
+      status: post ? 200 : 404,
+      contentType: 'application/json',
+      body: JSON.stringify(post ?? { message: 'Not found' }),
+    });
+  });
+}
+
 export async function mockProfileSuccess(page: Page): Promise<void> {
   await page.route(`${API_BASE}/auth/me`, (route) => {
     void route.fulfill({

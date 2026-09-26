@@ -1,8 +1,37 @@
 @import 'tailwindcss';
 @import '@angular/cdk/overlay-prebuilt.css';
 
+/*
+  Bind Tailwind's `dark:` variant to the `.dark` class `ThemeService` writes onto
+  `<html>`.
+
+  Tailwind 4 compiles `dark:` to `@media (prefers-color-scheme: dark)` unless told
+  otherwise, and this application does not switch on the media query — it switches on a
+  class, so a visitor can pick a theme that disagrees with their operating system. Those
+  two mechanisms never met: flipping the toggle rewrote the custom properties below and
+  left every `dark:bg-*`/`dark:text-*` utility in the templates inert. The auth card
+  stayed `bg-white` while `--color-foreground` went to `oklch(0.93 0 0)`, which is
+  near-white text on a white card — contrast 1.06:1, and the first thing the axe gate
+  found. The reverse held too: an OS set to dark applied every `dark:` utility to a page
+  whose tokens were still the light ones.
+
+  `:where()` keeps the variant at zero specificity, so `dark:` utilities go on beating
+  their base counterparts by source order alone, exactly as they do under the media
+  query.
+*/
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --color-primary: oklch(0.55 0.18 240);
+  /*
+    `--color-primary` is the one token in this palette whose lightness is fixed by a
+    contrast requirement rather than by taste. At its original `0.55` it rendered
+    `#0079ce`, which is 4.27:1 under `--color-primary-foreground` and 4.05:1 as link
+    text on `--color-muted` — both short of the 4.5:1 that WCAG 1.4.3 asks of body text,
+    and both flagged by `e2e/a11y/`. `0.50` clears it in all three placements the
+    application actually uses: 5.27:1 for foreground-on-primary, 4.99:1 for
+    primary-on-muted, 5.59:1 for primary-on-background. See `docs/accessibility.md`.
+  */
+  --color-primary: oklch(0.5 0.18 240);
   --color-primary-foreground: oklch(0.98 0 0);
   --color-secondary: oklch(0.96 0 0);
   --color-secondary-foreground: oklch(0.2 0 0);
@@ -17,7 +46,14 @@
 
 .dark {
   --color-primary: oklch(0.65 0.18 240);
-  --color-primary-foreground: oklch(0.98 0 0);
+  /*
+    Dark mode inverts which of the pair is the light one: `--color-primary` here is
+    `#0099f0`, bright enough that the near-white foreground the light palette uses sat at
+    2.90:1 on every primary button and active pill. This is the light palette's
+    `--color-foreground`, which puts the pair at 6.42:1 and keeps the two themes reading
+    as the same two colours swapped rather than four unrelated ones.
+  */
+  --color-primary-foreground: oklch(0.145 0 0);
   --color-secondary: oklch(0.2 0 0);
   --color-secondary-foreground: oklch(0.9 0 0);
   --color-background: oklch(0.12 0 0);
