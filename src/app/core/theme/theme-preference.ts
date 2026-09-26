@@ -1,11 +1,13 @@
 import { DOCUMENT } from '@angular/common';
 import { InjectionToken, inject } from '@angular/core';
 import { storageOf } from '@/app/core/platform/web-storage';
+import type { Theme } from './theme-storage-key';
+import { THEME_STORAGE_KEY } from './theme-storage-key';
 
-export type Theme = 'light' | 'dark';
-
-/** Storage key for the user's explicit theme choice. Exported so a test can seed it. */
-export const THEME_STORAGE_KEY = 'app_theme';
+// Re-exported so this file stays the single import site for everything about a theme
+// preference; `theme-storage-key.ts` says why the two live apart.
+export { THEME_STORAGE_KEY } from './theme-storage-key';
+export type { Theme } from './theme-storage-key';
 
 /**
  * Where a theme choice is remembered, and how the operating system's preference is read.

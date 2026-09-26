@@ -112,7 +112,22 @@ export class ToastItemComponent implements OnInit {
   imports: [ToastItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <!--
+      \`role="region"\` is load-bearing twice over, and the container had neither half.
+
+      An \`aria-label\` on a bare \`<div>\` is prohibited by ARIA — a generic element exposes
+      no role for a name to attach to, so the label was simply dropped and the container
+      was anonymous. Naming it as a region also makes it a landmark, which is what keeps
+      the toasts themselves inside one: this element is a sibling of \`<router-outlet>\` at
+      the application root, outside whatever \`<main>\` the current page renders, so
+      without a role of its own every toast is content belonging to no landmark.
+
+      Not \`role="status"\`/\`aria-live\`: each toast already carries \`role="status"\`, and
+      \`ToastItemComponent\` announces through \`LiveAnnouncer\` on init. A live region here
+      would nest inside that one and double the announcement.
+    -->
     <div
+      role="region"
       aria-label="Notifications"
       class="pointer-events-none fixed right-4 top-4 z-50 flex w-full max-w-sm flex-col gap-2"
     >

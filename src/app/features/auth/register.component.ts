@@ -56,7 +56,8 @@ function inviteKey(control: AbstractControl): InviteKey | null {
     <div
       class="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4 py-8"
     >
-      <div class="w-full max-w-md">
+      <!-- \`<main>\` for the reason login.component.ts gives. -->
+      <main class="w-full max-w-md">
         <div
           class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900"
         >
@@ -228,7 +229,7 @@ function inviteKey(control: AbstractControl): InviteKey | null {
             </a>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   `,
 })

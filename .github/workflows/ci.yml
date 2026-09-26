@@ -46,6 +46,13 @@ concurrency:
 #     JavaScript than it is budgeted, or when route splitting has quietly collapsed. Also
 #     not a warning problem: `ng build` has no per-route budget to warn about, and growth
 #     behind a lazy route leaves the initial total untouched (see `docs/route-budgets.md`).
+#   - `pnpm e2e:a11y` audits the running application with axe-core against WCAG 2.2 AA and
+#     fails on any violation. It is its own job rather than a step in `test` because it is
+#     the only gate that needs a browser *and* a server: it drives `ng serve` through
+#     Playwright, so it audits the composed document — the cascade, the landmarks, the
+#     heading tree, the layout — none of which a `TestBed` fixture has. Every route is
+#     audited in both themes, which is how it found that the theme toggle and Tailwind's
+#     `dark:` variant had never been connected. See `docs/accessibility.md`.
 #   - `scripts/ci/assert-ssr.mjs` starts the built server and checks what it answers. It is
 #     the only gate here that runs the artifact rather than reading it, because the ways SSR
 #     breaks are all invisible to a bundle and to a browser-run unit suite: a browser-only
@@ -195,6 +202,40 @@ jobs:
         with:
           name: coverage-node-${{ matrix.node-version }}
           path: coverage/
+          retention-days: 7
+
+  a11y:
+    name: Accessibility (WCAG 2.2 AA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          node-version: '22'
+
+      # Chromium only, and only the browser: the audit runs in one engine because axe
+      # reports on the accessibility tree and the computed cascade, which do not differ
+      # between engines in the ways these rules read. `--with-deps` because the runner
+      # image carries the browser's shared libraries for Chrome, not for Playwright's
+      # pinned build.
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # One Node major, like `format` and the bundle gates: what this measures is a
+      # property of the rendered document, and the document does not change with the
+      # runtime that served it.
+      - name: Audit every route and interaction state
+        run: pnpm e2e:a11y
+        env:
+          NODE_OPTIONS: --throw-deprecation
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-report
+          path: playwright-report/
           retention-days: 7
 
   build:

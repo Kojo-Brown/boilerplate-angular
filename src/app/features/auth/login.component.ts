@@ -43,7 +43,14 @@ import { LoginFormComponent } from './login-form.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4">
-      <div class="w-full max-w-md">
+      <!--
+        \`<main>\`, not a \`<div>\`. This route renders outside \`LayoutShellComponent\` — the
+        one place in the application that provides landmarks — so without it the sign-in
+        card is content in no landmark at all and the page has no main region for a
+        screen-reader user to jump to. Same for /register, /unauthorized and /admin; the
+        dashboard routes get theirs from the shell and must not add a second.
+      -->
+      <main class="w-full max-w-md">
         <div
           class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900"
         >
@@ -86,7 +93,7 @@ import { LoginFormComponent } from './login-form.component';
             </a>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   `,
 })

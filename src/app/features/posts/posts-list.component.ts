@@ -58,7 +58,13 @@ import { injectPostsQuery } from './posts.queries';
                       {{ post.body }}
                     </p>
                   </div>
-                  <span class="shrink-0 text-xs text-gray-400 dark:text-gray-500">
+                  <!--
+                    \`text-gray-400 dark:text-gray-500\` failed 1.4.3 in both themes at once
+                    — 2.60:1 on the light card, 3.67:1 on the dark one — because the pair
+                    was picked to look recessive rather than to clear a ratio. The token
+                    is the palette's answer to "secondary text" and is 7.46:1 / 5.49:1.
+                  -->
+                  <span class="shrink-0 text-xs text-[var(--color-muted-foreground)]">
                     {{ post.createdAt | slice: 0 : 10 }}
                   </span>
                 </a>
