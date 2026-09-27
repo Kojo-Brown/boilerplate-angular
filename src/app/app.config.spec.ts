@@ -1,7 +1,9 @@
 import { Component, NgZone, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TitleStrategy } from '@angular/router';
 import { appConfig } from './app.config';
+import { AppTitleStrategy } from '@/app/core/routing/title.strategy';
 import { AuthStore } from '@/app/store/auth/auth.store';
 import { SUBSCRIBE_WEB_VITALS } from '@/app/core/vitals';
 import { host, requireEl } from '@/testing';
@@ -117,5 +119,19 @@ describe('appConfig', () => {
     expect(store.isAuthenticated()).toBeTrue();
     expect(store.isRestoringSession()).toBeFalse();
     httpTesting.verify();
+  });
+
+  /**
+   * `useExisting`, not `useClass`, and the difference is the whole route announcer.
+   *
+   * `AppTitleStrategy` is `providedIn: 'root'`. `useClass` would have the injector
+   * construct a *second* instance for the router to call, leaving the root one — the
+   * instance `RouteAnnouncerComponent` injects — subscribed to a stream nothing ever
+   * pushes to. The tab title would still be correct, because the router's copy is what
+   * sets it, so the only symptom would be a route announcer that is silent forever with
+   * nothing logged anywhere.
+   */
+  it('gives the router the same title strategy the route announcer reads', () => {
+    expect(TestBed.inject(TitleStrategy)).toBe(TestBed.inject(AppTitleStrategy));
   });
 });

@@ -130,9 +130,15 @@ a third of WCAG issues by count and cannot find any of the following:
   the document a visitor interacts with, and the one that differs between themes. It is not
   the static HTML that `/login`, `/register` and `/unauthorized` are served as before
   hydration. `scripts/ci/assert-ssr.mjs` reads that.
-- **Keyboard operability and focus order.** Whether the drawer traps focus, whether Escape
-  returns it, whether a route change moves it anywhere sensible. That is the next item in
-  `SPEC.md` Phase 9 and it needs assertions, not a scanner.
+- **Keyboard operability and focus order.** Whether a route change moves focus anywhere
+  sensible, whether the closed drawer is still tabbable, whether a live region ever
+  announces. Every one of those is a property of the *transition* between two documents, and
+  axe inspects a document at rest — a page that announces nothing and strands focus on a
+  destroyed element is, at rest, a page with no violations. That is
+  [`focus-and-live-regions.md`](./focus-and-live-regions.md), and the assertions are in
+  `e2e/a11y/focus-and-announcements.spec.ts`; building it found a tabbable off-screen
+  drawer that this gate had audited clean in both themes. What remains uncovered is what
+  the screen reader actually *said*, which no browser exposes.
 - **Anything about meaning.** Whether an `alt` describes the image, whether a label names
   the field, whether an error message helps. axe checks that a name exists.
 - **`DialogComponent`.** It is reachable from no route today, so the audit never renders it.

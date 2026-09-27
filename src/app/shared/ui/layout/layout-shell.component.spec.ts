@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter, Router, RouterOutlet } from '@angular/router';
-import { installFakeMediaQuery } from '@/testing';
+import { host, installFakeMediaQuery, requireEl } from '@/testing';
+import { ROUTE_FOCUS_TARGET_ID } from '@/app/core/a11y';
 import { LayoutShellComponent } from './layout-shell.component';
 
 const DESKTOP_QUERY = '(min-width: 768px)';
@@ -199,5 +200,57 @@ describe('LayoutShellComponent', () => {
     const fixture = createFixture();
     const closeBtn = fixture.debugElement.query(By.css('[aria-label="Close navigation menu"]'));
     expect(closeBtn).toBeTruthy();
+  });
+
+  /**
+   * A bug fix, not a nicety. A closed drawer is `-translate-x-full`: moved off screen, and
+   * still rendered, still in the tab order and still in the accessibility tree. A keyboard
+   * visitor on a narrow viewport tabbed straight into navigation they could not see, with
+   * the focus ring scrolled off the side of the document, and nothing on screen changed to
+   * say where they were.
+   */
+  describe('the closed off-canvas drawer', () => {
+    function sidebar(fixture: ReturnType<typeof createFixture>): HTMLElement {
+      return requireEl<HTMLElement>(host(fixture), 'aside');
+    }
+
+    it('is inert while closed on a narrow viewport', () => {
+      installFakeMediaQuery({ [DESKTOP_QUERY]: false });
+      const fixture = createFixture();
+
+      expect(sidebar(fixture).hasAttribute('inert')).toBeTrue();
+    });
+
+    it('is not inert once the drawer is open', () => {
+      installFakeMediaQuery({ [DESKTOP_QUERY]: false });
+      const fixture = createFixture();
+
+      fixture.componentInstance.toggleDrawer();
+      fixture.detectChanges();
+
+      expect(sidebar(fixture).hasAttribute('inert')).toBeFalse();
+    });
+
+    /** On desktop the same element is the static sidebar, not a drawer. */
+    it('is never inert on a desktop viewport', () => {
+      installFakeMediaQuery({ [DESKTOP_QUERY]: true });
+      const fixture = createFixture();
+
+      expect(sidebar(fixture).hasAttribute('inert')).toBeFalse();
+    });
+  });
+
+  /**
+   * The shell's `<main>` is the focus target for every route inside it, and the element
+   * survives the navigation — what changed is its contents, which is what focus should
+   * land on.
+   */
+  it('marks its <main> as the route focus target', () => {
+    installFakeMediaQuery({ [DESKTOP_QUERY]: true });
+    const fixture = createFixture();
+    const main = requireEl<HTMLElement>(host(fixture), 'main');
+
+    expect(main.getAttribute('tabindex')).toBe('-1');
+    expect(main.id).toBe(ROUTE_FOCUS_TARGET_ID);
   });
 });

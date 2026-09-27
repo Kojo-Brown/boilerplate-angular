@@ -3,16 +3,19 @@ import {
   Component,
   HostListener,
   Input,
+  PLATFORM_ID,
   computed,
   inject,
   linkedSignal,
 } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { mediaQuerySignal } from '@/app/core/reactivity';
 import { BrandMarkComponent } from '../brand/brand-mark.component';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
+import { RouteFocusTargetDirective } from '@/app/core/a11y';
 
 /** Matches Tailwind's `md` breakpoint, where the drawer becomes a static sidebar. */
 const DESKTOP_QUERY = '(min-width: 768px)';
@@ -26,7 +29,7 @@ const SIDEBAR_BASE =
   selector: 'app-layout-shell',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, BrandMarkComponent, ThemeToggleComponent],
+  imports: [RouterOutlet, BrandMarkComponent, ThemeToggleComponent, RouteFocusTargetDirective],
   template: `
     <!-- Mobile topbar (hidden on md+) -->
     <header
@@ -94,8 +97,27 @@ const SIDEBAR_BASE =
 
     <!-- Page layout -->
     <div class="flex min-h-[calc(100vh-3.5rem)] md:min-h-screen">
-      <!-- Sidebar: off-canvas drawer on mobile, static column on desktop -->
-      <aside [class]="sidebarClasses()" aria-label="Sidebar navigation">
+      <!--
+        \`inert\` while the drawer is closed, and this is a bug fix rather than a nicety.
+        A closed drawer is \`-translate-x-full\`: moved off screen, and still rendered,
+        still in the tab order and still in the accessibility tree. On a narrow viewport
+        every link in it was reachable by Tab and readable by a screen reader while being
+        invisible — so a keyboard visitor tabbing through the page fell into navigation
+        they could not see, with the focus ring scrolled off the side of the document.
+        \`inert\` is the one attribute that removes an element from both at once;
+        \`aria-hidden\` alone would have left it tabbable, and \`display: none\` would have
+        killed the slide-in transition the drawer exists to have.
+
+        Never inert on desktop, where the same element is the static sidebar rather than
+        a drawer, and never on the server, where \`isDesktopViewport()\` reports the
+        \`mediaQuerySignal\` fallback instead of a measurement — prerendering it inert
+        would hide the navigation from a visitor whose JavaScript has not arrived.
+      -->
+      <aside
+        [class]="sidebarClasses()"
+        [attr.inert]="isDrawerInert() ? '' : null"
+        aria-label="Sidebar navigation"
+      >
         <!-- Desktop sidebar header -->
         <div
           class="hidden h-14 shrink-0 items-center justify-between
@@ -160,8 +182,14 @@ const SIDEBAR_BASE =
         </div>
       </aside>
 
-      <!-- Main content area -->
-      <main class="min-w-0 flex-1 overflow-y-auto">
+      <!--
+        \`appRouteFocusTarget\` is what makes a navigation between two dashboard routes
+        observable to someone not looking at the screen: it carries the \`tabindex="-1"\`
+        and the \`id\` that route focus and the skip link both aim at. This one \`<main>\`
+        serves every route inside the shell — the element survives the navigation and its
+        contents are what changed, which is exactly what focus should land on.
+      -->
+      <main appRouteFocusTarget class="min-w-0 flex-1 overflow-y-auto">
         <router-outlet />
       </main>
     </div>
@@ -196,6 +224,16 @@ export class LayoutShellComponent {
     computation: (): boolean => false,
     debugName: 'isMobileDrawerOpen',
   });
+
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
+  /**
+   * `true` only for the one state in which the sidebar is rendered but unreachable: a
+   * narrow viewport with the drawer closed. See the comment on `<aside>`.
+   */
+  protected readonly isDrawerInert = computed(
+    () => this.isBrowser && !this.isDesktopViewport() && !this.isMobileDrawerOpen()
+  );
 
   protected readonly sidebarClasses = computed(() =>
     this.isMobileDrawerOpen()

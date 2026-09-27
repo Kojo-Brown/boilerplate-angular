@@ -26,6 +26,7 @@ import {
 } from '@/app/core/http/errors/api-error-mappers';
 import { AuthStore } from '@/app/store/auth/auth.store';
 import { provideAppImageLoader } from '@/app/core/images';
+import { provideRouteFocus } from '@/app/core/a11y';
 import {
   WEB_VITALS_SINK,
   consoleWebVitalsSink,
@@ -99,7 +100,17 @@ export const appConfig: ApplicationConfig = {
     provideApiErrorMappers(...BUILT_IN_API_ERROR_MAPPERS),
 
     provideTanStackQuery(createQueryClient()),
-    { provide: TitleStrategy, useClass: AppTitleStrategy },
+    // `useExisting`, not `useClass`. `AppTitleStrategy` is `providedIn: 'root'`, so
+    // `useClass` would build a *second* instance for the router to call and leave the
+    // root one — the instance `RouteAnnouncerComponent` injects — receiving nothing. The
+    // tab title would still be correct, because the router's copy sets it, and the route
+    // announcer would be silent forever with no error anywhere. `app.config.spec.ts`
+    // asserts the two are the same object.
+    { provide: TitleStrategy, useExisting: AppTitleStrategy },
+
+    // Move focus to the new route's `<main>` after every navigation but the first.
+    // See `src/app/core/a11y/route-focus.ts` for why it is not `NavigationEnd` alone.
+    provideRouteFocus(),
 
     // Field data for LCP, INP, CLS, FCP and TTFB — what this page load actually cost the
     // person who made it, as against what it costs a build agent. Browser-only, and by
