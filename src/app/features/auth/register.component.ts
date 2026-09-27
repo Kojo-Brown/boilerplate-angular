@@ -18,6 +18,7 @@ import { controlErrorSignal, controlSignal } from '@/app/core/reactivity';
 import { zodGroupValidator } from '@/app/core/validators/zod-validator';
 import { registerBaseSchema, registerSchema } from './auth.schemas';
 import { InviteService } from './invite.service';
+import { RouteFocusTargetDirective } from '@/app/core/a11y';
 
 /** The pair the server is asked about. Neither half is checkable on its own. */
 interface InviteKey {
@@ -50,14 +51,14 @@ function inviteKey(control: AbstractControl): InviteKey | null {
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, BrandBannerComponent],
+  imports: [ReactiveFormsModule, RouterLink, BrandBannerComponent, RouteFocusTargetDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
       class="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4 py-8"
     >
       <!-- \`<main>\` for the reason login.component.ts gives. -->
-      <main class="w-full max-w-md">
+      <main appRouteFocusTarget class="w-full max-w-md">
         <div
           class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900"
         >

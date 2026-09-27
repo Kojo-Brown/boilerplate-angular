@@ -205,7 +205,7 @@ jobs:
           retention-days: 7
 
   a11y:
-    name: Accessibility (WCAG 2.2 AA)
+    name: Accessibility (WCAG 2.2 AA, focus and live regions)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -225,7 +225,12 @@ jobs:
       # One Node major, like `format` and the bundle gates: what this measures is a
       # property of the rendered document, and the document does not change with the
       # runtime that served it.
-      - name: Audit every route and interaction state
+      # Two suites in one project. `axe.spec.ts`/`a11y.spec.ts` audit each route at rest;
+      # `focus-and-announcements.spec.ts` covers what a scanner structurally cannot see —
+      # where focus lands after a navigation, and whether a live region ever changes —
+      # because both are properties of the transition between two documents rather than of
+      # either document. See `docs/focus-and-live-regions.md`.
+      - name: Audit every route, interaction state, and navigation
         run: pnpm e2e:a11y
         env:
           NODE_OPTIONS: --throw-deprecation

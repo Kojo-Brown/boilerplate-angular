@@ -120,7 +120,14 @@ const ROUTE_BUDGETS = [
       'src/app/features/dashboard/dashboard-shell.component.ts',
       'src/app/features/posts/posts-list.component.ts',
     ],
-    maximum: '33kB',
+    // 33 kB → 34 kB for the focus/live-region item. `[appRouteFocusTarget]` on the shell's
+    // `<main>` costs every route under the dashboard the same 0.24 kB — the compiled
+    // template's dependency entry and host bindings — and this route was the one already
+    // sitting on 0.12 kB of headroom, so it is the only one the change pushed over. The
+    // directive itself is not charged here: `core/a11y/` is chunk-assigned to the initial
+    // bundle, because `app.config.ts` calls `provideRouteFocus()` from the same module.
+    // Measured, not estimated: 32.88 kB → 33.12 kB. See `docs/focus-and-live-regions.md`.
+    maximum: '34kB',
   },
   {
     path: '/dashboard/activity',

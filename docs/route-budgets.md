@@ -63,6 +63,24 @@ Measured at the commit that added the gate, against a 561.47 kB initial bundle
 > reason given under *When a budget is crossed* below. See [`ssr.md`](./ssr.md).
 > `/dashboard/activity` (55.37 kB against 58 kB) post-dates this table too; `pnpm
 > check:routes` prints the current figures.
+>
+> **`/dashboard/posts` moved 33 kB → 34 kB** for the focus/live-region item.
+> `[appRouteFocusTarget]` on the shell's `<main>` costs every route under the dashboard the
+> same 0.24 kB — the compiled template's dependency entry and its host bindings — and this
+> route was the one already sitting on 0.12 kB of headroom, so it is the only one the change
+> pushed over (32.88 kB → 33.12 kB, measured). The directive itself is not charged to any
+> route: `core/a11y/` is chunk-assigned to the initial bundle, because `app.config.ts` calls
+> `provideRouteFocus()` out of the same module.
+>
+> **The `initial` budget moved 574 kB → 579 kB** for the focus/live-region item, which is
+> the one change in this repository so far whose weight is genuinely eager: a skip link and
+> a live region have to be in the application shell, since a skip link that arrives with a
+> lazy chunk is not first in the tab order and a live region created on demand is never
+> announced (see [`focus-and-live-regions.md`](./focus-and-live-regions.md)). Measured
+> rather than assumed: 572.03 kB → 576.73 kB, of which **3.83 kB is JavaScript**
+> (539.10 → 542.93 kB — the two components, the focus directive and registry, and the
+> provider) and **0.87 kB is the stylesheet**, Tailwind emitting `sr-only`, `not-sr-only`
+> and the `focus:` variants the skip link needs. Every per-route budget held untouched.
 
 "Lazy JS" is what the route adds to the initial bundle; "cold start" is everything a first
 visit fetches, the global stylesheet included. Transfer sizes are gzipped and reported

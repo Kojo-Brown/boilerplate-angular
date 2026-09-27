@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthFacade } from '@/app/core/auth';
 import { BrandBannerComponent } from '@/app/shared/ui/brand/brand-banner.component';
 import { LoginFormComponent } from './login-form.component';
+import { RouteFocusTargetDirective } from '@/app/core/a11y';
 
 /**
  * `/login`, and the one page in this application where incremental hydration applies.
@@ -39,7 +40,7 @@ import { LoginFormComponent } from './login-form.component';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [RouterLink, BrandBannerComponent, LoginFormComponent],
+  imports: [RouterLink, BrandBannerComponent, LoginFormComponent, RouteFocusTargetDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4">
@@ -50,7 +51,7 @@ import { LoginFormComponent } from './login-form.component';
         screen-reader user to jump to. Same for /register, /unauthorized and /admin; the
         dashboard routes get theirs from the shell and must not add a second.
       -->
-      <main class="w-full max-w-md">
+      <main appRouteFocusTarget class="w-full max-w-md">
         <div
           class="rounded-lg border border-[var(--color-border)] bg-white p-8 shadow-sm dark:bg-gray-900"
         >
