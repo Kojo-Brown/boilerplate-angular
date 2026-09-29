@@ -16,7 +16,7 @@ export const routes: Routes = [
     path: 'unauthorized',
     loadComponent: () =>
       import('@/app/features/errors/unauthorized.component').then((m) => m.UnauthorizedComponent),
-    title: 'Unauthorized',
+    title: $localize`:Browser tab title and route announcement@@route.title.unauthorized:Unauthorized`,
   },
   // Dashboard feature: /dashboard, /dashboard/posts, /dashboard/posts/:id
   {

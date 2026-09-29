@@ -1,0 +1,1148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="en-US" datatype="plaintext" original="ng2.template">
+    <body>
+      <trans-unit id="route.title.unauthorized" datatype="html">
+        <source>Unauthorized</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">19</context>
+        </context-group>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="a11y.skipLink" datatype="html">
+        <source> Skip to main content </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/a11y/skip-link.component.ts</context>
+          <context context-type="linenumber">50,55</context>
+        </context-group>
+        <note priority="1" from="description">First element in the tab order; jumps past the navigation</note>
+      </trans-unit>
+      <trans-unit id="forms.error.subjectFallback" datatype="html">
+        <source>This field</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">28</context>
+        </context-group>
+        <note priority="1" from="description">Stands in for a field&apos;s label when it has none, as in &quot;This field is required.&quot;</note>
+      </trans-unit>
+      <trans-unit id="forms.error.required" datatype="html">
+        <source><x id="field" equiv-text="subject(context)"/> is required.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">56</context>
+        </context-group>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.requiredTrue" datatype="html">
+        <source><x id="field" equiv-text="subject(context)"/> must be checked.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">58</context>
+        </context-group>
+        <note priority="1" from="description">Validation message under a checkbox</note>
+      </trans-unit>
+      <trans-unit id="forms.error.email" datatype="html">
+        <source>Enter a valid email address.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">60</context>
+        </context-group>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.minlength" datatype="html">
+        <source>Use at least <x id="count" equiv-text="numberAt(detail, &apos;requiredLength&apos;) ?? 1"/> characters.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">67</context>
+        </context-group>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.maxlength" datatype="html">
+        <source>Use at most <x id="count" equiv-text="numberAt(detail, &apos;requiredLength&apos;) ?? 1"/> characters.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">69</context>
+        </context-group>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.min" datatype="html">
+        <source>Enter <x id="limit" equiv-text="numberAt(detail, &apos;min&apos;) ?? 0"/> or more.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">71</context>
+        </context-group>
+        <note priority="1" from="description">Validation message under a numeric form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.max" datatype="html">
+        <source>Enter <x id="limit" equiv-text="numberAt(detail, &apos;max&apos;) ?? 0"/> or less.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">73</context>
+        </context-group>
+        <note priority="1" from="description">Validation message under a numeric form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.pattern" datatype="html">
+        <source>This is not in the expected format.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">75</context>
+        </context-group>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.zodFallback" datatype="html">
+        <source>This value is not valid.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/forms/error-messages.ts</context>
+          <context context-type="linenumber">82</context>
+        </context-group>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="http.error.network" datatype="html">
+        <source>Network error — please check your connection</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/http/errors/api-error-mappers.ts</context>
+          <context context-type="linenumber">33</context>
+        </context-group>
+        <note priority="1" from="description">Shown when a request never reached the server</note>
+      </trans-unit>
+      <trans-unit id="http.error.unexpected" datatype="html">
+        <source>An unexpected error occurred</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/http/errors/api-error-mappers.ts</context>
+          <context context-type="linenumber">36</context>
+        </context-group>
+        <note priority="1" from="description">Shown when a failure matched no mapper</note>
+      </trans-unit>
+      <trans-unit id="route.title.postDetail" datatype="html">
+        <source>Post Detail</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/routing/post-title.resolver.ts</context>
+          <context context-type="linenumber">13</context>
+        </context-group>
+        <note priority="1" from="description">Browser tab title for a post that could not be read</note>
+      </trans-unit>
+      <trans-unit id="admin.heading" datatype="html">
+        <source>Admin</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/admin/admin.component.ts</context>
+          <context context-type="linenumber">12,13</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="admin.body" datatype="html">
+        <source> Protected by authGuard + roleGuard(&apos;admin&apos;). </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/admin/admin.component.ts</context>
+          <context context-type="linenumber">14,16</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.admin" datatype="html">
+        <source>Admin</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/admin/admin.routes.ts</context>
+          <context context-type="linenumber">7</context>
+        </context-group>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="route.title.login" datatype="html">
+        <source>Login</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.routes.ts</context>
+          <context context-type="linenumber">16</context>
+        </context-group>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="route.title.register" datatype="html">
+        <source>Register</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.routes.ts</context>
+          <context context-type="linenumber">21</context>
+        </context-group>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.email.required" datatype="html">
+        <source>Email is required</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">14</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">39</context>
+        </context-group>
+        <note priority="1" from="description">Sign-in validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.email.invalid" datatype="html">
+        <source>Please enter a valid email address</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">16</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">41</context>
+        </context-group>
+        <note priority="1" from="description">Sign-in validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.password.tooShort" datatype="html">
+        <source>Password must be at least 8 characters</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">22</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">47</context>
+        </context-group>
+        <note priority="1" from="description">Sign-in validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.name.tooShort" datatype="html">
+        <source>Name must be at least 2 characters</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">31</context>
+        </context-group>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.name.tooLong" datatype="html">
+        <source>Name must be under 50 characters</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">35</context>
+        </context-group>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.password.needsUppercase" datatype="html">
+        <source>Password must contain at least one uppercase letter</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">51</context>
+        </context-group>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.password.needsDigit" datatype="html">
+        <source>Password must contain at least one number</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">55</context>
+        </context-group>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.confirmPassword.required" datatype="html">
+        <source>Please confirm your password</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">61</context>
+        </context-group>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.inviteCode.tooLong" datatype="html">
+        <source>Invite codes are at most 32 characters</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">77</context>
+        </context-group>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.passwordMismatch" datatype="html">
+        <source>Passwords don&apos;t match</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/auth.schemas.ts</context>
+          <context context-type="linenumber">84</context>
+        </context-group>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.login.email.label" datatype="html">
+        <source> Email address </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/login-form.component.ts</context>
+          <context context-type="linenumber">57,59</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.login.email.placeholder" datatype="html">
+        <source>you@example.com</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/login-form.component.ts</context>
+          <context context-type="linenumber">67,68</context>
+        </context-group>
+        <note priority="1" from="description">Example address. Translators may leave the local part in Latin script.
+              </note>
+      </trans-unit>
+      <trans-unit id="auth.login.password.label" datatype="html">
+        <source> Password </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/login-form.component.ts</context>
+          <context context-type="linenumber">84,86</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.login.submit.busy" datatype="html">
+        <source>Signing in…</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/login-form.component.ts</context>
+          <context context-type="linenumber">110,112</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.login.submit" datatype="html">
+        <source>Sign in</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/login-form.component.ts</context>
+          <context context-type="linenumber">112,114</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.login.heading" datatype="html">
+        <source> Welcome back </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/login.component.ts</context>
+          <context context-type="linenumber">72,74</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.login.subheading" datatype="html">
+        <source> Sign in to your account to continue </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/login.component.ts</context>
+          <context context-type="linenumber">78,80</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.login.registerPrompt" datatype="html">
+        <source> Don&apos;t have an account? <x id="START_LINK" ctype="x-a" equiv-text="&lt;a
+              routerLink=&quot;/register&quot;
+              class=&quot;font-medium text-[var(--color-primary)] hover:underline&quot;
+            &gt;"/> Create one <x id="CLOSE_LINK" ctype="x-a" equiv-text="&lt;/a&gt;"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/login.component.ts</context>
+          <context context-type="linenumber">100,107</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.heading" datatype="html">
+        <source> Create an account </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">73,75</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.subheading" datatype="html">
+        <source> Get started with your free account today </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">79,81</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.name.label" datatype="html">
+        <source> Full name </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">100,101</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.name.placeholder" datatype="html">
+        <source>Jane Smith</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">108,109</context>
+        </context-group>
+        <note priority="1" from="description">Example of a person&apos;s full name</note>
+      </trans-unit>
+      <trans-unit id="auth.register.email.label" datatype="html">
+        <source> Email address </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">124,125</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.email.placeholder" datatype="html">
+        <source>you@example.com</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">134,135</context>
+        </context-group>
+        <note priority="1" from="description">Example address. Translators may leave the local part in Latin script.
+                    </note>
+      </trans-unit>
+      <trans-unit id="auth.register.password.label" datatype="html">
+        <source> Password </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">150,152</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.password.hint" datatype="html">
+        <source> Min 8 characters, one uppercase letter and one number </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">169,171</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.confirmPassword.label" datatype="html">
+        <source> Confirm password </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">179,181</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.inviteCode.label" datatype="html">
+        <source> Workspace invite code <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-normal text-[var(--color-muted-foreground)]&quot;&gt;"/>(optional)<x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">206,208</context>
+        </context-group>
+        <note priority="1" from="description">The parenthesised word marks the field as not required.
+                    </note>
+      </trans-unit>
+      <trans-unit id="auth.register.inviteCode.placeholder" datatype="html">
+        <source>WS-0000-0000</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">218,220</context>
+        </context-group>
+        <note priority="1" from="description">Shape of an invite code. The WS- prefix is part of the code, not prose.
+                    </note>
+      </trans-unit>
+      <trans-unit id="auth.register.inviteCode.checking" datatype="html">
+        <source> Checking invite code… </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">229,231</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.inviteCode.hint" datatype="html">
+        <source> Leave blank to create a personal workspace </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">238,240</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.submit.busy" datatype="html">
+        <source>Creating account…</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">250,252</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.submit" datatype="html">
+        <source>Create account</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">252,254</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="auth.register.signInPrompt" datatype="html">
+        <source> Already have an account? <x id="START_LINK" ctype="x-a" equiv-text="&lt;a routerLink=&quot;/login&quot; class=&quot;font-medium text-[var(--color-primary)] hover:underline&quot;&gt;"/> Sign in <x id="CLOSE_LINK" ctype="x-a" equiv-text="&lt;/a&gt;"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/auth/register.component.ts</context>
+          <context context-type="linenumber">267,271</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="activity.heading" datatype="html">
+        <source> Activity log </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">88,90</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="activity.subheading" datatype="html">
+        <source> <x id="ICU" equiv-text="{entryCount, plural, =1 {1 entry} other {{{ entryCount | number }} entries}}" xid="2537445485358162724"/> — timestamps are UTC. Only the rows on screen exist in the DOM. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">98,101</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="2742145199782881612" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {1 entry} other {<x id="INTERPOLATION"/> entries}}</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">98</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="activity.table.label" datatype="html">
+        <source>Activity log</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">115,117</context>
+        </context-group>
+        <note priority="1" from="description">Accessible name of the activity table</note>
+      </trans-unit>
+      <trans-unit id="activity.table.empty" datatype="html">
+        <source>No activity has been recorded yet.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">117,120</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="activity.col.occurredAt" datatype="html">
+        <source>When (UTC)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">161</context>
+        </context-group>
+        <note priority="1" from="description">Activity table column — the timestamp, always UTC</note>
+      </trans-unit>
+      <trans-unit id="activity.col.actor" datatype="html">
+        <source>Actor</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">168</context>
+        </context-group>
+        <note priority="1" from="description">Activity table column — who performed the action</note>
+      </trans-unit>
+      <trans-unit id="activity.col.action" datatype="html">
+        <source>Action</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">175</context>
+        </context-group>
+        <note priority="1" from="description">Activity table column — what was done</note>
+      </trans-unit>
+      <trans-unit id="activity.col.resource" datatype="html">
+        <source>Resource</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">182</context>
+        </context-group>
+        <note priority="1" from="description">Activity table column — what was acted on</note>
+      </trans-unit>
+      <trans-unit id="activity.col.duration" datatype="html">
+        <source>Duration</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/activity/activity-log.component.ts</context>
+          <context context-type="linenumber">187</context>
+        </context-group>
+        <note priority="1" from="description">Activity table column — how long the action took</note>
+      </trans-unit>
+      <trans-unit id="dashboard.shell.brand" datatype="html">
+        <source>Dashboard</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard-shell.component.ts</context>
+          <context context-type="linenumber">18,19</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.nav.overview" datatype="html">
+        <source> Overview </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard-shell.component.ts</context>
+          <context context-type="linenumber">28,30</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.nav.posts" datatype="html">
+        <source> Posts </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard-shell.component.ts</context>
+          <context context-type="linenumber">38,40</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.nav.activity" datatype="html">
+        <source> Activity log </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard-shell.component.ts</context>
+          <context context-type="linenumber">48,50</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.shell.signOut" datatype="html">
+        <source> Sign out </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard-shell.component.ts</context>
+          <context context-type="linenumber">71,73</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.heading" datatype="html">
+        <source> Overview </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">67,69</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.skeletonLabel.placeholder" datatype="html">
+        <source>publishing activity</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">89,93</context>
+        </context-group>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.skeletonLabel.loading" datatype="html">
+        <source>publishing activity</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">95,100</context>
+        </context-group>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.blockError" datatype="html">
+        <source> Publishing activity could not be loaded. Reload the page to try again. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">104,109</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.trigger" datatype="html">
+        <source> Show post-length breakdown </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">122,125</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.skeletonLabel.loading" datatype="html">
+        <source>the length breakdown</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">131,136</context>
+        </context-group>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.blockError" datatype="html">
+        <source> The breakdown could not be loaded. Reload the page to try again. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">140,143</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.dashboard" datatype="html">
+        <source>Dashboard</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.routes.ts</context>
+          <context context-type="linenumber">31</context>
+        </context-group>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="route.title.posts" datatype="html">
+        <source>Posts</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.routes.ts</context>
+          <context context-type="linenumber">43</context>
+        </context-group>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="route.title.activity" datatype="html">
+        <source>Activity log</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.routes.ts</context>
+          <context context-type="linenumber">49</context>
+        </context-group>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.skeletonLabel" datatype="html">
+        <source>the length breakdown</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-breakdown.component.ts</context>
+          <context context-type="linenumber">91,97</context>
+        </context-group>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.error" datatype="html">
+        <source> Could not load the length breakdown. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-breakdown.component.ts</context>
+          <context context-type="linenumber">102,105</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.heading" datatype="html">
+        <source> Post length </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-breakdown.component.ts</context>
+          <context context-type="linenumber">115,118</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.caption" datatype="html">
+        <source> Posts grouped by body length, over <x id="ICU" equiv-text="{page.total, plural, =1 {1 post} other {{{ page.total }} posts}}" xid="7353504779039517025"/> </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-breakdown.component.ts</context>
+          <context context-type="linenumber">120,123</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="6921416837728262095" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {1 post} other {<x id="INTERPOLATION"/> posts}}</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-breakdown.component.ts</context>
+          <context context-type="linenumber">121,122</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.col.length" datatype="html">
+        <source> Length </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-breakdown.component.ts</context>
+          <context context-type="linenumber">130,134</context>
+        </context-group>
+        <note priority="1" from="description">Table column: body-length band</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.col.posts" datatype="html">
+        <source> Posts </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-breakdown.component.ts</context>
+          <context context-type="linenumber">137,141</context>
+        </context-group>
+        <note priority="1" from="description">Table column: number of posts in the band</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.col.share" datatype="html">
+        <source> Share </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-breakdown.component.ts</context>
+          <context context-type="linenumber">144,148</context>
+        </context-group>
+        <note priority="1" from="description">Table column: percentage of all posts</note>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.skeletonLabel" datatype="html">
+        <source>publishing activity</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-panel.component.ts</context>
+          <context context-type="linenumber">103,109</context>
+        </context-group>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.error" datatype="html">
+        <source> Could not load publishing activity. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-panel.component.ts</context>
+          <context context-type="linenumber">114,116</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.heading" datatype="html">
+        <source> Publishing activity </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-panel.component.ts</context>
+          <context context-type="linenumber">128,131</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.postCount" datatype="html">
+        <source> <x id="ICU" equiv-text="{page.total, plural, =0 {No posts} =1 {1 post} other {{{ page.total }} posts}}" xid="6083355259657686876"/> </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-panel.component.ts</context>
+          <context context-type="linenumber">142,144</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="460899487361607108" datatype="html">
+        <source>{VAR_PLURAL, plural, =0 {No posts} =1 {1 post} other {<x id="INTERPOLATION"/> posts}}</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-panel.component.ts</context>
+          <context context-type="linenumber">142,143</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.empty" datatype="html">
+        <source> No posts have been published yet. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/insights/insights-panel.component.ts</context>
+          <context context-type="linenumber">196,199</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.releaseNotes.heading" datatype="html">
+        <source> What&apos;s new </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/release-notes/release-notes.component.ts</context>
+          <context context-type="linenumber">78,80</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.releaseNotes.dismiss" datatype="html">
+        <source> Dismiss </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/release-notes/release-notes.component.ts</context>
+          <context context-type="linenumber">87,89</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="widgets.activity.heading" datatype="html">
+        <source> Recent activity </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/activity-widget.component.ts</context>
+          <context context-type="linenumber">39,41</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="widgets.show" datatype="html">
+        <source>Show</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/activity-widget.component.ts</context>
+          <context context-type="linenumber">48,50</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/stat-widget.component.ts</context>
+          <context context-type="linenumber">35,37</context>
+        </context-group>
+        <note priority="1" from="description">Expands a collapsed widget</note>
+      </trans-unit>
+      <trans-unit id="widgets.hide" datatype="html">
+        <source>Hide</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/activity-widget.component.ts</context>
+          <context context-type="linenumber">50,53</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/stat-widget.component.ts</context>
+          <context context-type="linenumber">37,40</context>
+        </context-group>
+        <note priority="1" from="description">Collapses an expanded widget</note>
+      </trans-unit>
+      <trans-unit id="widgets.activity.minutesAgo" datatype="html">
+        <source> · <x id="ICU" equiv-text="{entry.minutesAgo, plural, =1 {1m ago} other {{{ entry.minutesAgo }}m ago}}" xid="8474667356943346869"/> </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/activity-widget.component.ts</context>
+          <context context-type="linenumber">70,72</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="8957857331997490638" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {1m ago} other {<x id="INTERPOLATION"/>m ago}}</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/activity-widget.component.ts</context>
+          <context context-type="linenumber">70</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="widgets.activity.empty" datatype="html">
+        <source> Nothing yet. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/activity-widget.component.ts</context>
+          <context context-type="linenumber">79,81</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.revenue" datatype="html">
+        <source>Revenue</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/sample-widgets.ts</context>
+          <context context-type="linenumber">41</context>
+        </context-group>
+        <note priority="1" from="description">Dashboard widget name</note>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.signups" datatype="html">
+        <source>Signups</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/sample-widgets.ts</context>
+          <context context-type="linenumber">61</context>
+        </context-group>
+        <note priority="1" from="description">Dashboard widget name</note>
+      </trans-unit>
+      <trans-unit id="widgets.stat.breakdown" datatype="html">
+        <source> Breakdown </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/stat-widget.component.ts</context>
+          <context context-type="linenumber">53,56</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="widgets.stat.noChange" datatype="html">
+        <source>No change</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/stat-widget.component.ts</context>
+          <context context-type="linenumber">94</context>
+        </context-group>
+        <note priority="1" from="description">A statistic that has not moved since the previous window</note>
+      </trans-unit>
+      <trans-unit id="widgets.stat.up" datatype="html">
+        <source>Up <x id="percent" equiv-text="formatted"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/stat-widget.component.ts</context>
+          <context context-type="linenumber">96</context>
+        </context-group>
+        <note priority="1" from="description">A statistic that rose, followed by a percentage</note>
+      </trans-unit>
+      <trans-unit id="widgets.stat.down" datatype="html">
+        <source>Down <x id="percent" equiv-text="formatted"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/stat-widget.component.ts</context>
+          <context context-type="linenumber">97</context>
+        </context-group>
+        <note priority="1" from="description">A statistic that fell, followed by a percentage</note>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.rangeGroup" datatype="html">
+        <source>Reporting window</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/widget-board.component.ts</context>
+          <context context-type="linenumber">45,48</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.expandAll" datatype="html">
+        <source> Expand all </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/widget-board.component.ts</context>
+          <context context-type="linenumber">73,75</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.lastOpened" datatype="html">
+        <source> Last opened: <x id="INTERPOLATION" equiv-text="{{ selection }}"/> </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/widget-board.component.ts</context>
+          <context context-type="linenumber">86,87</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.noSelection" datatype="html">
+        <source> Choose a row to open its breakdown. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/widget-board.component.ts</context>
+          <context context-type="linenumber">90,92</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.range.7d" datatype="html">
+        <source>7 days</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/widget.contracts.ts</context>
+          <context context-type="linenumber">17</context>
+        </context-group>
+        <note priority="1" from="description">Reporting window, seven days</note>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.range.30d" datatype="html">
+        <source>30 days</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/widget.contracts.ts</context>
+          <context context-type="linenumber">18</context>
+        </context-group>
+        <note priority="1" from="description">Reporting window, thirty days</note>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.range.90d" datatype="html">
+        <source>90 days</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/widgets/widget.contracts.ts</context>
+          <context context-type="linenumber">19</context>
+        </context-group>
+        <note priority="1" from="description">Reporting window, ninety days</note>
+      </trans-unit>
+      <trans-unit id="errors.unauthorized.heading" datatype="html">
+        <source>403 — Unauthorized</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/errors/unauthorized.component.ts</context>
+          <context context-type="linenumber">13,14</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="errors.unauthorized.body" datatype="html">
+        <source> You do not have permission to view this page. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/errors/unauthorized.component.ts</context>
+          <context context-type="linenumber">15,18</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.detail.back" datatype="html">
+        <source>Back to Posts</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-detail.component.ts</context>
+          <context context-type="linenumber">26,29</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.detail.error" datatype="html">
+        <source> Post not found or failed to load. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-detail.component.ts</context>
+          <context context-type="linenumber">47,49</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.detail.author" datatype="html">
+        <source>Author: <x id="INTERPOLATION" equiv-text="{{ data.authorId }}"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-detail.component.ts</context>
+          <context context-type="linenumber">60,61</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.label" datatype="html">
+        <source>Search posts</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">44,46</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.placeholder" datatype="html">
+        <source>Search posts…</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">51,53</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.listboxLabel" datatype="html">
+        <source>Post search results</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">69,70</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.empty.error" datatype="html">
+        <source>Search failed. Try again.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">127</context>
+        </context-group>
+        <note priority="1" from="description">Shown in the results list when the search request failed</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.empty.searching" datatype="html">
+        <source>Searching…</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">129</context>
+        </context-group>
+        <note priority="1" from="description">Shown in the results list while a search is in flight</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.empty.none" datatype="html">
+        <source>No posts match “<x id="term" equiv-text="this.search.term()"/>”.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">130</context>
+        </context-group>
+        <note priority="1" from="description">Shown in the results list when a search returned nothing</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.none" datatype="html">
+        <source>No posts match <x id="term" equiv-text="term"/>.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">146</context>
+        </context-group>
+        <note priority="1" from="description">Announced to a screen reader when a search returns nothing</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.zero" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">148</context>
+        </context-group>
+        <note priority="1" from="description">Announced result count; zero</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.one" datatype="html">
+        <source><x id="count" equiv-text="count"/> post matches <x id="term" equiv-text="term"/>.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">149</context>
+        </context-group>
+        <note priority="1" from="description">Announced result count; one</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.two" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">150</context>
+        </context-group>
+        <note priority="1" from="description">Announced result count; two</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.few" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">151</context>
+        </context-group>
+        <note priority="1" from="description">Announced result count; a small number</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.many" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">152</context>
+        </context-group>
+        <note priority="1" from="description">Announced result count; a large number</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.other" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">153</context>
+        </context-group>
+        <note priority="1" from="description">Announced result count</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.error" datatype="html">
+        <source>Post search failed.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/post-typeahead.component.ts</context>
+          <context context-type="linenumber">157</context>
+        </context-group>
+        <note priority="1" from="description">Announced to a screen reader when the search request failed</note>
+      </trans-unit>
+      <trans-unit id="posts.list.heading" datatype="html">
+        <source> Posts </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/posts-list.component.ts</context>
+          <context context-type="linenumber">17,19</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.list.error" datatype="html">
+        <source> Failed to load posts. Please try again. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/posts-list.component.ts</context>
+          <context context-type="linenumber">36,38</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.list.showing" datatype="html">
+        <source> <x id="ICU" equiv-text="{page.total, plural,
+              =1 {Showing {{ page.data.length }} of 1 post}
+              other {Showing {{ page.data.length }} of {{ page.total }} posts}
+            }" xid="2426091683896976873"/> </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/posts-list.component.ts</context>
+          <context context-type="linenumber">84,89</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="3825150214743210812" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {Showing <x id="INTERPOLATION"/> of 1 post} other {Showing <x id="INTERPOLATION"/> of <x id="INTERPOLATION_1"/> posts}}</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/posts-list.component.ts</context>
+          <context context-type="linenumber">84,86</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="posts.list.empty" datatype="html">
+        <source> No posts yet. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/posts/posts-list.component.ts</context>
+          <context context-type="linenumber">94,96</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="layout.toggleNav" datatype="html">
+        <source>Toggle navigation menu</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/ui/layout/layout-shell.component.ts</context>
+          <context context-type="linenumber">70,71</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="layout.sidebarNav" datatype="html">
+        <source>Sidebar navigation</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/ui/layout/layout-shell.component.ts</context>
+          <context context-type="linenumber">146,148</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="layout.closeNav" datatype="html">
+        <source>Close navigation menu</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/ui/layout/layout-shell.component.ts</context>
+          <context context-type="linenumber">179,180</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ui.skeleton.loading" datatype="html">
+        <source>Loading <x id="INTERPOLATION" equiv-text="{{ label() }}"/>…</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/ui/skeleton/panel-skeleton.component.ts</context>
+          <context context-type="linenumber">46,47</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="toast.dismiss" datatype="html">
+        <source>Dismiss notification</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/ui/toast/toast.component.ts</context>
+          <context context-type="linenumber">74,77</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="toast.regionLabel" datatype="html">
+        <source>Notifications</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/ui/toast/toast.component.ts</context>
+          <context context-type="linenumber">133,134</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ui.virtualTable.empty" datatype="html">
+        <source>No rows to show.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/virtual-table/virtual-table.component.ts</context>
+          <context context-type="linenumber">240</context>
+        </context-group>
+        <note priority="1" from="description">Shown in place of the rows when a table has none</note>
+      </trans-unit>
+      <trans-unit id="auth.error.loginFailed" datatype="html">
+        <source>Login failed</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/store/auth/auth.store.ts</context>
+          <context context-type="linenumber">33</context>
+        </context-group>
+        <note priority="1" from="description">Fallback when sign-in failed and the server said nothing useful</note>
+      </trans-unit>
+      <trans-unit id="auth.error.registrationFailed" datatype="html">
+        <source>Registration failed</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/store/auth/auth.store.ts</context>
+          <context context-type="linenumber">34</context>
+        </context-group>
+        <note priority="1" from="description">Fallback when registration failed and the server said nothing useful</note>
+      </trans-unit>
+      <trans-unit id="auth.error.sessionLoadFailed" datatype="html">
+        <source>Failed to load user</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/store/auth/auth.store.ts</context>
+          <context context-type="linenumber">35</context>
+        </context-group>
+        <note priority="1" from="description">Fallback when restoring the session failed</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

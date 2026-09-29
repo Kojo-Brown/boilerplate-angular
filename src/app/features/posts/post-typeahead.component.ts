@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { injectPluralSelector } from '@/app/core/i18n';
 import { typeahead } from '@/app/core/reactivity';
 import { PostSearcher } from './posts.contracts';
 import type { Post } from './posts.models';
@@ -40,12 +41,13 @@ const ACTIVE_OPTION_CLASSES = `${OPTION_CLASSES} bg-[var(--color-muted)]`;
   host: { class: 'block' },
   template: `
     <div class="relative">
-      <label [for]="inputId" class="sr-only">Search posts</label>
+      <label [for]="inputId" i18n="@@posts.typeahead.label" class="sr-only">Search posts</label>
       <input
         [id]="inputId"
         type="search"
         role="combobox"
         autocomplete="off"
+        i18n-placeholder="@@posts.typeahead.placeholder"
         placeholder="Search posts…"
         aria-autocomplete="list"
         [attr.aria-expanded]="isOpen()"
@@ -63,6 +65,7 @@ const ACTIVE_OPTION_CLASSES = `${OPTION_CLASSES} bg-[var(--color-muted)]`;
         <ul
           [id]="listboxId"
           role="listbox"
+          i18n-aria-label="@@posts.typeahead.listboxLabel"
           aria-label="Post search results"
           class="absolute z-10 mt-1 max-h-72 w-full overflow-y-auto rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-background)] py-1 shadow-lg"
         >
@@ -95,6 +98,7 @@ export class PostTypeaheadComponent {
   // A search box searches. Injecting the narrow role means a spec can stand in
   // `{ search: () => of([]) }` rather than a stub of the whole posts API.
   private readonly posts = inject(PostSearcher);
+  private readonly plural = injectPluralSelector();
 
   private readonly id = nextId++;
   protected readonly inputId = `post-typeahead-${this.id}`;
@@ -120,10 +124,10 @@ export class PostTypeaheadComponent {
 
   protected readonly emptyMessage = computed(() =>
     this.search.status() === 'error'
-      ? 'Search failed. Try again.'
+      ? $localize`:Shown in the results list when the search request failed@@posts.typeahead.empty.error:Search failed. Try again.`
       : this.search.status() === 'searching'
-        ? 'Searching…'
-        : `No posts match “${this.search.term()}”.`
+        ? $localize`:Shown in the results list while a search is in flight@@posts.typeahead.empty.searching:Searching…`
+        : $localize`:Shown in the results list when a search returned nothing@@posts.typeahead.empty.none:No posts match “${this.search.term()}:term:”.`
   );
 
   /**
@@ -135,12 +139,22 @@ export class PostTypeaheadComponent {
     switch (this.search.status()) {
       case 'ready': {
         const count = this.search.results().length;
+        const term = this.search.term();
+        // Announced, not rendered, so there is no template to put an ICU in — the
+        // selection has to happen here. See `core/i18n/plural.ts`.
         return count === 0
-          ? `No posts match ${this.search.term()}.`
-          : `${count} ${count === 1 ? 'post' : 'posts'} match ${this.search.term()}.`;
+          ? $localize`:Announced to a screen reader when a search returns nothing@@posts.typeahead.status.none:No posts match ${term}:term:.`
+          : this.plural(count, {
+              zero: $localize`:Announced result count; zero@@posts.typeahead.status.zero:${count}:count: posts match ${term}:term:.`,
+              one: $localize`:Announced result count; one@@posts.typeahead.status.one:${count}:count: post matches ${term}:term:.`,
+              two: $localize`:Announced result count; two@@posts.typeahead.status.two:${count}:count: posts match ${term}:term:.`,
+              few: $localize`:Announced result count; a small number@@posts.typeahead.status.few:${count}:count: posts match ${term}:term:.`,
+              many: $localize`:Announced result count; a large number@@posts.typeahead.status.many:${count}:count: posts match ${term}:term:.`,
+              other: $localize`:Announced result count@@posts.typeahead.status.other:${count}:count: posts match ${term}:term:.`,
+            });
       }
       case 'error':
-        return 'Post search failed.';
+        return $localize`:Announced to a screen reader when the search request failed@@posts.typeahead.status.error:Post search failed.`;
       default:
         return '';
     }

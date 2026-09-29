@@ -9,12 +9,15 @@ import {
   inject,
   Injector,
   input,
+  LOCALE_ID,
   signal,
   untracked,
   viewChild,
   viewChildren,
 } from '@angular/core';
 import { NG_VALIDATORS, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { selectPlural } from '@/app/core/i18n';
+import type { PluralMessages } from '@/app/core/i18n';
 import type {
   AbstractControl,
   ControlValueAccessor,
@@ -33,7 +36,7 @@ const FIELD_BASE =
 
 const CHIP_CLASSES =
   'inline-flex items-center gap-1 rounded-[var(--radius)] ' +
-  'bg-[var(--color-muted)] py-0.5 pl-2 pr-0.5 text-xs text-[var(--color-foreground)]';
+  'bg-[var(--color-muted)] py-0.5 ps-2 pe-0.5 text-xs text-[var(--color-foreground)]';
 
 const CHIP_REMOVE_CLASSES =
   'rounded-[var(--radius)] px-1 leading-none text-[var(--color-muted-foreground)] ' +
@@ -49,29 +52,57 @@ const TEXT_INPUT_CLASSES =
 /**
  * Messages for the three error keys {@link TagInputComponent} contributes.
  *
- * Exported so an application replacing {@link FIELD_ERROR_MESSAGES} wholesale — for
- * localisation, say — can see what it has to cover, and so a spec can assert a message
- * without copying the string.
+ * A function of the locale rather than a constant, which it was until these two counts
+ * had to agree with a noun. `tagsMin` and `tagsMax` used to read
+ * `${count} ${count === 1 ? 'tag' : 'tags'}` — English's own two-form rule, written
+ * into a string no translator can reach. The template-side answer is an ICU `plural`
+ * (see `insights-panel.component.ts`), and it is not available here: `$localize` does not
+ * parse ICU, so the selection has to happen in TypeScript and the source has to declare a
+ * message for every category, English repeating itself for the five it does not use.
+ * {@link file://../../../core/i18n/plural.ts | selectPlural} explains why a partial set
+ * with an `other` fallback would be the silently wrong version of this.
+ *
+ * Exported so an application replacing {@link FIELD_ERROR_MESSAGES} wholesale can see
+ * what it has to cover, and so a spec can assert a message without copying the string.
  */
-export const TAG_INPUT_ERROR_MESSAGES: FieldErrorMessages = {
-  tagsPending: (detail) => {
-    const text = typeof detail === 'object' && detail !== null ? Reflect.get(detail, 'text') : null;
-    return typeof text === 'string'
-      ? `Press Enter to add “${text}”, or clear it.`
-      : 'Finish the tag you are typing, or clear it.';
-  },
-  tagsMin: (detail) => {
-    const required =
-      typeof detail === 'object' && detail !== null ? Reflect.get(detail, 'required') : null;
-    const count = typeof required === 'number' ? required : 1;
-    return `Add at least ${count} ${count === 1 ? 'tag' : 'tags'}.`;
-  },
-  tagsMax: (detail) => {
-    const max = typeof detail === 'object' && detail !== null ? Reflect.get(detail, 'max') : null;
-    const count = typeof max === 'number' ? max : 0;
-    return `Remove some: at most ${count} ${count === 1 ? 'tag' : 'tags'}.`;
-  },
-};
+export function tagInputErrorMessages(locale: string): FieldErrorMessages {
+  const plural = (count: number, messages: PluralMessages) => selectPlural(locale, count, messages);
+
+  return {
+    tagsPending: (detail) => {
+      const text =
+        typeof detail === 'object' && detail !== null ? Reflect.get(detail, 'text') : null;
+      return typeof text === 'string'
+        ? $localize`:Shown when text is typed but not committed as a tag@@ui.tagInput.error.pending:Press Enter to add “${text}:text:”, or clear it.`
+        : $localize`:Shown when text is typed but not committed as a tag@@ui.tagInput.error.pendingUnknown:Finish the tag you are typing, or clear it.`;
+    },
+    tagsMin: (detail) => {
+      const required =
+        typeof detail === 'object' && detail !== null ? Reflect.get(detail, 'required') : null;
+      const count = typeof required === 'number' ? required : 1;
+      return plural(count, {
+        zero: $localize`:Too few tags; count is zero@@ui.tagInput.error.min.zero:Add at least ${count}:count: tags.`,
+        one: $localize`:Too few tags; count is one@@ui.tagInput.error.min.one:Add at least ${count}:count: tag.`,
+        two: $localize`:Too few tags; count is two@@ui.tagInput.error.min.two:Add at least ${count}:count: tags.`,
+        few: $localize`:Too few tags; count is a small number@@ui.tagInput.error.min.few:Add at least ${count}:count: tags.`,
+        many: $localize`:Too few tags; count is a large number@@ui.tagInput.error.min.many:Add at least ${count}:count: tags.`,
+        other: $localize`:Too few tags@@ui.tagInput.error.min.other:Add at least ${count}:count: tags.`,
+      });
+    },
+    tagsMax: (detail) => {
+      const max = typeof detail === 'object' && detail !== null ? Reflect.get(detail, 'max') : null;
+      const count = typeof max === 'number' ? max : 0;
+      return plural(count, {
+        zero: $localize`:Too many tags; ceiling is zero@@ui.tagInput.error.max.zero:Remove some: at most ${count}:count: tags.`,
+        one: $localize`:Too many tags; ceiling is one@@ui.tagInput.error.max.one:Remove some: at most ${count}:count: tag.`,
+        two: $localize`:Too many tags; ceiling is two@@ui.tagInput.error.max.two:Remove some: at most ${count}:count: tags.`,
+        few: $localize`:Too many tags; ceiling is a small number@@ui.tagInput.error.max.few:Remove some: at most ${count}:count: tags.`,
+        many: $localize`:Too many tags; ceiling is a large number@@ui.tagInput.error.max.many:Remove some: at most ${count}:count: tags.`,
+        other: $localize`:Too many tags@@ui.tagInput.error.max.other:Remove some: at most ${count}:count: tags.`,
+      });
+    },
+  };
+}
 
 /**
  * A list of short strings, edited as chips, bound to a `FormControl<string[]>`.
@@ -223,7 +254,9 @@ export class TagInputComponent implements ControlValueAccessor, Validator {
    * a compile error rather than an audit finding.
    */
   readonly label = input.required<string>();
-  readonly placeholder = input('Add a tag…');
+  readonly placeholder = input(
+    $localize`:Placeholder in the tag text box@@ui.tagInput.placeholder:Add a tag…`
+  );
   /** Standing guidance under the field — "Press Enter after each tag", typically. */
   readonly hint = input('');
   /** Fewest tags the value may hold. `0` means the field is optional. */
@@ -253,7 +286,7 @@ export class TagInputComponent implements ControlValueAccessor, Validator {
 
   private readonly field = hostControl({
     label: () => this.label(),
-    messages: TAG_INPUT_ERROR_MESSAGES,
+    messages: tagInputErrorMessages(inject(LOCALE_ID)),
   });
 
   /** The committed value, mirrored for rendering. */

@@ -21,7 +21,7 @@ import { RouteFocusTargetDirective } from '@/app/core/a11y';
  * the first touch, with `withEventReplay()` (see `app.config.ts`) delivering that first
  * touch to the component once it exists.
  *
- * Two things this leans on, neither of them obvious:
+ * Three things this leans on, none of them obvious:
  *
  *   - The block carries no `@placeholder`. A `hydrate` trigger resolves against the
  *     block's *main* view rather than a placeholder's root node, so there is nothing for
@@ -32,6 +32,16 @@ import { RouteFocusTargetDirective } from '@/app/core/a11y';
  *   - The form's markup has to be *inert* before hydration, not merely unhydrated.
  *     `login-form.component.ts` explains what that costs and why event replay does not
  *     cover it.
+ *   - **`withI18nSupport()` in `app.config.ts`**, without which the `i18n` regions in
+ *     this template switch the whole feature off. Angular marks a component whose
+ *     template contains an `i18n` region `ngSkipHydration`, and a component that skips
+ *     hydration takes every `@defer (hydrate …)` block under it with it: the block still
+ *     renders on the server and the page still works, it is simply hydrated eagerly, so
+ *     the 101.89 kB the trigger exists to postpone downloads on load after all. Nothing
+ *     says so — no compiler diagnostic, no runtime warning — and the rendered page
+ *     differs only in `ngb`, `jsaction` and the event-dispatch contract script.
+ *     `assert-ssr.mjs` reads those out of the prerendered bytes, which is how marking
+ *     this page translatable was caught silently switching the feature off.
  *
  * The error banner and the link to `/register` stay outside the block deliberately: both
  * are meaningful on the prerendered page, and the banner in particular is what a visitor
@@ -65,8 +75,16 @@ import { RouteFocusTargetDirective } from '@/app/core/a11y';
           <app-brand-banner />
 
           <div class="mt-6 mb-8">
-            <h1 class="text-2xl font-bold text-[var(--color-foreground)]">Welcome back</h1>
-            <p class="mt-1 text-sm text-[var(--color-muted-foreground)]">
+            <h1
+              i18n="@@auth.login.heading"
+              class="text-2xl font-bold text-[var(--color-foreground)]"
+            >
+              Welcome back
+            </h1>
+            <p
+              i18n="@@auth.login.subheading"
+              class="mt-1 text-sm text-[var(--color-muted-foreground)]"
+            >
               Sign in to your account to continue
             </p>
           </div>
@@ -84,7 +102,11 @@ import { RouteFocusTargetDirective } from '@/app/core/a11y';
             <app-login-form />
           }
 
-          <p class="mt-6 text-center text-sm text-[var(--color-muted-foreground)]">
+          <!-- One message with the link inside it; see register.component.ts. -->
+          <p
+            i18n="@@auth.login.registerPrompt"
+            class="mt-6 text-center text-sm text-[var(--color-muted-foreground)]"
+          >
             Don't have an account?
             <a
               routerLink="/register"

@@ -70,7 +70,11 @@ const RELEASE_NOTES: readonly ReleaseNote[] = [
         data-testid="release-notes"
       >
         <div class="flex items-start justify-between gap-3">
-          <h3 id="release-notes-heading" class="text-sm font-medium text-[var(--color-foreground)]">
+          <h3
+            id="release-notes-heading"
+            i18n="@@dashboard.releaseNotes.heading"
+            class="text-sm font-medium text-[var(--color-foreground)]"
+          >
             What's new
           </h3>
           <button
@@ -78,6 +82,7 @@ const RELEASE_NOTES: readonly ReleaseNote[] = [
             class="text-xs font-medium text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
             data-testid="dismiss-release-notes"
             (click)="dismissed.set(true)"
+            i18n="@@dashboard.releaseNotes.dismiss"
           >
             Dismiss
           </button>
@@ -87,7 +92,7 @@ const RELEASE_NOTES: readonly ReleaseNote[] = [
           @for (note of notes; track note.version) {
             <li class="text-xs text-[var(--color-muted-foreground)]">
               <span class="font-medium text-[var(--color-foreground)]">{{ note.version }}</span>
-              <time class="ml-2">{{ note.date }}</time>
+              <time class="ms-2">{{ note.date }}</time>
               <p class="mt-1">{{ note.summary }}</p>
             </li>
           }

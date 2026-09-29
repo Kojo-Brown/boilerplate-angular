@@ -9,8 +9,8 @@ import { RouteFocusTargetDirective } from '@/app/core/a11y';
   // placeholder, but a placeholder with no landmark and no heading is one an axe run has
   // to report, so it carries the structure any real page here would.
   template: `<main appRouteFocusTarget class="p-8">
-    <h1 class="text-2xl font-bold text-[var(--color-foreground)]">Admin</h1>
-    <p class="mt-2 text-[var(--color-muted-foreground)]">
+    <h1 i18n="@@admin.heading" class="text-2xl font-bold text-[var(--color-foreground)]">Admin</h1>
+    <p i18n="@@admin.body" class="mt-2 text-[var(--color-muted-foreground)]">
       Protected by authGuard + roleGuard('admin').
     </p>
   </main>`,

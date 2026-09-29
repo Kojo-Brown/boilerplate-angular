@@ -35,9 +35,10 @@ export const DIALOG_DATA = new InjectionToken<unknown>('DIALOG_DATA');
         <button
           type="button"
           (click)="close()"
-          class="ml-auto rounded p-1 text-[var(--color-muted-foreground)] transition-colors
+          class="ms-auto rounded p-1 text-[var(--color-muted-foreground)] transition-colors
             hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+          i18n-aria-label="@@ui.dialog.close"
           aria-label="Close dialog"
         >
           <svg

@@ -44,7 +44,8 @@ import { ROUTE_FOCUS_TARGET_ID, RouteFocusTargetRegistry } from './route-focus';
              font-semibold text-[var(--color-primary-foreground)] shadow-md
              focus-visible:outline-none focus-visible:ring-2
              focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
-             focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
+             focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50"
+      i18n="First element in the tab order; jumps past the navigation@@a11y.skipLink"
     >
       Skip to main content
     </a>

@@ -32,14 +32,23 @@ export interface ActivityEntry {
   template: `
     <section class="rounded-[var(--radius)] border border-[var(--color-border)] p-4">
       <header class="flex items-center justify-between gap-2">
-        <h3 class="text-sm font-medium text-[var(--color-muted-foreground)]">Recent activity</h3>
+        <h3
+          i18n="@@widgets.activity.heading"
+          class="text-sm font-medium text-[var(--color-muted-foreground)]"
+        >
+          Recent activity
+        </h3>
         <button
           type="button"
           class="text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
           [attr.aria-expanded]="!collapsed()"
           (click)="collapsed.set(!collapsed())"
         >
-          {{ collapsed() ? 'Show' : 'Hide' }}
+          @if (collapsed()) {
+            <ng-container i18n="Expands a collapsed widget@@widgets.show">Show</ng-container>
+          } @else {
+            <ng-container i18n="Collapses an expanded widget@@widgets.hide">Hide</ng-container>
+          }
         </button>
       </header>
 
@@ -49,18 +58,26 @@ export interface ActivityEntry {
             <li>
               <button
                 type="button"
-                class="w-full text-left text-sm text-[var(--color-foreground)] hover:underline"
+                class="w-full text-start text-sm text-[var(--color-foreground)] hover:underline"
                 (click)="select.emit(entry.id)"
               >
                 <span class="font-medium">{{ entry.actor }}</span>
                 {{ entry.action }}
-                <span class="text-[var(--color-muted-foreground)]">
-                  · {{ entry.minutesAgo }}m ago
+                <span
+                  i18n="@@widgets.activity.minutesAgo"
+                  class="text-[var(--color-muted-foreground)]"
+                >
+                  · {entry.minutesAgo, plural, =1 {1m ago} other {{{ entry.minutesAgo }}m ago}}
                 </span>
               </button>
             </li>
           } @empty {
-            <li class="text-sm text-[var(--color-muted-foreground)]">Nothing yet.</li>
+            <li
+              i18n="@@widgets.activity.empty"
+              class="text-sm text-[var(--color-muted-foreground)]"
+            >
+              Nothing yet.
+            </li>
           }
         </ul>
       }

@@ -17,6 +17,12 @@
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
+      "i18n": {
+        "sourceLocale": "en-US",
+        "locales": {
+          "ar": "src/locale/messages.ar.xlf"
+        }
+      },
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:application",
@@ -36,7 +42,7 @@
           "configurations": {
             "production": {
               "budgets": [
-                { "type": "initial", "maximumError": "579kB" },
+                { "type": "initial", "maximumError": "592kB" },
                 { "type": "anyComponentStyle", "maximumError": "4kB" }
               ],
               "outputHashing": "all",
@@ -45,12 +51,25 @@
                   "replace": "src/environments/environment.ts",
                   "with": "src/environments/environment.production.ts"
                 }
-              ]
+              ],
+              "localize": true,
+              "i18nMissingTranslation": "error",
+              "i18nDuplicateTranslation": "error"
             },
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "localize": false,
+              "polyfills": ["@angular/localize/init"]
+            },
+            "development-ar": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "localize": ["ar"],
+              "i18nMissingTranslation": "error",
+              "i18nDuplicateTranslation": "error"
             }
           },
           "defaultConfiguration": "production"
@@ -59,7 +78,8 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": { "buildTarget": "boilerplate-angular:build:production" },
-            "development": { "buildTarget": "boilerplate-angular:build:development" }
+            "development": { "buildTarget": "boilerplate-angular:build:development" },
+            "development-ar": { "buildTarget": "boilerplate-angular:build:development-ar" }
           },
           "defaultConfiguration": "development"
         },
@@ -68,7 +88,7 @@
           "options": {
             "karmaConfig": "karma.conf.js",
             "main": "src/testing/test-main.ts",
-            "polyfills": ["zone.js", "zone.js/testing"],
+            "polyfills": ["zone.js", "zone.js/testing", "@angular/localize/init"],
             "tsConfig": "tsconfig.spec.json",
             "codeCoverage": true,
             "assets": [{ "glob": "**/*", "input": "public" }],

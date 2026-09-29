@@ -1,0 +1,684 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="en-US" target-language="ar" datatype="plaintext" original="ng2.template">
+    <body>
+      <trans-unit id="route.title.unauthorized" datatype="html">
+        <source>Unauthorized</source>
+        <target>غير مصرّح</target>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="a11y.skipLink" datatype="html">
+        <source> Skip to main content </source>
+        <target>تخطَّ إلى المحتوى الرئيسي</target>
+        <note priority="1" from="description">First element in the tab order; jumps past the navigation</note>
+      </trans-unit>
+      <trans-unit id="forms.error.subjectFallback" datatype="html">
+        <source>This field</source>
+        <target>هذا الحقل</target>
+        <note priority="1" from="description">Stands in for a field&apos;s label when it has none, as in &quot;This field is required.&quot;</note>
+      </trans-unit>
+      <trans-unit id="forms.error.required" datatype="html">
+        <source><x id="field" equiv-text="subject(context)"/> is required.</source>
+        <target><x id="field"/> مطلوب.</target>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.requiredTrue" datatype="html">
+        <source><x id="field" equiv-text="subject(context)"/> must be checked.</source>
+        <target>يجب تحديد <x id="field"/>.</target>
+        <note priority="1" from="description">Validation message under a checkbox</note>
+      </trans-unit>
+      <trans-unit id="forms.error.email" datatype="html">
+        <source>Enter a valid email address.</source>
+        <target>أدخل عنوان بريد إلكتروني صالحًا.</target>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.minlength" datatype="html">
+        <source>Use at least <x id="count" equiv-text="numberAt(detail, &apos;requiredLength&apos;) ?? 1"/> characters.</source>
+        <target>استخدم <x id="count"/> حرفًا على الأقل.</target>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.maxlength" datatype="html">
+        <source>Use at most <x id="count" equiv-text="numberAt(detail, &apos;requiredLength&apos;) ?? 1"/> characters.</source>
+        <target>استخدم <x id="count"/> حرفًا على الأكثر.</target>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.min" datatype="html">
+        <source>Enter <x id="limit" equiv-text="numberAt(detail, &apos;min&apos;) ?? 0"/> or more.</source>
+        <target>أدخل <x id="limit"/> أو أكثر.</target>
+        <note priority="1" from="description">Validation message under a numeric form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.max" datatype="html">
+        <source>Enter <x id="limit" equiv-text="numberAt(detail, &apos;max&apos;) ?? 0"/> or less.</source>
+        <target>أدخل <x id="limit"/> أو أقل.</target>
+        <note priority="1" from="description">Validation message under a numeric form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.pattern" datatype="html">
+        <source>This is not in the expected format.</source>
+        <target>هذه القيمة ليست بالتنسيق المتوقَّع.</target>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="forms.error.zodFallback" datatype="html">
+        <source>This value is not valid.</source>
+        <target>هذه القيمة غير صالحة.</target>
+        <note priority="1" from="description">Validation message under a form field</note>
+      </trans-unit>
+      <trans-unit id="http.error.network" datatype="html">
+        <source>Network error — please check your connection</source>
+        <target>خطأ في الشبكة — يرجى التحقق من اتصالك</target>
+        <note priority="1" from="description">Shown when a request never reached the server</note>
+      </trans-unit>
+      <trans-unit id="http.error.unexpected" datatype="html">
+        <source>An unexpected error occurred</source>
+        <target>حدث خطأ غير متوقَّع</target>
+        <note priority="1" from="description">Shown when a failure matched no mapper</note>
+      </trans-unit>
+      <trans-unit id="route.title.postDetail" datatype="html">
+        <source>Post Detail</source>
+        <target>تفاصيل المنشور</target>
+        <note priority="1" from="description">Browser tab title for a post that could not be read</note>
+      </trans-unit>
+      <trans-unit id="admin.heading" datatype="html">
+        <source>Admin</source>
+        <target>الإدارة</target>
+      </trans-unit>
+      <trans-unit id="admin.body" datatype="html">
+        <source> Protected by authGuard + roleGuard(&apos;admin&apos;). </source>
+        <target>محمي بواسطة authGuard + roleGuard('admin').</target>
+      </trans-unit>
+      <trans-unit id="route.title.admin" datatype="html">
+        <source>Admin</source>
+        <target>الإدارة</target>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="route.title.login" datatype="html">
+        <source>Login</source>
+        <target>تسجيل الدخول</target>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="route.title.register" datatype="html">
+        <source>Register</source>
+        <target>إنشاء حساب</target>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.email.required" datatype="html">
+        <source>Email is required</source>
+        <target>البريد الإلكتروني مطلوب</target>
+        <note priority="1" from="description">Sign-in validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.email.invalid" datatype="html">
+        <source>Please enter a valid email address</source>
+        <target>يرجى إدخال عنوان بريد إلكتروني صالح</target>
+        <note priority="1" from="description">Sign-in validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.password.tooShort" datatype="html">
+        <source>Password must be at least 8 characters</source>
+        <target>يجب ألا تقل كلمة المرور عن 8 أحرف</target>
+        <note priority="1" from="description">Sign-in validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.name.tooShort" datatype="html">
+        <source>Name must be at least 2 characters</source>
+        <target>يجب ألا يقل الاسم عن حرفين</target>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.name.tooLong" datatype="html">
+        <source>Name must be under 50 characters</source>
+        <target>يجب أن يكون الاسم أقل من 50 حرفًا</target>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.password.needsUppercase" datatype="html">
+        <source>Password must contain at least one uppercase letter</source>
+        <target>يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل</target>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.password.needsDigit" datatype="html">
+        <source>Password must contain at least one number</source>
+        <target>يجب أن تحتوي كلمة المرور على رقم واحد على الأقل</target>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.confirmPassword.required" datatype="html">
+        <source>Please confirm your password</source>
+        <target>يرجى تأكيد كلمة المرور</target>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.inviteCode.tooLong" datatype="html">
+        <source>Invite codes are at most 32 characters</source>
+        <target>رموز الدعوة لا تتجاوز 32 حرفًا</target>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.schema.passwordMismatch" datatype="html">
+        <source>Passwords don&apos;t match</source>
+        <target>كلمتا المرور غير متطابقتين</target>
+        <note priority="1" from="description">Registration validation</note>
+      </trans-unit>
+      <trans-unit id="auth.login.email.label" datatype="html">
+        <source> Email address </source>
+        <target>عنوان البريد الإلكتروني</target>
+      </trans-unit>
+      <trans-unit id="auth.login.email.placeholder" datatype="html">
+        <source>you@example.com</source>
+        <target>you@example.com</target>
+        <note priority="1" from="description">Example address. Translators may leave the local part in Latin script.
+              </note>
+      </trans-unit>
+      <trans-unit id="auth.login.password.label" datatype="html">
+        <source> Password </source>
+        <target>كلمة المرور</target>
+      </trans-unit>
+      <trans-unit id="auth.login.submit.busy" datatype="html">
+        <source>Signing in…</source>
+        <target>جارٍ تسجيل الدخول…</target>
+      </trans-unit>
+      <trans-unit id="auth.login.submit" datatype="html">
+        <source>Sign in</source>
+        <target>تسجيل الدخول</target>
+      </trans-unit>
+      <trans-unit id="auth.login.heading" datatype="html">
+        <source> Welcome back </source>
+        <target>أهلًا بعودتك</target>
+      </trans-unit>
+      <trans-unit id="auth.login.subheading" datatype="html">
+        <source> Sign in to your account to continue </source>
+        <target>سجّل الدخول إلى حسابك للمتابعة</target>
+      </trans-unit>
+      <trans-unit id="auth.login.registerPrompt" datatype="html">
+        <source> Don&apos;t have an account? <x id="START_LINK" ctype="x-a" equiv-text="&lt;a
+              routerLink=&quot;/register&quot;
+              class=&quot;font-medium text-[var(--color-primary)] hover:underline&quot;
+            &gt;"/> Create one <x id="CLOSE_LINK" ctype="x-a" equiv-text="&lt;/a&gt;"/></source>
+        <target>ليس لديك حساب؟ <x id="START_LINK" ctype="x-a"/>أنشئ حسابًا<x id="CLOSE_LINK" ctype="x-a"/></target>
+      </trans-unit>
+      <trans-unit id="auth.register.heading" datatype="html">
+        <source> Create an account </source>
+        <target>إنشاء حساب</target>
+      </trans-unit>
+      <trans-unit id="auth.register.subheading" datatype="html">
+        <source> Get started with your free account today </source>
+        <target>ابدأ اليوم بحسابك المجاني</target>
+      </trans-unit>
+      <trans-unit id="auth.register.name.label" datatype="html">
+        <source> Full name </source>
+        <target>الاسم الكامل</target>
+      </trans-unit>
+      <trans-unit id="auth.register.name.placeholder" datatype="html">
+        <source>Jane Smith</source>
+        <target>سارة أحمد</target>
+        <note priority="1" from="description">Example of a person&apos;s full name</note>
+      </trans-unit>
+      <trans-unit id="auth.register.email.label" datatype="html">
+        <source> Email address </source>
+        <target>عنوان البريد الإلكتروني</target>
+      </trans-unit>
+      <trans-unit id="auth.register.email.placeholder" datatype="html">
+        <source>you@example.com</source>
+        <target>you@example.com</target>
+        <note priority="1" from="description">Example address. Translators may leave the local part in Latin script.
+                    </note>
+      </trans-unit>
+      <trans-unit id="auth.register.password.label" datatype="html">
+        <source> Password </source>
+        <target>كلمة المرور</target>
+      </trans-unit>
+      <trans-unit id="auth.register.password.hint" datatype="html">
+        <source> Min 8 characters, one uppercase letter and one number </source>
+        <target>8 أحرف على الأقل، وحرف كبير واحد ورقم واحد</target>
+      </trans-unit>
+      <trans-unit id="auth.register.confirmPassword.label" datatype="html">
+        <source> Confirm password </source>
+        <target>تأكيد كلمة المرور</target>
+      </trans-unit>
+      <trans-unit id="auth.register.inviteCode.label" datatype="html">
+        <source> Workspace invite code <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-normal text-[var(--color-muted-foreground)]&quot;&gt;"/>(optional)<x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/></source>
+        <target>رمز دعوة مساحة العمل <x id="START_TAG_SPAN" ctype="x-span"/>(اختياري)<x id="CLOSE_TAG_SPAN" ctype="x-span"/></target>
+        <note priority="1" from="description">The parenthesised word marks the field as not required.
+                    </note>
+      </trans-unit>
+      <trans-unit id="auth.register.inviteCode.placeholder" datatype="html">
+        <source>WS-0000-0000</source>
+        <target>WS-0000-0000</target>
+        <note priority="1" from="description">Shape of an invite code. The WS- prefix is part of the code, not prose.
+                    </note>
+      </trans-unit>
+      <trans-unit id="auth.register.inviteCode.checking" datatype="html">
+        <source> Checking invite code… </source>
+        <target>جارٍ التحقق من رمز الدعوة…</target>
+      </trans-unit>
+      <trans-unit id="auth.register.inviteCode.hint" datatype="html">
+        <source> Leave blank to create a personal workspace </source>
+        <target>اتركه فارغًا لإنشاء مساحة عمل شخصية</target>
+      </trans-unit>
+      <trans-unit id="auth.register.submit.busy" datatype="html">
+        <source>Creating account…</source>
+        <target>جارٍ إنشاء الحساب…</target>
+      </trans-unit>
+      <trans-unit id="auth.register.submit" datatype="html">
+        <source>Create account</source>
+        <target>إنشاء الحساب</target>
+      </trans-unit>
+      <trans-unit id="auth.register.signInPrompt" datatype="html">
+        <source> Already have an account? <x id="START_LINK" ctype="x-a" equiv-text="&lt;a routerLink=&quot;/login&quot; class=&quot;font-medium text-[var(--color-primary)] hover:underline&quot;&gt;"/> Sign in <x id="CLOSE_LINK" ctype="x-a" equiv-text="&lt;/a&gt;"/></source>
+        <target>لديك حساب بالفعل؟ <x id="START_LINK" ctype="x-a"/>سجّل الدخول<x id="CLOSE_LINK" ctype="x-a"/></target>
+      </trans-unit>
+      <trans-unit id="activity.heading" datatype="html">
+        <source> Activity log </source>
+        <target>سجل النشاط</target>
+      </trans-unit>
+      <trans-unit id="activity.subheading" datatype="html">
+        <source> <x id="ICU" equiv-text="{entryCount, plural, =1 {1 entry} other {{{ entryCount | number }} entries}}" xid="2537445485358162724"/> — timestamps are UTC. Only the rows on screen exist in the DOM. </source>
+        <target><x id="ICU"/> — الطوابع الزمنية بتوقيت UTC. الصفوف الظاهرة على الشاشة وحدها موجودة في DOM.</target>
+      </trans-unit>
+      <trans-unit id="2742145199782881612" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {1 entry} other {<x id="INTERPOLATION"/> entries}}</source>
+        <target>{VAR_PLURAL, plural, =0 {لا مدخلات} =1 {مدخل واحد} =2 {مدخلان} few {<x id="INTERPOLATION"/> مدخلات} many {<x id="INTERPOLATION"/> مدخلًا} other {<x id="INTERPOLATION"/> مدخل}}</target>
+      </trans-unit>
+      <trans-unit id="activity.table.label" datatype="html">
+        <source>Activity log</source>
+        <target>سجل النشاط</target>
+        <note priority="1" from="description">Accessible name of the activity table</note>
+      </trans-unit>
+      <trans-unit id="activity.table.empty" datatype="html">
+        <source>No activity has been recorded yet.</source>
+        <target>لم يُسجَّل أي نشاط بعد.</target>
+      </trans-unit>
+      <trans-unit id="activity.col.occurredAt" datatype="html">
+        <source>When (UTC)</source>
+        <target>الوقت (UTC)</target>
+        <note priority="1" from="description">Activity table column — the timestamp, always UTC</note>
+      </trans-unit>
+      <trans-unit id="activity.col.actor" datatype="html">
+        <source>Actor</source>
+        <target>المنفِّذ</target>
+        <note priority="1" from="description">Activity table column — who performed the action</note>
+      </trans-unit>
+      <trans-unit id="activity.col.action" datatype="html">
+        <source>Action</source>
+        <target>الإجراء</target>
+        <note priority="1" from="description">Activity table column — what was done</note>
+      </trans-unit>
+      <trans-unit id="activity.col.resource" datatype="html">
+        <source>Resource</source>
+        <target>المورد</target>
+        <note priority="1" from="description">Activity table column — what was acted on</note>
+      </trans-unit>
+      <trans-unit id="activity.col.duration" datatype="html">
+        <source>Duration</source>
+        <target>المدة</target>
+        <note priority="1" from="description">Activity table column — how long the action took</note>
+      </trans-unit>
+      <trans-unit id="dashboard.shell.brand" datatype="html">
+        <source>Dashboard</source>
+        <target>لوحة التحكم</target>
+      </trans-unit>
+      <trans-unit id="dashboard.nav.overview" datatype="html">
+        <source> Overview </source>
+        <target>نظرة عامة</target>
+      </trans-unit>
+      <trans-unit id="dashboard.nav.posts" datatype="html">
+        <source> Posts </source>
+        <target>المنشورات</target>
+      </trans-unit>
+      <trans-unit id="dashboard.nav.activity" datatype="html">
+        <source> Activity log </source>
+        <target>سجل النشاط</target>
+      </trans-unit>
+      <trans-unit id="dashboard.shell.signOut" datatype="html">
+        <source> Sign out </source>
+        <target>تسجيل الخروج</target>
+      </trans-unit>
+      <trans-unit id="dashboard.heading" datatype="html">
+        <source> Overview </source>
+        <target>نظرة عامة</target>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.skeletonLabel.placeholder" datatype="html">
+        <source>publishing activity</source>
+        <target>نشاط النشر</target>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.skeletonLabel.loading" datatype="html">
+        <source>publishing activity</source>
+        <target>نشاط النشر</target>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.blockError" datatype="html">
+        <source> Publishing activity could not be loaded. Reload the page to try again. </source>
+        <target>تعذّر تحميل نشاط النشر. أعد تحميل الصفحة للمحاولة مرة أخرى.</target>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.trigger" datatype="html">
+        <source> Show post-length breakdown </source>
+        <target>عرض تفصيل طول المنشورات</target>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.skeletonLabel.loading" datatype="html">
+        <source>the length breakdown</source>
+        <target>تفصيل الطول</target>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.blockError" datatype="html">
+        <source> The breakdown could not be loaded. Reload the page to try again. </source>
+        <target>تعذّر تحميل التفصيل. أعد تحميل الصفحة للمحاولة مرة أخرى.</target>
+      </trans-unit>
+      <trans-unit id="route.title.dashboard" datatype="html">
+        <source>Dashboard</source>
+        <target>لوحة التحكم</target>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="route.title.posts" datatype="html">
+        <source>Posts</source>
+        <target>المنشورات</target>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="route.title.activity" datatype="html">
+        <source>Activity log</source>
+        <target>سجل النشاط</target>
+        <note priority="1" from="description">Browser tab title and route announcement</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.skeletonLabel" datatype="html">
+        <source>the length breakdown</source>
+        <target>تفصيل الطول</target>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.error" datatype="html">
+        <source> Could not load the length breakdown. </source>
+        <target>تعذّر تحميل تفصيل الطول.</target>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.heading" datatype="html">
+        <source> Post length </source>
+        <target>طول المنشور</target>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.caption" datatype="html">
+        <source> Posts grouped by body length, over <x id="ICU" equiv-text="{page.total, plural, =1 {1 post} other {{{ page.total }} posts}}" xid="7353504779039517025"/> </source>
+        <target>المنشورات مجمَّعة حسب طول النص، من إجمالي <x id="ICU"/></target>
+      </trans-unit>
+      <trans-unit id="6921416837728262095" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {1 post} other {<x id="INTERPOLATION"/> posts}}</source>
+        <target>{VAR_PLURAL, plural, =0 {لا منشورات} =1 {منشور واحد} =2 {منشوران} few {<x id="INTERPOLATION"/> منشورات} many {<x id="INTERPOLATION"/> منشورًا} other {<x id="INTERPOLATION"/> منشور}}</target>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.col.length" datatype="html">
+        <source> Length </source>
+        <target>الطول</target>
+        <note priority="1" from="description">Table column: body-length band</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.col.posts" datatype="html">
+        <source> Posts </source>
+        <target>المنشورات</target>
+        <note priority="1" from="description">Table column: number of posts in the band</note>
+      </trans-unit>
+      <trans-unit id="dashboard.breakdown.col.share" datatype="html">
+        <source> Share </source>
+        <target>النسبة</target>
+        <note priority="1" from="description">Table column: percentage of all posts</note>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.skeletonLabel" datatype="html">
+        <source>publishing activity</source>
+        <target>نشاط النشر</target>
+        <note priority="1" from="description">Named in &apos;Loading {$label}…&apos;</note>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.error" datatype="html">
+        <source> Could not load publishing activity. </source>
+        <target>تعذّر تحميل نشاط النشر.</target>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.heading" datatype="html">
+        <source> Publishing activity </source>
+        <target>نشاط النشر</target>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.postCount" datatype="html">
+        <source> <x id="ICU" equiv-text="{page.total, plural, =0 {No posts} =1 {1 post} other {{{ page.total }} posts}}" xid="6083355259657686876"/> </source>
+        <target><x id="ICU"/></target>
+      </trans-unit>
+      <trans-unit id="460899487361607108" datatype="html">
+        <source>{VAR_PLURAL, plural, =0 {No posts} =1 {1 post} other {<x id="INTERPOLATION"/> posts}}</source>
+        <target>{VAR_PLURAL, plural, =0 {لا منشورات} =1 {منشور واحد} =2 {منشوران} few {<x id="INTERPOLATION"/> منشورات} many {<x id="INTERPOLATION"/> منشورًا} other {<x id="INTERPOLATION"/> منشور}}</target>
+      </trans-unit>
+      <trans-unit id="dashboard.insights.empty" datatype="html">
+        <source> No posts have been published yet. </source>
+        <target>لم يُنشر أي منشور بعد.</target>
+      </trans-unit>
+      <trans-unit id="dashboard.releaseNotes.heading" datatype="html">
+        <source> What&apos;s new </source>
+        <target>ما الجديد</target>
+      </trans-unit>
+      <trans-unit id="dashboard.releaseNotes.dismiss" datatype="html">
+        <source> Dismiss </source>
+        <target>تجاهل</target>
+      </trans-unit>
+      <trans-unit id="widgets.activity.heading" datatype="html">
+        <source> Recent activity </source>
+        <target>النشاط الأخير</target>
+      </trans-unit>
+      <trans-unit id="widgets.show" datatype="html">
+        <source>Show</source>
+        <target>إظهار</target>
+        <note priority="1" from="description">Expands a collapsed widget</note>
+      </trans-unit>
+      <trans-unit id="widgets.hide" datatype="html">
+        <source>Hide</source>
+        <target>إخفاء</target>
+        <note priority="1" from="description">Collapses an expanded widget</note>
+      </trans-unit>
+      <trans-unit id="widgets.activity.minutesAgo" datatype="html">
+        <source> · <x id="ICU" equiv-text="{entry.minutesAgo, plural, =1 {1m ago} other {{{ entry.minutesAgo }}m ago}}" xid="8474667356943346869"/> </source>
+        <target>· <x id="ICU"/></target>
+      </trans-unit>
+      <trans-unit id="8957857331997490638" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {1m ago} other {<x id="INTERPOLATION"/>m ago}}</source>
+        <target>{VAR_PLURAL, plural, =0 {الآن} =1 {قبل دقيقة} =2 {قبل دقيقتين} few {قبل <x id="INTERPOLATION"/> دقائق} many {قبل <x id="INTERPOLATION"/> دقيقة} other {قبل <x id="INTERPOLATION"/> دقيقة}}</target>
+      </trans-unit>
+      <trans-unit id="widgets.activity.empty" datatype="html">
+        <source> Nothing yet. </source>
+        <target>لا شيء بعد.</target>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.revenue" datatype="html">
+        <source>Revenue</source>
+        <target>الإيرادات</target>
+        <note priority="1" from="description">Dashboard widget name</note>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.signups" datatype="html">
+        <source>Signups</source>
+        <target>التسجيلات</target>
+        <note priority="1" from="description">Dashboard widget name</note>
+      </trans-unit>
+      <trans-unit id="widgets.stat.breakdown" datatype="html">
+        <source> Breakdown </source>
+        <target>التفصيل</target>
+      </trans-unit>
+      <trans-unit id="widgets.stat.noChange" datatype="html">
+        <source>No change</source>
+        <target>بلا تغيير</target>
+        <note priority="1" from="description">A statistic that has not moved since the previous window</note>
+      </trans-unit>
+      <trans-unit id="widgets.stat.up" datatype="html">
+        <source>Up <x id="percent" equiv-text="formatted"/></source>
+        <target>ارتفاع <x id="percent"/></target>
+        <note priority="1" from="description">A statistic that rose, followed by a percentage</note>
+      </trans-unit>
+      <trans-unit id="widgets.stat.down" datatype="html">
+        <source>Down <x id="percent" equiv-text="formatted"/></source>
+        <target>انخفاض <x id="percent"/></target>
+        <note priority="1" from="description">A statistic that fell, followed by a percentage</note>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.rangeGroup" datatype="html">
+        <source>Reporting window</source>
+        <target>نافذة التقارير</target>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.expandAll" datatype="html">
+        <source> Expand all </source>
+        <target>توسيع الكل</target>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.lastOpened" datatype="html">
+        <source> Last opened: <x id="INTERPOLATION" equiv-text="{{ selection }}"/> </source>
+        <target>آخر ما فُتح: <x id="INTERPOLATION"/></target>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.noSelection" datatype="html">
+        <source> Choose a row to open its breakdown. </source>
+        <target>اختر صفًا لعرض تفصيله.</target>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.range.7d" datatype="html">
+        <source>7 days</source>
+        <target>7 أيام</target>
+        <note priority="1" from="description">Reporting window, seven days</note>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.range.30d" datatype="html">
+        <source>30 days</source>
+        <target>30 يومًا</target>
+        <note priority="1" from="description">Reporting window, thirty days</note>
+      </trans-unit>
+      <trans-unit id="dashboard.widgets.range.90d" datatype="html">
+        <source>90 days</source>
+        <target>90 يومًا</target>
+        <note priority="1" from="description">Reporting window, ninety days</note>
+      </trans-unit>
+      <trans-unit id="errors.unauthorized.heading" datatype="html">
+        <source>403 — Unauthorized</source>
+        <target>403 — غير مصرّح</target>
+      </trans-unit>
+      <trans-unit id="errors.unauthorized.body" datatype="html">
+        <source> You do not have permission to view this page. </source>
+        <target>ليس لديك إذن لعرض هذه الصفحة.</target>
+      </trans-unit>
+      <trans-unit id="posts.detail.back" datatype="html">
+        <source>Back to Posts</source>
+        <target>العودة إلى المنشورات</target>
+      </trans-unit>
+      <trans-unit id="posts.detail.error" datatype="html">
+        <source> Post not found or failed to load. </source>
+        <target>المنشور غير موجود أو تعذّر تحميله.</target>
+      </trans-unit>
+      <trans-unit id="posts.detail.author" datatype="html">
+        <source>Author: <x id="INTERPOLATION" equiv-text="{{ data.authorId }}"/></source>
+        <target>الكاتب: <x id="INTERPOLATION"/></target>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.label" datatype="html">
+        <source>Search posts</source>
+        <target>البحث في المنشورات</target>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.placeholder" datatype="html">
+        <source>Search posts…</source>
+        <target>ابحث في المنشورات…</target>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.listboxLabel" datatype="html">
+        <source>Post search results</source>
+        <target>نتائج البحث في المنشورات</target>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.empty.error" datatype="html">
+        <source>Search failed. Try again.</source>
+        <target>فشل البحث. حاول مرة أخرى.</target>
+        <note priority="1" from="description">Shown in the results list when the search request failed</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.empty.searching" datatype="html">
+        <source>Searching…</source>
+        <target>جارٍ البحث…</target>
+        <note priority="1" from="description">Shown in the results list while a search is in flight</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.empty.none" datatype="html">
+        <source>No posts match “<x id="term" equiv-text="this.search.term()"/>”.</source>
+        <target>لا توجد منشورات تطابق “<x id="term"/>”.</target>
+        <note priority="1" from="description">Shown in the results list when a search returned nothing</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.none" datatype="html">
+        <source>No posts match <x id="term" equiv-text="term"/>.</source>
+        <target>لا توجد منشورات تطابق <x id="term"/>.</target>
+        <note priority="1" from="description">Announced to a screen reader when a search returns nothing</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.zero" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <target>لا نتائج تطابق <x id="term"/>.</target>
+        <note priority="1" from="description">Announced result count; zero</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.one" datatype="html">
+        <source><x id="count" equiv-text="count"/> post matches <x id="term" equiv-text="term"/>.</source>
+        <target>نتيجة واحدة تطابق <x id="term"/>.</target>
+        <note priority="1" from="description">Announced result count; one</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.two" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <target>نتيجتان تطابقان <x id="term"/>.</target>
+        <note priority="1" from="description">Announced result count; two</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.few" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <target><x id="count"/> نتائج تطابق <x id="term"/>.</target>
+        <note priority="1" from="description">Announced result count; a small number</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.many" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <target><x id="count"/> نتيجة تطابق <x id="term"/>.</target>
+        <note priority="1" from="description">Announced result count; a large number</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.other" datatype="html">
+        <source><x id="count" equiv-text="count"/> posts match <x id="term" equiv-text="term"/>.</source>
+        <target><x id="count"/> نتيجة تطابق <x id="term"/>.</target>
+        <note priority="1" from="description">Announced result count</note>
+      </trans-unit>
+      <trans-unit id="posts.typeahead.status.error" datatype="html">
+        <source>Post search failed.</source>
+        <target>فشل البحث في المنشورات.</target>
+        <note priority="1" from="description">Announced to a screen reader when the search request failed</note>
+      </trans-unit>
+      <trans-unit id="posts.list.heading" datatype="html">
+        <source> Posts </source>
+        <target>المنشورات</target>
+      </trans-unit>
+      <trans-unit id="posts.list.error" datatype="html">
+        <source> Failed to load posts. Please try again. </source>
+        <target>تعذّر تحميل المنشورات. يرجى المحاولة مرة أخرى.</target>
+      </trans-unit>
+      <trans-unit id="posts.list.showing" datatype="html">
+        <source> <x id="ICU" equiv-text="{page.total, plural,
+              =1 {Showing {{ page.data.length }} of 1 post}
+              other {Showing {{ page.data.length }} of {{ page.total }} posts}
+            }" xid="2426091683896976873"/> </source>
+        <target><x id="ICU"/></target>
+      </trans-unit>
+      <trans-unit id="3825150214743210812" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {Showing <x id="INTERPOLATION"/> of 1 post} other {Showing <x id="INTERPOLATION"/> of <x id="INTERPOLATION_1"/> posts}}</source>
+        <target>{VAR_PLURAL, plural, =0 {لا منشورات لعرضها} =1 {عرض <x id="INTERPOLATION"/> من منشور واحد} =2 {عرض <x id="INTERPOLATION"/> من منشورين} few {عرض <x id="INTERPOLATION"/> من <x id="INTERPOLATION_1"/> منشورات} many {عرض <x id="INTERPOLATION"/> من <x id="INTERPOLATION_1"/> منشورًا} other {عرض <x id="INTERPOLATION"/> من <x id="INTERPOLATION_1"/> منشور}}</target>
+      </trans-unit>
+      <trans-unit id="posts.list.empty" datatype="html">
+        <source> No posts yet. </source>
+        <target>لا توجد منشورات بعد.</target>
+      </trans-unit>
+      <trans-unit id="layout.toggleNav" datatype="html">
+        <source>Toggle navigation menu</source>
+        <target>تبديل قائمة التنقل</target>
+      </trans-unit>
+      <trans-unit id="layout.sidebarNav" datatype="html">
+        <source>Sidebar navigation</source>
+        <target>تنقل الشريط الجانبي</target>
+      </trans-unit>
+      <trans-unit id="layout.closeNav" datatype="html">
+        <source>Close navigation menu</source>
+        <target>إغلاق قائمة التنقل</target>
+      </trans-unit>
+      <trans-unit id="ui.skeleton.loading" datatype="html">
+        <source>Loading <x id="INTERPOLATION" equiv-text="{{ label() }}"/>…</source>
+        <target>جارٍ تحميل <x id="INTERPOLATION"/>…</target>
+      </trans-unit>
+      <trans-unit id="toast.dismiss" datatype="html">
+        <source>Dismiss notification</source>
+        <target>إخفاء الإشعار</target>
+      </trans-unit>
+      <trans-unit id="toast.regionLabel" datatype="html">
+        <source>Notifications</source>
+        <target>الإشعارات</target>
+      </trans-unit>
+      <trans-unit id="ui.virtualTable.empty" datatype="html">
+        <source>No rows to show.</source>
+        <target>لا توجد صفوف لعرضها.</target>
+        <note priority="1" from="description">Shown in place of the rows when a table has none</note>
+      </trans-unit>
+      <trans-unit id="auth.error.loginFailed" datatype="html">
+        <source>Login failed</source>
+        <target>فشل تسجيل الدخول</target>
+        <note priority="1" from="description">Fallback when sign-in failed and the server said nothing useful</note>
+      </trans-unit>
+      <trans-unit id="auth.error.registrationFailed" datatype="html">
+        <source>Registration failed</source>
+        <target>فشل إنشاء الحساب</target>
+        <note priority="1" from="description">Fallback when registration failed and the server said nothing useful</note>
+      </trans-unit>
+      <trans-unit id="auth.error.sessionLoadFailed" datatype="html">
+        <source>Failed to load user</source>
+        <target>تعذّر تحميل بيانات المستخدم</target>
+        <note priority="1" from="description">Fallback when restoring the session failed</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -31,6 +31,19 @@
 //      rejected.
 //   5. The server refuses to start when `NG_ALLOWED_HOSTS` is unset, rather than starting
 //      and rejecting every request (see `src/server.ts`).
+//   6. Each locale's prerendered HTML is actually in that locale: `lang`/`dir` on `<html>`,
+//      and translated text in the body. Both are properties of the emitted bytes and of
+//      nothing else — the unit suite runs against the source locale, where an untranslated
+//      string is the correct output, so this is the only gate that can see a translation
+//      file that was configured but never applied.
+//
+// ## Locales
+//
+// `localize` is on for the production build, so one `ng build` emits one browser and one
+// server graph *per locale* under `browser/<locale>/` and `server/<locale>/`, every route
+// moves under a locale prefix, and `/` becomes a redirect to the default locale's base
+// href. Everything below is therefore parameterised by locale rather than assuming `/`
+// is the application's root: see `docs/i18n.md`.
 //
 // Usage: node scripts/ci/assert-ssr.mjs [dist-dir]
 //        (default: dist/boilerplate-angular, matching `outputPath` in angular.json)
@@ -57,6 +70,46 @@ const distDir = resolve(repoRoot, process.argv[2] ?? 'dist/boilerplate-angular')
 const PRERENDERED_ROUTES = ['/login', '/register', '/unauthorized'];
 
 /**
+ * The locales `angular.json` configures, source locale first.
+ *
+ * Hand-maintained for the same reason `PRERENDERED_ROUTES` is: adding a locale doubles
+ * the build output and moves every URL, which should have to be written down twice.
+ */
+const LOCALES = ['en-US', 'ar'];
+
+/** The locale `/` redirects to, and the one the unprefixed checks below use. */
+const [DEFAULT_LOCALE] = LOCALES;
+
+/**
+ * Locales that are written right to left, and must say so in the markup they ship.
+ *
+ * Angular sets `lang` and `dir` on `<html>` from the locale, which means nothing in this
+ * repository can get them wrong — and also that nothing in this repository would notice if
+ * a framework upgrade stopped setting them. Hence the assertion.
+ */
+const RTL_LOCALES = new Set(['ar']);
+
+/**
+ * A string that must appear in each locale's prerendered `/login`.
+ *
+ * This is the one check that proves the translation file reached the artifact. A locale
+ * whose `.xlf` was mis-referenced, or whose targets were left empty, builds cleanly and
+ * ships the English source text — `i18nMissingTranslation: "error"` catches a message with
+ * no entry, not an entry that says the same thing.
+ */
+const LOCALE_CONTENT_MARKER = {
+  'en-US': 'Welcome back',
+  ar: 'أهلًا بعودتك',
+};
+
+/** `/login` for every locale, `/ar/login` and so on. */
+const localised = (route) => LOCALES.map((locale) => `/${locale}${route}`);
+
+/** Where a prerendered route's `index.html` is emitted for a locale. */
+const prerenderedFile = (locale, route) =>
+  join(distDir, 'browser', locale, route.replace(/^\//, ''), 'index.html');
+
+/**
  * Prerendered routes that carry a `priority` image, and the source it must be preloaded at.
  *
  * `NgOptimizedImage` emits the preload link only while rendering on the server, so this is
@@ -70,14 +123,31 @@ const PRELOADED_IMAGES = [
   { route: '/register', src: '/img/auth-banner.png' },
 ];
 
-/** A route that must *not* be prerendered, and a string only its rendered output has. */
-const CLIENT_ROUTE = { path: '/dashboard', contentMarker: 'Dashboard' };
+/** The base href each locale is served under, which is also its URL prefix. */
+const baseHrefOf = (locale) => `/${locale}/`;
 
-/** Where the router's own redirects should land, resolved on the server. */
+/** A route that must *not* be prerendered, and a string only its rendered output has. */
+const CLIENT_ROUTE = {
+  path: `/${DEFAULT_LOCALE}/dashboard`,
+  contentMarker: 'Dashboard',
+};
+
+/**
+ * Where the router's own redirects should land, resolved on the server.
+ *
+ * `/` is not one of them any more, and that is the visible half of turning `localize` on:
+ * the application no longer has a root. `@angular/ssr`'s app engine answers `/` with a
+ * redirect to the default locale's base href, and only inside a locale does the router
+ * get to resolve anything — which is why the wildcard redirect is checked at
+ * `/<locale>/no-such-page` rather than at `/no-such-page`, where there is no application.
+ */
 const SERVER_REDIRECTS = [
-  { from: '/', to: '/dashboard' },
-  { from: '/no-such-page', to: '/dashboard' },
+  { from: `/${DEFAULT_LOCALE}/`, to: `/${DEFAULT_LOCALE}/dashboard` },
+  { from: `/${DEFAULT_LOCALE}/no-such-page`, to: `/${DEFAULT_LOCALE}/dashboard` },
 ];
+
+/** `/` belongs to no locale, so it redirects to the default one's base href. */
+const LOCALE_ROOT_REDIRECT = { from: '/', to: DEFAULT_LOCALE };
 
 const failures = [];
 
@@ -118,11 +188,17 @@ function checkBuildShape() {
     `${distDir}/server/server.mjs is missing — "ssr": { "entry": "src/server.ts" } is ` +
       `what emits it.`
   );
-  check(
-    existsSync(join(distDir, 'browser', 'index.csr.html')),
-    `${distDir}/browser/index.csr.html is missing. It is the shell every ` +
-      `RenderMode.Client route is served, so without it those routes have nothing to send.`
-  );
+  // One shell per locale. With `localize` on there is no `browser/index.csr.html` at all:
+  // the shell is a rendered document, so it has a language, and a single shared one would
+  // serve the source locale's markup to every visitor until the bundle booted.
+  for (const locale of LOCALES) {
+    check(
+      existsSync(join(distDir, 'browser', locale, 'index.csr.html')),
+      `${distDir}/browser/${locale}/index.csr.html is missing. It is the shell every ` +
+        `RenderMode.Client route is served in ${locale}, so without it those routes have ` +
+        `nothing to send.`
+    );
+  }
 
   // The premise `javascriptOutputs()` in lib/metafile.mjs rests on: one metafile holds
   // both graphs, and extension is what separates them. If the builder ever emits `.js`
@@ -151,43 +227,98 @@ function checkPrerenderedRoutes() {
   }
 
   const prerendered = Object.keys(JSON.parse(readFileSync(manifestPath, 'utf8')).routes ?? {});
+  const expected = PRERENDERED_ROUTES.flatMap(localised);
 
-  for (const route of PRERENDERED_ROUTES) {
+  for (const route of expected) {
     check(
       prerendered.includes(route),
       `${route} is declared RenderMode.Prerender in app.routes.server.ts but the build ` +
-        `did not prerender it. Prerendered: ${prerendered.join(', ') || '(none)'}.`
+        `did not prerender it. Prerendered: ${prerendered.join(', ') || '(none)'}. ` +
+        `Every prerendered route exists once per locale in LOCALES.`
     );
   }
   for (const route of prerendered) {
     check(
-      PRERENDERED_ROUTES.includes(route),
-      `${route} was prerendered but is not listed in PRERENDERED_ROUTES here, so nothing ` +
-        `checks what it renders. Add it.`
+      expected.includes(route),
+      `${route} was prerendered but is not listed in PRERENDERED_ROUTES × LOCALES here, ` +
+        `so nothing checks what it renders. Add it.`
     );
   }
 
-  for (const route of PRERENDERED_ROUTES) {
-    const file = join(distDir, 'browser', route.replace(/^\//, ''), 'index.html');
-    if (!check(existsSync(file), `${route} has no prerendered index.html at ${file}.`)) continue;
+  for (const locale of LOCALES) {
+    for (const route of PRERENDERED_ROUTES) {
+      checkPrerenderedDocument(locale, route);
+    }
+  }
+}
+
+/** One locale's copy of one prerendered route. */
+function checkPrerenderedDocument(locale, route) {
+  {
+    const file = prerenderedFile(locale, route);
+    const url = `/${locale}${route}`;
+    if (!check(existsSync(file), `${url} has no prerendered index.html at ${file}.`)) return;
 
     const html = readFileSync(file, 'utf8');
+    checkLocaleMarkup(locale, url, html);
+    const route_ = url;
     check(
       !/<app-root[^>]*>\s*<\/app-root>/.test(html),
-      `${route} prerendered to an empty <app-root>. The route produced a file but no ` +
+      `${route_} prerendered to an empty <app-root>. The route produced a file but no ` +
         `markup, which is a render that failed quietly rather than a route that is static.`
     );
     check(
       html.includes('ng-server-context='),
-      `${route} carries no ng-server-context attribute, so it was not produced by the ` +
+      `${route_} carries no ng-server-context attribute, so it was not produced by the ` +
         `server renderer.`
     );
     check(
       / ngh="/.test(html),
-      `${route} carries no "ngh" hydration annotations. The browser will discard this ` +
+      `${route_} carries no "ngh" hydration annotations. The browser will discard this ` +
         `markup and render the page again — check provideClientHydration() in app.config.ts.`
     );
+    check(
+      html.includes(`<base href="${baseHrefOf(locale)}">`),
+      `${route_} does not declare <base href="${baseHrefOf(locale)}">. Every relative URL ` +
+        `on the page — each chunk, each stylesheet — resolves against it, so a wrong base ` +
+        `href serves one locale's document with another locale's bundle.`
+    );
   }
+}
+
+/**
+ * Rule 6: the document says which language it is in, and is in it.
+ *
+ * `lang` and `dir` are set by Angular from the locale, so this is not checking this
+ * application's code — it is checking that a framework upgrade has not stopped doing it.
+ * Both matter beyond typography: `lang` is what a screen reader picks a voice from, and
+ * `dir` is what every logical CSS property in `src/` resolves against
+ * (`assert-logical-properties.mjs` exists to keep that the only thing they need).
+ */
+function checkLocaleMarkup(locale, url, html) {
+  const direction = RTL_LOCALES.has(locale) ? 'rtl' : 'ltr';
+
+  check(
+    new RegExp(`<html[^>]*\\blang="${locale}"`).test(html),
+    `${url} does not carry lang="${locale}" on <html>. A screen reader picks its voice ` +
+      `from that attribute, so without it Arabic is read out by an English synthesiser.`
+  );
+  check(
+    new RegExp(`<html[^>]*\\bdir="${direction}"`).test(html),
+    `${url} does not carry dir="${direction}" on <html>. Every ms-/me-/ps-/pe-/start-/end- ` +
+      `utility in the application resolves against it, so the whole layout silently ` +
+      `reverts to a left-to-right reading.`
+  );
+
+  const marker = LOCALE_CONTENT_MARKER[locale];
+  if (marker === undefined || !url.endsWith('/login')) return;
+  check(
+    html.includes(marker),
+    `${url} does not contain ${JSON.stringify(marker)}, so its translation file did not ` +
+      `reach the build. A locale whose targets are empty, or whose .xlf is not the one ` +
+      `angular.json points at, compiles cleanly and ships the English source text — ` +
+      `i18nMissingTranslation catches a missing message, not a message left untranslated.`
+  );
 }
 
 /**
@@ -200,8 +331,10 @@ function checkPrerenderedRoutes() {
  * does) but never the link, because `PreloadLinkCreator` is server-only.
  */
 function checkPriorityImagePreloads() {
+  // The source locale only. The preload link is emitted by the renderer, not by the
+  // translation, so checking it once per locale would be the same assertion run twice.
   for (const { route, src } of PRELOADED_IMAGES) {
-    const file = join(distDir, 'browser', route.replace(/^\//, ''), 'index.html');
+    const file = prerenderedFile(DEFAULT_LOCALE, route);
     if (!existsSync(file)) continue; // already reported by checkPrerenderedRoutes
     const html = readFileSync(file, 'utf8');
 
@@ -257,7 +390,7 @@ function checkPriorityImagePreloads() {
  * else distinguishes "the form is deferred" from "the form is not deferred any more".
  */
 function checkIncrementalHydration() {
-  const file = join(distDir, 'browser', 'login', 'index.html');
+  const file = prerenderedFile(DEFAULT_LOCALE, '/login');
   if (!existsSync(file)) return; // already reported above
   const html = readFileSync(file, 'utf8');
 
@@ -349,7 +482,9 @@ async function waitForServer(port, child, timeoutMs = 60_000) {
   while (Date.now() < deadline) {
     if (child.exitCode !== null) return false;
     try {
-      await fetch(`http://127.0.0.1:${port}/login`, { headers: { host: '127.0.0.1' } });
+      await fetch(`http://127.0.0.1:${port}/${DEFAULT_LOCALE}/login`, {
+        headers: { host: '127.0.0.1' },
+      });
       return true;
     } catch {
       await new Promise((done) => setTimeout(done, 250));
@@ -379,13 +514,43 @@ async function checkRunningServer() {
         headers: { host: '127.0.0.1', ...headers },
       });
 
-    const login = await get('/login');
-    check(login.status === 200, `GET /login returned ${login.status}, expected 200.`);
-    const loginBody = await login.text();
+    for (const locale of LOCALES) {
+      const url = `/${locale}/login`;
+      const login = await get(url);
+      check(login.status === 200, `GET ${url} returned ${login.status}, expected 200.`);
+      const loginBody = await login.text();
+      check(
+        loginBody.includes(LOCALE_CONTENT_MARKER[locale]) &&
+          loginBody.includes('ng-server-context='),
+        `GET ${url} did not return the prerendered ${locale} page. The static file exists, ` +
+          `so the server is not matching the route to the right locale's build.`
+      );
+    }
+
+    // The URL the application used to live at, now owned by nothing. Asserted rather than
+    // left implicit: a deployment that keeps sending traffic to `/login` gets a 404, and
+    // finding that out from this gate is cheaper than finding it out from a redirect rule
+    // someone forgot to add. See docs/i18n.md.
+    const unprefixed = await get('/login');
     check(
-      loginBody.includes('Welcome back') && loginBody.includes('ng-server-context='),
-      `GET /login did not return the prerendered page. The static file exists, so the ` +
-        `server is not matching the route to it.`
+      unprefixed.status === 404,
+      `GET /login returned ${unprefixed.status}. With localize on, every route lives under ` +
+        `a locale prefix and the bare path belongs to no application — a 200 here means ` +
+        `something is serving a locale's build off the root.`
+    );
+
+    const localeRoot = await get(LOCALE_ROOT_REDIRECT.from);
+    check(
+      localeRoot.status === 302,
+      `GET ${LOCALE_ROOT_REDIRECT.from} returned ${localeRoot.status}, expected a 302 to ` +
+        `the default locale.`
+    );
+    check(
+      (localeRoot.headers.get('location') ?? '').endsWith(LOCALE_ROOT_REDIRECT.to),
+      `GET ${LOCALE_ROOT_REDIRECT.from} redirected to ` +
+        `"${localeRoot.headers.get('location')}", expected the ${LOCALE_ROOT_REDIRECT.to} ` +
+        `base href. That redirect is @angular/ssr's, and it is the only thing standing ` +
+        `between a visitor typing the bare domain and a 404.`
     );
 
     const client = await get(CLIENT_ROUTE.path);
@@ -420,10 +585,11 @@ async function checkRunningServer() {
     }
 
     // The SSRF guard, from the outside. A `Host` nobody allow-listed must not render.
-    const spoofed = await rawGet(port, '/login', 'evil.example.com');
+    const spoofed = await rawGet(port, `/${DEFAULT_LOCALE}/login`, 'evil.example.com');
     check(
       spoofed === 400,
-      `GET /login with Host: evil.example.com returned ${spoofed}, expected 400. ` +
+      `GET /${DEFAULT_LOCALE}/login with Host: evil.example.com returned ${spoofed}, ` +
+        `expected 400. ` +
         `Angular validates Host and X-Forwarded-Host against NG_ALLOWED_HOSTS; a 200 here ` +
         `means that check is off.`
     );
@@ -481,8 +647,9 @@ async function main() {
   }
 
   console.log(
-    `assert-ssr: clean (${PRERENDERED_ROUTES.length} prerendered route(s) verified, ` +
-      `${CLIENT_ROUTE.path} served as the shell, incremental hydration live on /login, ` +
+    `assert-ssr: clean (${PRERENDERED_ROUTES.length} prerendered route(s) × ` +
+      `${LOCALES.length} locale(s) verified, ${CLIENT_ROUTE.path} served as the shell, ` +
+      `incremental hydration live on /${DEFAULT_LOCALE}/login, ` +
       `${PRELOADED_IMAGES.length} priority image(s) preloaded)`
   );
 }

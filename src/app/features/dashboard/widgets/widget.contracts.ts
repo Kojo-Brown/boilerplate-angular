@@ -10,9 +10,13 @@ export const STAT_RANGES: readonly StatRange[] = ['7d', '30d', '90d'];
 
 /** How a range is labelled in the board's control. */
 export const STAT_RANGE_LABELS: Readonly<Record<StatRange, string>> = {
-  '7d': '7 days',
-  '30d': '30 days',
-  '90d': '90 days',
+  // One message per range rather than a pluralised "{n} days": the three values are
+  // fixed, so there is no count varying at run time and nothing for a plural rule to
+  // select on. A translator still sees each in full, which is what lets Arabic use the
+  // form each of 7, 30 and 90 actually takes.
+  '7d': $localize`:Reporting window, seven days@@dashboard.widgets.range.7d:7 days`,
+  '30d': $localize`:Reporting window, thirty days@@dashboard.widgets.range.30d:30 days`,
+  '90d': $localize`:Reporting window, ninety days@@dashboard.widgets.range.90d:90 days`,
 };
 
 /**

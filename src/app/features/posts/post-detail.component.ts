@@ -13,9 +13,17 @@ import { injectPostResource } from './posts.resource';
     <div class="p-6">
       <a
         routerLink="/dashboard/posts"
-        class="mb-6 inline-flex items-center text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+        class="mb-6 inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
       >
-        &larr; Back to Posts
+        <!--
+          The arrow is outside the message and flipped by \`rtl:\`, not translated. "Back"
+          points against the reading direction, so in an RTL document a left-pointing
+          arrow points *forward* — and an arrow left inside the translatable string is a
+          thing a translator has to notice and reverse, silently wrong when they do not.
+          \`inline-block\` because \`rotate\` does not apply to an inline box.
+        -->
+        <span aria-hidden="true" class="inline-block rtl:rotate-180">&larr;</span>
+        <ng-container i18n="@@posts.detail.back">Back to Posts</ng-container>
       </a>
 
       <ng-template #skeleton>
@@ -34,6 +42,7 @@ import { injectPostResource } from './posts.resource';
       <ng-template #failed>
         <div
           class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+          i18n="@@posts.detail.error"
         >
           Post not found or failed to load.
         </div>
@@ -48,7 +57,7 @@ import { injectPostResource } from './posts.resource';
       <article class="mt-4" *appAsync="post; let data; loading: skeleton; error: failed">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ data.title }}</h1>
         <div class="mt-2 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-          <span>Author: {{ data.authorId }}</span>
+          <span i18n="@@posts.detail.author">Author: {{ data.authorId }}</span>
           <span>&bull;</span>
           <time>{{ data.createdAt | slice: 0 : 10 }}</time>
         </div>

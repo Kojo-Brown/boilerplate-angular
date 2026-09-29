@@ -73,6 +73,13 @@ import {
  * number only with a reason, in the commit that earns it.
  *
  * Routes that only redirect (`''`, `**`) are absent on purpose: they load nothing.
+ *
+ * Every budget below moved once, together, when the application was made translatable,
+ * and the amount is the same story in each: an `i18n` region compiles to a message
+ * definition plus a `$localize` call beside the template instruction that used to hold
+ * the string, so a route's cost grows roughly with how much text it renders. Measured
+ * rather than estimated, per route, in the commit that earned it — the numbers in each
+ * comment are before → after.
  */
 const ROUTE_BUDGETS = [
   {
@@ -88,12 +95,17 @@ const ROUTE_BUDGETS = [
     // The budget moved with the measurement rather than being left at its old ceiling:
     // a 112 kB budget would have passed just as happily on the day the block stopped
     // deferring, which is the regression this number now catches. `docs/ssr.md`.
-    maximum: '4kB',
+    // 3.13 → 4.45 kB when the page was made translatable: three messages, one of which
+    // carries a link placeholder. The 101.89 kB behind the hydrate block did not move,
+    // and `login.component.ts` says which provider keeps it that way.
+    maximum: '5kB',
   },
   {
     path: '/register',
     chain: ['src/app/features/auth/auth.routes.ts', 'src/app/features/auth/register.component.ts'],
-    maximum: '114kB',
+    // 113.39 → 117.13 kB. The form with the most fields in the application, so the most
+    // messages; the 101 kB of @angular/forms and Zod beside them did not move.
+    maximum: '118kB',
   },
   {
     path: '/unauthorized',
@@ -111,7 +123,9 @@ const ROUTE_BUDGETS = [
     // rather than the board's, because the route's `providers` name them — see the
     // comment on `provideDashboardWidgets` there. That is why every dashboard route pays
     // for them, including the two that render no widgets.
-    maximum: '31kB',
+    // 30.02 → 34.78 kB: the dashboard shell's navigation, the widget board's labels, and
+    // the three `@defer` fallbacks, each of which renders text.
+    maximum: '36kB',
   },
   {
     path: '/dashboard/posts',
@@ -127,7 +141,8 @@ const ROUTE_BUDGETS = [
     // directive itself is not charged here: `core/a11y/` is chunk-assigned to the initial
     // bundle, because `app.config.ts` calls `provideRouteFocus()` from the same module.
     // Measured, not estimated: 32.88 kB → 33.12 kB. See `docs/focus-and-live-regions.md`.
-    maximum: '34kB',
+    // 33.12 → 38.12 kB, the shell's share of it shared with every route below.
+    maximum: '39kB',
   },
   {
     path: '/dashboard/activity',
@@ -148,7 +163,9 @@ const ROUTE_BUDGETS = [
     // import the `rxjs` barrel and that makes every rxjs module statically reachable from the
     // entry. That is the +5.30 kB the `initial` budget in `angular.json` absorbed when this
     // route was added, and no route-level change can move it here.
-    maximum: '58kB',
+    // 57.28 → 60.30 kB: six translated column headers and the ICU `plural` that replaced
+    // `${entries.length.toLocaleString('en-GB')} entries`.
+    maximum: '61kB',
   },
   {
     path: '/dashboard/posts/:id',
@@ -157,7 +174,8 @@ const ROUTE_BUDGETS = [
       'src/app/features/dashboard/dashboard-shell.component.ts',
       'src/app/features/posts/post-detail.component.ts',
     ],
-    maximum: '28kB',
+    // 27.11 → 30.88 kB.
+    maximum: '32kB',
   },
   {
     path: '/admin',

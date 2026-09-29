@@ -20,10 +20,45 @@ import { RouteFocusTargetDirective } from '@/app/core/a11y';
 /** Matches Tailwind's `md` breakpoint, where the drawer becomes a static sidebar. */
 const DESKTOP_QUERY = '(min-width: 768px)';
 
+/**
+ * The drawer/sidebar frame, in logical properties.
+ *
+ * `start-0` and `border-e` rather than `left-0` and `border-r`: the localised build sets
+ * `dir="rtl"` on `<html>` for Arabic (Angular does it, not this application), and
+ * `dir` alone moves nothing — a sidebar pinned to `left` stays on the left of an
+ * interface whose reading order now starts on the right, with its border on the inside
+ * edge. The logical pair resolves against the document's direction, so one class name
+ * covers both.
+ *
+ * `translate-x` has no logical form, which is why {@link SIDEBAR_CLOSED} below is the
+ * one place that names a direction explicitly.
+ */
 const SIDEBAR_BASE =
-  'fixed inset-y-0 left-0 z-40 flex w-64 flex-col ' +
-  'border-r border-[var(--color-border)] bg-[var(--color-background)] ' +
+  'fixed inset-y-0 start-0 z-40 flex w-64 flex-col ' +
+  'border-e border-[var(--color-border)] bg-[var(--color-background)] ' +
   'transition-transform duration-200 ease-in-out md:static md:translate-x-0';
+
+/**
+ * Where the closed drawer sits: off screen, past the edge the reading direction starts at.
+ *
+ * All three parts are load-bearing. A transform is a geometric operation and has no
+ * notion of writing direction, so `-translate-x-full` moves the panel left whatever `dir`
+ * says — and in an RTL document the panel is anchored to the *right* edge, so translating
+ * it left slides it across the page rather than off it: the closed drawer covers the
+ * content, `inert` and all. `rtl:` is Tailwind's built-in direction variant, compiled to
+ * `:where([dir="rtl"] &)`, so the sign follows the same attribute `start-0` does.
+ *
+ * `max-md:` is the part that is easy to leave off and was, for one measurement. Above the
+ * breakpoint this element is not a drawer at all — it is the static sidebar, held in place
+ * by `md:translate-x-0` in {@link SIDEBAR_BASE}, which used to win over a bare
+ * `-translate-x-full` only because Tailwind emits breakpoint variants after unprefixed
+ * utilities. `rtl:translate-x-full` is emitted after `md:translate-x-0`, and both are one
+ * class of specificity, so adding it pushed the *desktop* sidebar off the right-hand edge
+ * of every RTL page — a layout with no navigation on it, passing every other gate.
+ * Scoping the closed state to below the breakpoint says what was always meant: the panel
+ * only slides where it is a drawer.
+ */
+const SIDEBAR_CLOSED = 'max-md:-translate-x-full max-md:rtl:translate-x-full';
 
 @Component({
   selector: 'app-layout-shell',
@@ -41,6 +76,7 @@ const SIDEBAR_BASE =
         type="button"
         (click)="toggleDrawer()"
         [attr.aria-expanded]="isMobileDrawerOpen()"
+        i18n-aria-label="@@layout.toggleNav"
         aria-label="Toggle navigation menu"
         class="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius)]
                text-[var(--color-foreground)] hover:bg-[var(--color-muted)]
@@ -116,6 +152,7 @@ const SIDEBAR_BASE =
       <aside
         [class]="sidebarClasses()"
         [attr.inert]="isDrawerInert() ? '' : null"
+        i18n-aria-label="@@layout.sidebarNav"
         aria-label="Sidebar navigation"
       >
         <!-- Desktop sidebar header -->
@@ -148,6 +185,7 @@ const SIDEBAR_BASE =
           <button
             type="button"
             (click)="closeDrawer()"
+            i18n-aria-label="@@layout.closeNav"
             aria-label="Close navigation menu"
             class="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius)]
                    text-[var(--color-foreground)] hover:bg-[var(--color-muted)]
@@ -238,7 +276,7 @@ export class LayoutShellComponent {
   protected readonly sidebarClasses = computed(() =>
     this.isMobileDrawerOpen()
       ? `${SIDEBAR_BASE} translate-x-0`
-      : `${SIDEBAR_BASE} -translate-x-full`
+      : `${SIDEBAR_BASE} ${SIDEBAR_CLOSED}`
   );
 
   constructor() {
