@@ -63,7 +63,9 @@ import { WidgetBoardComponent } from './widgets/widget-board.component';
       which is what the axe gate reported — /dashboard/posts and /dashboard/activity, the
       two sibling routes, already start at \`<h1>\`.
     -->
-    <h1 class="text-lg font-semibold text-[var(--color-foreground)]">Overview</h1>
+    <h1 i18n="@@dashboard.heading" class="text-lg font-semibold text-[var(--color-foreground)]">
+      Overview
+    </h1>
     <div class="mt-4">
       <app-widget-board />
     </div>
@@ -82,13 +84,22 @@ import { WidgetBoardComponent } from './widgets/widget-board.component';
       @defer (on viewport; prefetch on idle) {
         <app-insights-panel />
       } @placeholder (minimum 400ms) {
-        <app-panel-skeleton label="publishing activity" rows="5" />
+        <app-panel-skeleton
+          i18n-label="Named in 'Loading {$label}…'@@dashboard.insights.skeletonLabel.placeholder"
+          label="publishing activity"
+          rows="5"
+        />
       } @loading (after 100ms; minimum 400ms) {
-        <app-panel-skeleton label="publishing activity" rows="5" />
+        <app-panel-skeleton
+          i18n-label="Named in 'Loading {$label}…'@@dashboard.insights.skeletonLabel.loading"
+          label="publishing activity"
+          rows="5"
+        />
       } @error {
         <p
           class="rounded-[var(--radius)] border border-[var(--color-border)] p-4 text-sm text-[var(--color-destructive)]"
           data-testid="insights-panel-error"
+          i18n="@@dashboard.insights.blockError"
         >
           Publishing activity could not be loaded. Reload the page to try again.
         </p>
@@ -106,6 +117,7 @@ import { WidgetBoardComponent } from './widgets/widget-board.component';
         type="button"
         class="text-sm font-medium text-[var(--color-primary)] hover:underline"
         data-testid="show-breakdown"
+        i18n="@@dashboard.breakdown.trigger"
       >
         Show post-length breakdown
       </button>
@@ -114,9 +126,17 @@ import { WidgetBoardComponent } from './widgets/widget-board.component';
         @defer (on interaction(breakdownTrigger); prefetch on hover(breakdownTrigger)) {
           <app-insights-breakdown />
         } @loading (after 100ms; minimum 400ms) {
-          <app-panel-skeleton label="the length breakdown" rows="4" />
+          <app-panel-skeleton
+            i18n-label="Named in 'Loading {$label}…'@@dashboard.breakdown.skeletonLabel.loading"
+            label="the length breakdown"
+            rows="4"
+          />
         } @error {
-          <p class="text-sm text-[var(--color-destructive)]" data-testid="breakdown-block-error">
+          <p
+            class="text-sm text-[var(--color-destructive)]"
+            data-testid="breakdown-block-error"
+            i18n="@@dashboard.breakdown.blockError"
+          >
             The breakdown could not be loaded. Reload the page to try again.
           </p>
         }

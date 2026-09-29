@@ -2,7 +2,11 @@
   "extends": "../../../../tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": [],
+    // `@angular/localize` and nothing else. The fixtures need no ambient types of their
+    // own, but they import `core/forms/`, whose messages are `$localize` tagged templates
+    // — and an unresolved `$localize` is a TS2304 on a line no fixture annotated, which
+    // this gate correctly refuses to accept as an expected failure.
+    "types": ["@angular/localize"],
     "rootDir": "../../../.."
   },
   "include": ["*.ts"]

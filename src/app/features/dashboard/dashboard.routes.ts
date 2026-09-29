@@ -28,7 +28,7 @@ export const DASHBOARD_ROUTES: Routes = [
       {
         path: '',
         loadComponent: () => import('./dashboard.component').then((m) => m.DashboardComponent),
-        title: 'Dashboard',
+        title: $localize`:Browser tab title and route announcement@@route.title.dashboard:Dashboard`,
         // Which widgets the board renders. On this route rather than in `app.config.ts` for
         // the reason the posts backend is: the board is the only consumer, the widget
         // components and their sample data are only reachable from here, and naming them at
@@ -40,13 +40,13 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'posts',
         loadComponent: () =>
           import('../posts/posts-list.component').then((m) => m.PostsListComponent),
-        title: 'Posts',
+        title: $localize`:Browser tab title and route announcement@@route.title.posts:Posts`,
       },
       {
         path: 'activity',
         loadComponent: () =>
           import('./activity/activity-log.component').then((m) => m.ActivityLogComponent),
-        title: 'Activity log',
+        title: $localize`:Browser tab title and route announcement@@route.title.activity:Activity log`,
       },
       {
         path: 'posts/:id',

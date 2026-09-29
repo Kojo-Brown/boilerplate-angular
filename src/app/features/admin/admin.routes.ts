@@ -4,6 +4,6 @@ export const ADMIN_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () => import('./admin.component').then((m) => m.AdminComponent),
-    title: 'Admin',
+    title: $localize`:Browser tab title and route announcement@@route.title.admin:Admin`,
   },
 ];

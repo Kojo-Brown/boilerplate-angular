@@ -38,7 +38,12 @@ const RANGE_BUTTON_ACTIVE = 'bg-[var(--color-primary)] text-[var(--color-primary
   template: `
     <section>
       <header class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex gap-1" role="group" aria-label="Reporting window">
+        <div
+          class="flex gap-1"
+          role="group"
+          i18n-aria-label="@@dashboard.widgets.rangeGroup"
+          aria-label="Reporting window"
+        >
           <!--
             track: \`ranges\` is \`STAT_RANGES\`, a readonly tuple of string literals, so the
             value *is* the identity — there is no field to key on and no refetch that could
@@ -63,6 +68,7 @@ const RANGE_BUTTON_ACTIVE = 'bg-[var(--color-primary)] text-[var(--color-primary
           class="text-xs font-medium text-[var(--color-primary)] hover:underline"
           (click)="expandAll()"
           [disabled]="!anyCollapsed()"
+          i18n="@@dashboard.widgets.expandAll"
         >
           Expand all
         </button>
@@ -76,9 +82,13 @@ const RANGE_BUTTON_ACTIVE = 'bg-[var(--color-primary)] text-[var(--color-primary
 
       <p class="mt-4 text-xs text-[var(--color-muted-foreground)]" data-testid="last-selected">
         @if (lastSelected(); as selection) {
-          Last opened: {{ selection }}
+          <ng-container i18n="@@dashboard.widgets.lastOpened">
+            Last opened: {{ selection }}
+          </ng-container>
         } @else {
-          Choose a row to open its breakdown.
+          <ng-container i18n="@@dashboard.widgets.noSelection">
+            Choose a row to open its breakdown.
+          </ng-container>
         }
       </p>
     </section>

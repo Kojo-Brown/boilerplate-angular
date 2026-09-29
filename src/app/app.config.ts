@@ -2,7 +2,11 @@ import type { ApplicationConfig } from '@angular/core';
 import { inject, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, TitleStrategy, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import {
+  provideClientHydration,
+  withEventReplay,
+  withI18nSupport,
+} from '@angular/platform-browser';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideTanStackQuery } from '@tanstack/angular-query-experimental';
 import { routes } from '@/app/app.routes';
@@ -54,6 +58,16 @@ export const appConfig: ApplicationConfig = {
     // `HttpClient` transfer cache, and incremental hydration, so `withIncrementalHydration()`
     // is deprecated and adding it here would be noise that reads as significant.
     //
+    // `withI18nSupport()` is the second, and it is not an optimisation either — without
+    // it, a component whose template contains an `i18n` region is not hydrated at all.
+    // Angular marks it `ngSkipHydration` and the browser throws the server's markup for
+    // that component away and renders it again. Nothing errors, and on most pages the
+    // only cost is the work; on `/login` it cost the feature this file's next paragraph
+    // describes, because a component that skips hydration takes every `@defer (hydrate …)`
+    // block under it with it. Found by `assert-ssr.mjs` and by the axe suite's
+    // "login form showing validation errors" case, which stopped reaching a validated
+    // form the moment `/login`'s labels became translatable. See `docs/i18n.md`.
+    //
     // Event replay is what makes a *dehydrated* region honest. `@defer (hydrate …)` in
     // `LoginComponent` leaves the sign-in form as server-rendered markup with no
     // listeners on it; replay captures the click or keystroke that arrives before the
@@ -61,7 +75,7 @@ export const appConfig: ApplicationConfig = {
     // designing that markup to be inert — see the header of `login.component.ts` for the
     // one thing replay cannot undo — but without it the first interaction on a
     // prerendered page is simply dropped. See `docs/ssr.md`.
-    provideClientHydration(withEventReplay()),
+    provideClientHydration(withEventReplay(), withI18nSupport()),
 
     provideAnimationsAsync(),
     provideRouter(routes, withComponentInputBinding()),

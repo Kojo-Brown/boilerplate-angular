@@ -49,7 +49,11 @@ import { loginSchema } from './auth.schemas';
     <form [formGroup]="form" novalidate>
       <div class="space-y-4">
         <div>
-          <label for="email" class="mb-1 block text-sm font-medium text-[var(--color-foreground)]">
+          <label
+            for="email"
+            i18n="@@auth.login.email.label"
+            class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
+          >
             Email address
           </label>
           <input
@@ -57,6 +61,9 @@ import { loginSchema } from './auth.schemas';
             type="email"
             formControlName="email"
             autocomplete="email"
+            i18n-placeholder="
+              Example address. Translators may leave the local part in Latin script.
+              @@auth.login.email.placeholder"
             placeholder="you@example.com"
             class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             [class.border-red-400]="emailError()"
@@ -71,6 +78,7 @@ import { loginSchema } from './auth.schemas';
         <div>
           <label
             for="password"
+            i18n="@@auth.login.password.label"
             class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
           >
             Password
@@ -99,9 +107,9 @@ import { loginSchema } from './auth.schemas';
         class="mt-6 w-full rounded-md bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         @if (auth.isBusy()) {
-          Signing in…
+          <ng-container i18n="@@auth.login.submit.busy">Signing in…</ng-container>
         } @else {
-          Sign in
+          <ng-container i18n="@@auth.login.submit">Sign in</ng-container>
         }
       </button>
     </form>

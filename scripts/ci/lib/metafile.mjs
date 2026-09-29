@@ -37,6 +37,17 @@ export const repoRoot = resolve(fileURLToPath(new URL('../../..', import.meta.ur
 export const APPLICATION_ENTRY_POINT = 'src/main.ts';
 
 /**
+ * The locale whose emitted files transfer sizes are read from.
+ *
+ * Any locale would do for the chunk *graph*, which is locale-invariant. It does not do
+ * for the gzipped size: a translated chunk is a different string of bytes, and Arabic
+ * text is roughly twice as many of them in UTF-8. Measuring one locale consistently is
+ * what keeps the reported number comparable between runs; the `initial` budget in
+ * `angular.json` is the thing that prices the heaviest locale.
+ */
+export const SOURCE_LOCALE = 'en-US';
+
+/**
  * A production build's metafile, plus the directory its outputs live in.
  *
  * `pnpm build` deliberately does not pass `--stats-json`: the metafile maps every output
@@ -185,12 +196,20 @@ export function totalBytes(outputs, chunks) {
  * `null` when the emitted files are not next to the metafile — pointing `STATS_JSON` at
  * a bare metafile is legitimate, and losing a reported column is not worth an error.
  */
-export function transferBytes(outputDir, names) {
+export function transferBytes(outputDir, names, locale = SOURCE_LOCALE) {
   let bytes = 0;
   for (const name of names) {
     // The application builder writes browser output under `browser/` and the metafile
-    // beside it, so names in `outputs` are relative to that subdirectory.
-    const candidates = [join(outputDir, 'browser', name), join(outputDir, name)];
+    // beside it, so names in `outputs` are relative to that subdirectory. With `localize`
+    // on there is a further level — `browser/<locale>/` — while the metafile is still
+    // written once, at the top, with locale-free names: the module graph is produced
+    // before the per-locale inlining and is identical for every locale. Only the emitted
+    // *bytes* differ, which is why the locale matters here and nowhere else in this file.
+    const candidates = [
+      join(outputDir, 'browser', locale, name),
+      join(outputDir, 'browser', name),
+      join(outputDir, name),
+    ];
     const file = candidates.find((candidate) => existsSync(candidate));
     if (file === undefined) return null;
     bytes += gzipSync(readFileSync(file), { level: 9 }).byteLength;

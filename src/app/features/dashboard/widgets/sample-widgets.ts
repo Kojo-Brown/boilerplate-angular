@@ -38,10 +38,10 @@ const SAMPLE_ACTIVITY: readonly ActivityEntry[] = [
 
 export const revenueWidget: WidgetDefinition = {
   id: 'revenue',
-  title: 'Revenue',
+  title: $localize`:Dashboard widget name@@dashboard.widgets.revenue:Revenue`,
   render: (context) =>
     dynamicComponent(StatWidgetComponent, (bind) => [
-      bind.input('label', () => 'Revenue'),
+      bind.input('label', () => revenueWidget.title),
       bind.input(
         'value',
         computed(() => SAMPLE_TOTALS[context.range()].revenue)
@@ -58,10 +58,10 @@ export const revenueWidget: WidgetDefinition = {
 
 export const signupsWidget: WidgetDefinition = {
   id: 'signups',
-  title: 'Signups',
+  title: $localize`:Dashboard widget name@@dashboard.widgets.signups:Signups`,
   render: (context) =>
     dynamicComponent(StatWidgetComponent, (bind) => [
-      bind.input('label', () => 'Signups'),
+      bind.input('label', () => signupsWidget.title),
       bind.input(
         'value',
         computed(() => SAMPLE_TOTALS[context.range()].signups)

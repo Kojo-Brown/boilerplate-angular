@@ -24,7 +24,9 @@ export type FieldErrorMessages = Readonly<Record<string, FieldErrorMessage>>;
 
 /** The subject of a message, for the keys that need to name the field. */
 function subject(context: FieldErrorContext): string {
-  return context.label === '' ? 'This field' : context.label;
+  return context.label === ''
+    ? $localize`:Stands in for a field's label when it has none, as in "This field is required."@@forms.error.subjectFallback:This field`
+    : context.label;
 }
 
 /** `detail` as a record, for the built-in validators that store one. */
@@ -50,18 +52,34 @@ function numberAt(detail: unknown, key: string): number | null {
  * in the schema, which is why this repo's forms prefer it.
  */
 export const DEFAULT_FIELD_ERROR_MESSAGES: FieldErrorMessages = {
-  required: (_detail, context) => `${subject(context)} is required.`,
-  requiredTrue: (_detail, context) => `${subject(context)} must be checked.`,
-  email: () => 'Enter a valid email address.',
-  minlength: (detail) => `Use at least ${numberAt(detail, 'requiredLength') ?? 1} characters.`,
-  maxlength: (detail) => `Use at most ${numberAt(detail, 'requiredLength') ?? 1} characters.`,
-  min: (detail) => `Enter ${numberAt(detail, 'min') ?? 0} or more.`,
-  max: (detail) => `Enter ${numberAt(detail, 'max') ?? 0} or less.`,
-  pattern: () => 'This is not in the expected format.',
-  // `zodValidator` stores the schema's own message. Anything else under the key is a
-  // different validator colliding with it, and rendering `[object Object]` at a user is
-  // worse than saying nothing useful.
-  zod: (detail) => (typeof detail === 'string' ? detail : 'This value is not valid.'),
+  required: (_detail, context) =>
+    $localize`:Validation message under a form field@@forms.error.required:${subject(context)}:field: is required.`,
+  requiredTrue: (_detail, context) =>
+    $localize`:Validation message under a checkbox@@forms.error.requiredTrue:${subject(context)}:field: must be checked.`,
+  email: () =>
+    $localize`:Validation message under a form field@@forms.error.email:Enter a valid email address.`,
+  // The counts here are characters, and the sentence is phrased so that no word agrees
+  // with the number — a translator can render it without a plural construct, which is
+  // what a `$localize` message can carry. Where agreement is unavoidable the message
+  // belongs in a template as an ICU `plural`; see `core/i18n/plural.ts` for the case
+  // where it cannot be, and what that costs.
+  minlength: (detail) =>
+    $localize`:Validation message under a form field@@forms.error.minlength:Use at least ${numberAt(detail, 'requiredLength') ?? 1}:count: characters.`,
+  maxlength: (detail) =>
+    $localize`:Validation message under a form field@@forms.error.maxlength:Use at most ${numberAt(detail, 'requiredLength') ?? 1}:count: characters.`,
+  min: (detail) =>
+    $localize`:Validation message under a numeric form field@@forms.error.min:Enter ${numberAt(detail, 'min') ?? 0}:limit: or more.`,
+  max: (detail) =>
+    $localize`:Validation message under a numeric form field@@forms.error.max:Enter ${numberAt(detail, 'max') ?? 0}:limit: or less.`,
+  pattern: () =>
+    $localize`:Validation message under a form field@@forms.error.pattern:This is not in the expected format.`,
+  // `zodValidator` stores the schema's own message, which the schema already localised.
+  // Anything else under the key is a different validator colliding with it, and rendering
+  // `[object Object]` at a user is worse than saying nothing useful.
+  zod: (detail) =>
+    typeof detail === 'string'
+      ? detail
+      : $localize`:Validation message under a form field@@forms.error.zodFallback:This value is not valid.`,
 };
 
 /**

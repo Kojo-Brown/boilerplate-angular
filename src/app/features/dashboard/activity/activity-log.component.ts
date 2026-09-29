@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import type { WritableSignal } from '@angular/core';
 import { VirtualTableComponent } from '@/app/shared/virtual-table';
@@ -79,13 +80,23 @@ function isSortKey(key: string): key is ActivitySortKey {
   selector: 'app-activity-log',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [VirtualTableComponent],
+  imports: [DecimalPipe, VirtualTableComponent],
   template: `
     <div class="p-6">
       <div class="mb-6">
-        <h1 class="text-2xl font-bold text-[var(--color-foreground)]">Activity log</h1>
-        <p class="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          {{ totalLabel() }} — timestamps are UTC. Only the rows on screen exist in the DOM.
+        <h1 i18n="@@activity.heading" class="text-2xl font-bold text-[var(--color-foreground)]">
+          Activity log
+        </h1>
+        <!--
+          The count was \`\${entries.length.toLocaleString('en-GB')} entries\` in the class:
+          an English two-form plural and a hard-coded formatting locale, neither reachable
+          from a translation file. As an ICU here the plural set belongs to the translator,
+          and \`| number\` formats against \`LOCALE_ID\` — which in the Arabic build means
+          Eastern Arabic digits, not just a different thousands separator.
+        -->
+        <p i18n="@@activity.subheading" class="mt-1 text-sm text-[var(--color-muted-foreground)]">
+          {entryCount, plural, =1 {1 entry} other {{{ entryCount | number }} entries}} — timestamps
+          are UTC. Only the rows on screen exist in the DOM.
         </p>
       </div>
 
@@ -100,7 +111,9 @@ function isSortKey(key: string): key is ActivitySortKey {
           [columns]="columns"
           [rowKey]="entryKey"
           [(sort)]="sort"
+          i18n-label="Accessible name of the activity table@@activity.table.label"
           label="Activity log"
+          i18n-emptyMessage="@@activity.table.empty"
           emptyMessage="No activity has been recorded yet."
         />
       </div>
@@ -129,9 +142,8 @@ export class ActivityLogComponent {
     );
   });
 
-  protected readonly totalLabel = computed(
-    () => `${this.entries.length.toLocaleString('en-GB')} entries`
-  );
+  /** Selects the ICU category in the template, and is interpolated inside it. */
+  protected readonly entryCount = this.entries.length;
 
   protected readonly entryKey = (entry: ActivityEntry): string => entry.id;
 
@@ -146,29 +158,33 @@ export class ActivityLogComponent {
     },
     {
       key: 'occurredAt',
-      header: 'When (UTC)',
+      header: $localize`:Activity table column — the timestamp, always UTC@@activity.col.occurredAt:When (UTC)`,
       cell: (entry) => OCCURRED_AT_FORMAT.format(new Date(entry.occurredAt)),
       width: 'minmax(10rem, 12rem)',
       sortable: true,
     },
     {
       key: 'actor',
-      header: 'Actor',
+      header: $localize`:Activity table column — who performed the action@@activity.col.actor:Actor`,
       cell: (entry) => entry.actor,
       width: 'minmax(0, 1.4fr)',
       sortable: true,
     },
     {
       key: 'action',
-      header: 'Action',
+      header: $localize`:Activity table column — what was done@@activity.col.action:Action`,
       cell: (entry) => entry.action,
       width: '7rem',
       sortable: true,
     },
-    { key: 'resource', header: 'Resource', cell: (entry) => entry.resource },
+    {
+      key: 'resource',
+      header: $localize`:Activity table column — what was acted on@@activity.col.resource:Resource`,
+      cell: (entry) => entry.resource,
+    },
     {
       key: 'durationMs',
-      header: 'Duration',
+      header: $localize`:Activity table column — how long the action took@@activity.col.duration:Duration`,
       cell: (entry) => `${entry.durationMs} ms`,
       width: '7rem',
       numeric: true,

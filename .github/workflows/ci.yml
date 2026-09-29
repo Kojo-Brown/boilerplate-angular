@@ -31,6 +31,15 @@ concurrency:
 #     about either. They run in the `lint` job because they read source and need no build,
 #     and each proves its own rules against fixtures before certifying the repository.
 #     See `docs/track-expressions.md` and `docs/images.md`.
+#   - `scripts/ci/assert-i18n-coverage.mjs` fails when a string a user can read is not
+#     translatable, when a message has no explicit `@@id`, or when a translation file has
+#     drifted from the catalogue it was made from. All three are silent otherwise:
+#     `ng extract-i18n` never sees an unmarked string, and an explicit id means a reworded
+#     English sentence keeps its stale translations rather than failing as missing.
+#   - `scripts/ci/assert-logical-properties.mjs` fails on a physical-direction Tailwind
+#     utility. `dir="rtl"` moves only what is written logically, so a layout on `ml-`,
+#     `left-` or `border-r` mirrors into a consistent, plausible, wrong version of itself
+#     — which no compiler, linter or accessibility audit can see. See `docs/i18n.md`.
 #   - `scripts/dev/make-placeholder-images.mjs --check` fails if the generated fixtures in
 #     `public/img/` no longer match the script that produces them, so the checked-in binaries
 #     stay reproducible rather than becoming art nobody can rebuild.
@@ -122,6 +131,23 @@ jobs:
       # for the reason it names. See docs/typed-forms.md.
       - name: Assert the typed-form helpers still reject what they are meant to
         run: pnpm check:form-types
+
+      # Source-level like the two above, and the same shape of problem: an unmarked string
+      # does not shrink the message catalogue, it never enters it, so `ng extract-i18n` is
+      # silent and the only place the omission exists is the translated page. `check:i18n`
+      # also reads the translation files, where it catches the failure explicit `@@ids`
+      # create: a reworded English string keeps its old translations, because the id still
+      # matches. See docs/i18n.md.
+      - name: Assert every user-visible string is translatable, and every translation current
+        run: pnpm check:i18n
+
+      # `dir="rtl"` only reaches properties written logically. A layout on `ml-`/`left-`/
+      # `border-r` reflows into a consistently wrong mirror of itself with nothing failing
+      # — not the compiler, not the linter, and not the axe audit, which reads the
+      # accessibility tree where "left" is not a concept. `e2e/a11y/rtl.spec.ts` measures
+      # the rendered result; this bans the utilities that cause it.
+      - name: Assert the layout is written in logical properties
+        run: pnpm check:rtl
 
   typecheck:
     name: Typecheck (Node ${{ matrix.node-version }})
@@ -225,11 +251,13 @@ jobs:
       # One Node major, like `format` and the bundle gates: what this measures is a
       # property of the rendered document, and the document does not change with the
       # runtime that served it.
-      # Two suites in one project. `axe.spec.ts`/`a11y.spec.ts` audit each route at rest;
+      # Three suites in one project. `axe.spec.ts`/`a11y.spec.ts` audit each route at rest;
       # `focus-and-announcements.spec.ts` covers what a scanner structurally cannot see —
       # where focus lands after a navigation, and whether a live region ever changes —
       # because both are properties of the transition between two documents rather than of
-      # either document. See `docs/focus-and-live-regions.md`.
+      # either document; and `rtl.spec.ts` measures the layout mirrored, which is the half
+      # of the RTL pass that a source-level rule cannot reach. See
+      # `docs/focus-and-live-regions.md` and `docs/i18n.md`.
       - name: Audit every route, interaction state, and navigation
         run: pnpm e2e:a11y
         env:

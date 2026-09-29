@@ -98,13 +98,18 @@ export function tallyByAuthor(posts: readonly Post[]): readonly AuthorTally[] {
   imports: [AsyncDirective, NgOptimizedImage, PanelSkeletonComponent],
   template: `
     <ng-template #skeleton>
-      <app-panel-skeleton label="publishing activity" rows="5" />
+      <app-panel-skeleton
+        i18n-label="Named in 'Loading {$label}…'@@dashboard.insights.skeletonLabel"
+        label="publishing activity"
+        rows="5"
+      />
     </ng-template>
 
     <ng-template #failed>
       <div
         class="rounded-[var(--radius)] border border-[var(--color-border)] p-4 text-sm text-[var(--color-destructive)]"
         data-testid="insights-error"
+        i18n="@@dashboard.insights.error"
       >
         Could not load publishing activity.
       </div>
@@ -116,9 +121,25 @@ export function tallyByAuthor(posts: readonly Post[]): readonly AuthorTally[] {
       *appAsync="posts; let page; loading: skeleton; error: failed"
     >
       <header class="flex items-baseline justify-between gap-3">
-        <h3 class="text-sm font-medium text-[var(--color-foreground)]">Publishing activity</h3>
-        <p class="text-xs text-[var(--color-muted-foreground)]">
-          {{ page.total }} post{{ page.total === 1 ? '' : 's' }}
+        <h3
+          i18n="@@dashboard.insights.heading"
+          class="text-sm font-medium text-[var(--color-foreground)]"
+        >
+          Publishing activity
+        </h3>
+        <!--
+          An ICU \`plural\`, replacing \`post{{ total === 1 ? '' : 's' }}\`. That ternary is
+          not a shortcut for the same thing in a shorter form — it is English's own
+          two-form rule written into the template, where no translator can reach it.
+          Arabic selects between six categories and picks them by value, not by
+          "one or not one"; \`{ …, plural, … }\` is the only construct that lets the
+          translation file carry its own set.
+        -->
+        <p
+          i18n="@@dashboard.insights.postCount"
+          class="text-xs text-[var(--color-muted-foreground)]"
+        >
+          {page.total, plural, =0 {No posts} =1 {1 post} other {{{ page.total }} posts}}
         </p>
       </header>
 
@@ -160,14 +181,18 @@ export function tallyByAuthor(posts: readonly Post[]): readonly AuthorTally[] {
                   [style.width.%]="tally.share * 100"
                 ></div>
               </div>
-              <dd class="text-right text-xs tabular-nums text-[var(--color-foreground)]">
+              <dd class="text-end text-xs tabular-nums text-[var(--color-foreground)]">
                 {{ tally.posts }}
               </dd>
             </div>
           }
         </dl>
       } @else {
-        <p class="mt-4 text-xs text-[var(--color-muted-foreground)]" data-testid="insights-empty">
+        <p
+          i18n="@@dashboard.insights.empty"
+          class="mt-4 text-xs text-[var(--color-muted-foreground)]"
+          data-testid="insights-empty"
+        >
           No posts have been published yet.
         </p>
       }

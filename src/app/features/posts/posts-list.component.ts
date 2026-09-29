@@ -13,7 +13,9 @@ import { injectPostsQuery } from './posts.queries';
   template: `
     <div class="p-6">
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Posts</h1>
+        <h1 i18n="@@posts.list.heading" class="text-2xl font-bold text-gray-900 dark:text-white">
+          Posts
+        </h1>
         <app-post-typeahead class="w-full sm:w-80" />
       </div>
 
@@ -29,6 +31,7 @@ import { injectPostsQuery } from './posts.queries';
       <ng-template #failed>
         <div
           class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+          i18n="@@posts.list.error"
         >
           Failed to load posts. Please try again.
         </div>
@@ -71,14 +74,25 @@ import { injectPostsQuery } from './posts.queries';
               </li>
             }
           </ul>
-          <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            Showing {{ page.data.length }} of {{ page.total }} posts
+          <!--
+            The plural agrees with the *total*, not with the number of rows on screen,
+            so the ICU selects on \`page.total\` and interpolates the row count inside each
+            case. Splitting it into "Showing {n} of" + a pluralised "{total} posts" would
+            read correctly in English and nowhere else: the clause order is not universal.
+          -->
+          <p i18n="@@posts.list.showing" class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            {page.total, plural,
+              =1 {Showing {{ page.data.length }} of 1 post}
+              other {Showing {{ page.data.length }} of {{ page.total }} posts}
+            }
           </p>
         } @else {
           <div
             class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center dark:border-gray-600"
           >
-            <p class="text-sm text-gray-500 dark:text-gray-400">No posts yet.</p>
+            <p i18n="@@posts.list.empty" class="text-sm text-gray-500 dark:text-gray-400">
+              No posts yet.
+            </p>
           </div>
         }
       </ng-container>

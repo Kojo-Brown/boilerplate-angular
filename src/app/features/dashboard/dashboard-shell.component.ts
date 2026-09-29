@@ -15,7 +15,7 @@ const NAV_LINK_ACTIVE = 'bg-[var(--color-muted)] text-[var(--color-primary)]';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, RouterLinkActive, LayoutShellComponent],
   template: `
-    <app-layout-shell brandName="Dashboard">
+    <app-layout-shell i18n-brandName="@@dashboard.shell.brand" brandName="Dashboard">
       <ul sidebar-nav class="space-y-1">
         <li>
           <a
@@ -23,17 +23,28 @@ const NAV_LINK_ACTIVE = 'bg-[var(--color-muted)] text-[var(--color-primary)]';
             [routerLinkActive]="navLinkActive"
             [routerLinkActiveOptions]="{ exact: true }"
             [class]="navLink"
+            i18n="@@dashboard.nav.overview"
           >
             Overview
           </a>
         </li>
         <li>
-          <a routerLink="/dashboard/posts" [routerLinkActive]="navLinkActive" [class]="navLink">
+          <a
+            routerLink="/dashboard/posts"
+            [routerLinkActive]="navLinkActive"
+            [class]="navLink"
+            i18n="@@dashboard.nav.posts"
+          >
             Posts
           </a>
         </li>
         <li>
-          <a routerLink="/dashboard/activity" [routerLinkActive]="navLinkActive" [class]="navLink">
+          <a
+            routerLink="/dashboard/activity"
+            [routerLinkActive]="navLinkActive"
+            [class]="navLink"
+            i18n="@@dashboard.nav.activity"
+          >
             Activity log
           </a>
         </li>
@@ -53,8 +64,9 @@ const NAV_LINK_ACTIVE = 'bg-[var(--color-muted)] text-[var(--color-primary)]';
         <button
           type="button"
           (click)="onLogout()"
-          class="w-full rounded-[var(--radius)] px-3 py-2 text-left text-sm font-medium
+          class="w-full rounded-[var(--radius)] px-3 py-2 text-start text-sm font-medium
                  text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition-colors"
+          i18n="@@dashboard.shell.signOut"
         >
           Sign out
         </button>

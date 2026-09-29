@@ -24,6 +24,16 @@ const initialState: AuthState = {
   isRestoringSession: false,
 };
 
+/*
+ * The three fallbacks below are what the user is shown when the server's own message is
+ * missing or unusable. The server's message passes through untranslated by design: it is
+ * the API's to localise, from the request's `Accept-Language`, and second-guessing it in
+ * the client would mean mapping strings we do not own back to message ids.
+ */
+const LOGIN_FAILED = $localize`:Fallback when sign-in failed and the server said nothing useful@@auth.error.loginFailed:Login failed`;
+const REGISTRATION_FAILED = $localize`:Fallback when registration failed and the server said nothing useful@@auth.error.registrationFailed:Registration failed`;
+const SESSION_LOAD_FAILED = $localize`:Fallback when restoring the session failed@@auth.error.sessionLoadFailed:Failed to load user`;
+
 export const AuthStore = signalStore(
   { providedIn: 'root' },
   withState<AuthState>(initialState),
@@ -60,8 +70,8 @@ export const AuthStore = signalStore(
               error: (err: unknown) => {
                 const message =
                   err instanceof HttpErrorResponse
-                    ? ((err.error as { message?: string })?.message ?? 'Login failed')
-                    : 'Login failed';
+                    ? ((err.error as { message?: string })?.message ?? LOGIN_FAILED)
+                    : LOGIN_FAILED;
                 patchState(store, { isLoading: false, error: message });
               },
             })
@@ -84,8 +94,8 @@ export const AuthStore = signalStore(
               error: (err: unknown) => {
                 const message =
                   err instanceof HttpErrorResponse
-                    ? ((err.error as { message?: string })?.message ?? 'Registration failed')
-                    : 'Registration failed';
+                    ? ((err.error as { message?: string })?.message ?? REGISTRATION_FAILED)
+                    : REGISTRATION_FAILED;
                 patchState(store, { isLoading: false, error: message });
               },
             })
@@ -143,7 +153,7 @@ export const AuthStore = signalStore(
                 patchState(store, { user, isLoading: false, isRestoringSession: false }),
               error: (err: unknown) => {
                 const message =
-                  err instanceof HttpErrorResponse ? err.message : 'Failed to load user';
+                  err instanceof HttpErrorResponse ? err.message : SESSION_LOAD_FAILED;
                 patchState(store, { isLoading: false, isRestoringSession: false, error: message });
               },
             })

@@ -30,10 +30,10 @@ export interface ApiErrorMapper {
 export const API_ERROR_MAPPERS = new InjectionToken<readonly ApiErrorMapper[]>('API_ERROR_MAPPERS');
 
 /** Shown when the request never reached the server, so there is no body to read. */
-export const NETWORK_ERROR_MESSAGE = 'Network error — please check your connection';
+export const NETWORK_ERROR_MESSAGE = $localize`:Shown when a request never reached the server@@http.error.network:Network error — please check your connection`;
 
 /** Shown when a response failed but no mapper could name a reason. */
-export const UNEXPECTED_ERROR_MESSAGE = 'An unexpected error occurred';
+export const UNEXPECTED_ERROR_MESSAGE = $localize`:Shown when a failure matched no mapper@@http.error.unexpected:An unexpected error occurred`;
 
 /**
  * A failure with no HTTP status: DNS, TLS, CORS, an offline device, an aborted request.

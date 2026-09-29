@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  LOCALE_ID,
+  model,
+  output,
+} from '@angular/core';
 
 /**
  * A single headline number with its change over the selected window.
@@ -22,7 +31,11 @@ import { ChangeDetectionStrategy, Component, computed, input, model, output } fr
           [attr.aria-expanded]="!collapsed()"
           (click)="collapsed.set(!collapsed())"
         >
-          {{ collapsed() ? 'Show' : 'Hide' }}
+          @if (collapsed()) {
+            <ng-container i18n="Expands a collapsed widget@@widgets.show">Show</ng-container>
+          } @else {
+            <ng-container i18n="Collapses an expanded widget@@widgets.hide">Hide</ng-container>
+          }
         </button>
       </header>
 
@@ -35,6 +48,7 @@ import { ChangeDetectionStrategy, Component, computed, input, model, output } fr
           type="button"
           class="mt-3 text-xs font-medium text-[var(--color-primary)] hover:underline"
           (click)="select.emit(label())"
+          i18n="@@widgets.stat.breakdown"
         >
           Breakdown
         </button>
@@ -53,21 +67,34 @@ export class StatWidgetComponent {
   readonly collapsed = model(false);
   readonly select = output<string>();
 
+  /**
+   * The locale these numbers are formatted in.
+   *
+   * It was `'en-US'`, hard-coded in three `Intl.NumberFormat` calls, which is the failure
+   * mode a localised build does *not* announce: every string on the page arrives in
+   * Arabic and the numbers beside them stay in Latin digits with an English grouping
+   * separator. `LOCALE_ID` is what the build set, so it is what these follow.
+   */
+  private readonly locale = inject(LOCALE_ID);
+
   protected readonly formattedValue = computed(() => {
     const currency = this.currency();
     return currency === null
-      ? new Intl.NumberFormat('en-US').format(this.value())
-      : new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(this.value());
+      ? new Intl.NumberFormat(this.locale).format(this.value())
+      : new Intl.NumberFormat(this.locale, { style: 'currency', currency }).format(this.value());
   });
 
   protected readonly formattedDelta = computed(() => {
     const delta = this.delta();
-    const formatted = new Intl.NumberFormat('en-US', {
+    const formatted = new Intl.NumberFormat(this.locale, {
       style: 'percent',
       maximumFractionDigits: 1,
     }).format(Math.abs(delta));
-    if (delta === 0) return `No change`;
-    return delta > 0 ? `Up ${formatted}` : `Down ${formatted}`;
+    if (delta === 0)
+      return $localize`:A statistic that has not moved since the previous window@@widgets.stat.noChange:No change`;
+    return delta > 0
+      ? $localize`:A statistic that rose, followed by a percentage@@widgets.stat.up:Up ${formatted}:percent:`
+      : $localize`:A statistic that fell, followed by a percentage@@widgets.stat.down:Down ${formatted}:percent:`;
   });
 
   protected readonly deltaClass = computed(() => {

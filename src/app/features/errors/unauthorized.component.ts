@@ -10,8 +10,8 @@ import { RouteFocusTargetDirective } from '@/app/core/a11y';
   // moves off `text-gray-500`, which is 4.19:1 on the dark background — the palette has
   // a token for secondary text and it clears 4.5:1 in both themes.
   template: `<main appRouteFocusTarget class="p-8 text-center">
-    <h1 class="text-2xl font-bold">403 — Unauthorized</h1>
-    <p class="mt-2 text-[var(--color-muted-foreground)]">
+    <h1 i18n="@@errors.unauthorized.heading" class="text-2xl font-bold">403 — Unauthorized</h1>
+    <p i18n="@@errors.unauthorized.body" class="mt-2 text-[var(--color-muted-foreground)]">
       You do not have permission to view this page.
     </p>
   </main>`,

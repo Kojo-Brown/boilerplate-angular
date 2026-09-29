@@ -832,6 +832,49 @@ See [docs/accessibility.md](./docs/accessibility.md) for what the gate cannot
 see — prerendered HTML, focus order, whether an `alt` says anything true — and
 for how to add a route or an interaction state.
 
+## Internationalisation
+
+Two locales, built at build time: `en-US` (source) and `ar` — right to left, and
+with six plural categories where English has two.
+
+```bash
+pnpm i18n:extract   # rewrite src/locale/messages.xlf
+pnpm start:ar       # serve the Arabic build, mirrored
+pnpm check:i18n     # every string translatable, every translation current
+pnpm check:rtl      # no physical-direction utilities
+```
+
+**Turning `localize` on moves every URL.** `/login` becomes `/en-US/login` and
+`/ar/login`; `/` is a redirect to the default locale, issued by `@angular/ssr`.
+One `ng build` emits a browser and a server graph per locale, and
+`assert-ssr.mjs` checks both of them — including that each locale's prerendered
+HTML is actually in that locale, which is the only place a translation file that
+was configured but never applied would show up.
+
+**Three things had been written into the source that no translator could reach.**
+`{{ total }} post{{ total === 1 ? '' : 's' }}` is English's two-form plural rule
+compiled into a template; `${entries.length.toLocaleString('en-GB')}` and three
+`new Intl.NumberFormat('en-US')` calls are a formatting locale that a localised
+build does not change, so the page arrives in Arabic with Latin digits beside it.
+ICU `plural` and `LOCALE_ID` respectively.
+
+**`dir="rtl"` arrives for free and fixes almost nothing.** Angular writes `lang`
+and `dir` from the locale; `dir` then moves only what is written logically, so
+`ml-4`, `left-0` and `border-r` mirror into a consistent, plausible, wrong
+layout that no compiler, linter or accessibility audit can see. `pnpm check:rtl`
+bans them; `e2e/a11y/rtl.spec.ts` measures the result, and caught the desktop
+sidebar being pushed off the right-hand edge by the first attempt at the fix.
+
+**`withI18nSupport()` is not optional.** Without it Angular marks any component
+whose template holds an `i18n` region `ngSkipHydration` — and a component that
+skips hydration takes every `@defer (hydrate …)` block under it with it, so
+marking `/login`'s heading translatable silently put the 101.89 kB that block
+exists to postpone back on the load path, with no diagnostic anywhere.
+
+See [docs/i18n.md](./docs/i18n.md) for why plurals belong in templates and what
+it costs when they cannot be, what is deliberately left untranslated, and the
+three gaps the gates do not close.
+
 ## Spec Progress
 
 See [SPEC.md](./SPEC.md).

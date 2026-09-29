@@ -43,7 +43,7 @@ import { RepeatDirective } from '@/app/shared/directives';
       class="rounded-[var(--radius)] border border-[var(--color-border)] p-4"
       data-testid="panel-skeleton"
     >
-      <span class="sr-only">Loading {{ label() }}…</span>
+      <span i18n="@@ui.skeleton.loading" class="sr-only">Loading {{ label() }}…</span>
       <div aria-hidden="true">
         <div class="h-4 w-1/3 animate-pulse rounded bg-[var(--color-muted)]"></div>
         <div class="mt-4 space-y-2">

@@ -68,8 +68,9 @@ const TYPE_STYLES: Record<ToastType, string> = {
       <button
         type="button"
         (click)="dismiss.emit()"
-        class="ml-2 shrink-0 rounded p-0.5 opacity-70 transition-opacity hover:opacity-100
+        class="ms-2 shrink-0 rounded p-0.5 opacity-70 transition-opacity hover:opacity-100
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
+        i18n-aria-label="@@toast.dismiss"
         aria-label="Dismiss notification"
       >
         <svg
@@ -128,8 +129,9 @@ export class ToastItemComponent implements OnInit {
     -->
     <div
       role="region"
+      i18n-aria-label="@@toast.regionLabel"
       aria-label="Notifications"
-      class="pointer-events-none fixed right-4 top-4 z-50 flex w-full max-w-sm flex-col gap-2"
+      class="pointer-events-none fixed end-4 top-4 z-50 flex w-full max-w-sm flex-col gap-2"
     >
       @for (toast of toastService.toasts(); track toast.id) {
         <div class="pointer-events-auto">

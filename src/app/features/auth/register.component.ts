@@ -66,8 +66,16 @@ function inviteKey(control: AbstractControl): InviteKey | null {
           <app-brand-banner />
 
           <div class="mt-6 mb-8">
-            <h1 class="text-2xl font-bold text-[var(--color-foreground)]">Create an account</h1>
-            <p class="mt-1 text-sm text-[var(--color-muted-foreground)]">
+            <h1
+              i18n="@@auth.register.heading"
+              class="text-2xl font-bold text-[var(--color-foreground)]"
+            >
+              Create an account
+            </h1>
+            <p
+              i18n="@@auth.register.subheading"
+              class="mt-1 text-sm text-[var(--color-muted-foreground)]"
+            >
               Get started with your free account today
             </p>
           </div>
@@ -86,6 +94,7 @@ function inviteKey(control: AbstractControl): InviteKey | null {
               <div>
                 <label
                   for="name"
+                  i18n="@@auth.register.name.label"
                   class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
                 >
                   Full name
@@ -95,6 +104,7 @@ function inviteKey(control: AbstractControl): InviteKey | null {
                   type="text"
                   formControlName="name"
                   autocomplete="name"
+                  i18n-placeholder="Example of a person's full name@@auth.register.name.placeholder"
                   placeholder="Jane Smith"
                   class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                   [class.border-red-400]="nameError()"
@@ -108,6 +118,7 @@ function inviteKey(control: AbstractControl): InviteKey | null {
               <div>
                 <label
                   for="email"
+                  i18n="@@auth.register.email.label"
                   class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
                 >
                   Email address
@@ -117,6 +128,9 @@ function inviteKey(control: AbstractControl): InviteKey | null {
                   type="email"
                   formControlName="email"
                   autocomplete="email"
+                  i18n-placeholder="
+                    Example address. Translators may leave the local part in Latin script.
+                    @@auth.register.email.placeholder"
                   placeholder="you@example.com"
                   class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                   [class.border-red-400]="emailError()"
@@ -130,6 +144,7 @@ function inviteKey(control: AbstractControl): InviteKey | null {
               <div>
                 <label
                   for="password"
+                  i18n="@@auth.register.password.label"
                   class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
                 >
                   Password
@@ -147,7 +162,10 @@ function inviteKey(control: AbstractControl): InviteKey | null {
                 @if (passwordError()) {
                   <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ passwordError() }}</p>
                 }
-                <p class="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                <p
+                  i18n="@@auth.register.password.hint"
+                  class="mt-1 text-xs text-[var(--color-muted-foreground)]"
+                >
                   Min 8 characters, one uppercase letter and one number
                 </p>
               </div>
@@ -155,6 +173,7 @@ function inviteKey(control: AbstractControl): InviteKey | null {
               <div>
                 <label
                   for="confirmPassword"
+                  i18n="@@auth.register.confirmPassword.label"
                   class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
                 >
                   Confirm password
@@ -179,6 +198,9 @@ function inviteKey(control: AbstractControl): InviteKey | null {
               <div>
                 <label
                   for="inviteCode"
+                  i18n="
+                    The parenthesised word marks the field as not required.
+                    @@auth.register.inviteCode.label"
                   class="mb-1 block text-sm font-medium text-[var(--color-foreground)]"
                 >
                   Workspace invite code
@@ -190,6 +212,9 @@ function inviteKey(control: AbstractControl): InviteKey | null {
                   formControlName="inviteCode"
                   autocomplete="off"
                   spellcheck="false"
+                  i18n-placeholder="
+                    Shape of an invite code. The WS- prefix is part of the code, not prose.
+                    @@auth.register.inviteCode.placeholder"
                   placeholder="WS-0000-0000"
                   [attr.aria-invalid]="inviteCodeError() ? 'true' : null"
                   class="w-full rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
@@ -197,13 +222,19 @@ function inviteKey(control: AbstractControl): InviteKey | null {
                   [class.border-[var(--color-border)]]="!inviteCodeError()"
                 />
                 @if (isCheckingInvite()) {
-                  <p class="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                  <p
+                    i18n="@@auth.register.inviteCode.checking"
+                    class="mt-1 text-xs text-[var(--color-muted-foreground)]"
+                  >
                     Checking invite code…
                   </p>
                 } @else if (inviteCodeError()) {
                   <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ inviteCodeError() }}</p>
                 } @else {
-                  <p class="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                  <p
+                    i18n="@@auth.register.inviteCode.hint"
+                    class="mt-1 text-xs text-[var(--color-muted-foreground)]"
+                  >
                     Leave blank to create a personal workspace
                   </p>
                 }
@@ -216,14 +247,23 @@ function inviteKey(control: AbstractControl): InviteKey | null {
               class="mt-6 w-full rounded-md bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               @if (auth.isBusy()) {
-                Creating account…
+                <ng-container i18n="@@auth.register.submit.busy">Creating account…</ng-container>
               } @else {
-                Create account
+                <ng-container i18n="@@auth.register.submit">Create account</ng-container>
               }
             </button>
           </form>
 
-          <p class="mt-6 text-center text-sm text-[var(--color-muted-foreground)]">
+          <!--
+            One message, not three. The link is a placeholder inside the sentence rather
+            than a separate unit, so a translator can move it: in Arabic the clause order
+            is reversed, and a template that had concatenated "Already have an account?"
+            with a separately translated "Sign in" would have pinned the link to the end.
+          -->
+          <p
+            i18n="@@auth.register.signInPrompt"
+            class="mt-6 text-center text-sm text-[var(--color-muted-foreground)]"
+          >
             Already have an account?
             <a routerLink="/login" class="font-medium text-[var(--color-primary)] hover:underline">
               Sign in

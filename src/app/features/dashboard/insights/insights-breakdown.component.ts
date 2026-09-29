@@ -86,13 +86,18 @@ export function bandPosts(posts: readonly Post[]): readonly LengthBand[] {
   imports: [AsyncDirective, PanelSkeletonComponent],
   template: `
     <ng-template #skeleton>
-      <app-panel-skeleton label="the length breakdown" rows="4" />
+      <app-panel-skeleton
+        i18n-label="Named in 'Loading {$label}…'@@dashboard.breakdown.skeletonLabel"
+        label="the length breakdown"
+        rows="4"
+      />
     </ng-template>
 
     <ng-template #failed>
       <div
         class="rounded-[var(--radius)] border border-[var(--color-border)] p-4 text-sm text-[var(--color-destructive)]"
         data-testid="breakdown-error"
+        i18n="@@dashboard.breakdown.error"
       >
         Could not load the length breakdown.
       </div>
@@ -103,29 +108,49 @@ export function bandPosts(posts: readonly Post[]): readonly LengthBand[] {
       data-testid="insights-breakdown"
       *appAsync="posts; let page; loading: skeleton; error: failed"
     >
-      <h3 class="text-sm font-medium text-[var(--color-foreground)]">Post length</h3>
+      <h3
+        i18n="@@dashboard.breakdown.heading"
+        class="text-sm font-medium text-[var(--color-foreground)]"
+      >
+        Post length
+      </h3>
 
-      <table class="mt-4 w-full text-left text-xs">
-        <caption class="sr-only">
+      <table class="mt-4 w-full text-start text-xs">
+        <caption i18n="@@dashboard.breakdown.caption" class="sr-only">
           Posts grouped by body length, over
-          {{
-            page.total
-          }}
-          posts
+          {page.total, plural, =1 {1 post} other {{{ page.total }} posts}}
         </caption>
         <thead class="text-[var(--color-muted-foreground)]">
           <tr>
-            <th scope="col" class="pb-2 font-medium">Length</th>
-            <th scope="col" class="pb-2 text-right font-medium">Posts</th>
-            <th scope="col" class="pb-2 text-right font-medium">Share</th>
+            <th
+              scope="col"
+              i18n="Table column: body-length band@@dashboard.breakdown.col.length"
+              class="pb-2 font-medium"
+            >
+              Length
+            </th>
+            <th
+              scope="col"
+              i18n="Table column: number of posts in the band@@dashboard.breakdown.col.posts"
+              class="pb-2 text-end font-medium"
+            >
+              Posts
+            </th>
+            <th
+              scope="col"
+              i18n="Table column: percentage of all posts@@dashboard.breakdown.col.share"
+              class="pb-2 text-end font-medium"
+            >
+              Share
+            </th>
           </tr>
         </thead>
         <tbody class="text-[var(--color-foreground)]">
           @for (band of bands(); track band.label) {
             <tr data-testid="band-row" class="border-t border-[var(--color-border)]">
               <th scope="row" class="py-2 font-normal">{{ band.label }}</th>
-              <td class="py-2 text-right tabular-nums">{{ band.posts }}</td>
-              <td class="py-2 text-right tabular-nums">{{ formatShare(band.share) }}</td>
+              <td class="py-2 text-end tabular-nums">{{ band.posts }}</td>
+              <td class="py-2 text-end tabular-nums">{{ formatShare(band.share) }}</td>
             </tr>
           }
         </tbody>

@@ -236,7 +236,9 @@ export class VirtualTableComponent<T> {
   readonly label = input.required<string>();
 
   /** Shown in place of the table when `rows` is empty. */
-  readonly emptyMessage = input('No rows to show.');
+  readonly emptyMessage = input(
+    $localize`:Shown in place of the rows when a table has none@@ui.virtualTable.empty:No rows to show.`
+  );
 
   /**
    * The height of every row, in pixels, and the viewport's `itemSize`.
@@ -277,12 +279,12 @@ export class VirtualTableComponent<T> {
   protected readonly ariaRowCount = computed(() => this.rows().length + 1);
 
   protected readonly headerCell =
-    'min-w-0 px-3 text-left text-xs font-semibold uppercase tracking-wide ' +
+    'min-w-0 px-3 text-start text-xs font-semibold uppercase tracking-wide ' +
     'text-[var(--color-muted-foreground)]';
-  protected readonly headerCellNumeric = `${this.headerCell} text-right`;
+  protected readonly headerCellNumeric = `${this.headerCell} text-end`;
   protected readonly bodyCell =
-    'min-w-0 truncate px-3 text-sm text-left text-[var(--color-foreground)]';
-  protected readonly bodyCellNumeric = `${this.bodyCell} text-right tabular-nums`;
+    'min-w-0 truncate px-3 text-sm text-start text-[var(--color-foreground)]';
+  protected readonly bodyCellNumeric = `${this.bodyCell} text-end tabular-nums`;
   protected readonly plainRow = 'grid items-center border-b border-[var(--color-border)]';
   protected readonly stripedRow = `${this.plainRow} bg-[var(--color-muted)]`;
 
