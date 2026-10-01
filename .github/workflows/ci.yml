@@ -67,6 +67,13 @@ concurrency:
 #     breaks are all invisible to a bundle and to a browser-run unit suite: a browser-only
 #     global reached during a render, a platform-specific provider, a route whose render
 #     mode changed, a `@defer (hydrate …)` block that arrives hydrated (see `docs/ssr.md`).
+#   - `scripts/ci/assert-csp.mjs` starts the built server and checks that each document it
+#     serves carries a *fresh* nonce and a policy that still refuses what it exists to
+#     refuse. It runs the artifact for the same reason `check:ssr` does, and it leans on
+#     comparing two responses because a nonce that has stopped being per-response — baked
+#     into `index.html`, reused, or cached behind an `ETag` — leaves an application that
+#     works perfectly and a policy that authorises a constant. Nothing warns, nothing is
+#     blocked, and axe has nothing to say (see `docs/security.md`).
 #   - `NODE_OPTIONS: --throw-deprecation` promotes Node runtime deprecation warnings to
 #     thrown errors, so a deprecated API — ours or a dependency's — surfaces on the
 #     oldest and the newest supported runtime rather than when it is finally removed.
@@ -356,6 +363,21 @@ jobs:
       - name: Assert the server renders what each route promises
         if: matrix.node-version == '22'
         run: pnpm check:ssr
+        env:
+          NODE_OPTIONS: --throw-deprecation
+
+      # The other gate that runs the artifact, and the one with the least to go on: a
+      # nonce has exactly one security property — unpredictability — and *every* way of
+      # losing it leaves a working application. A nonce baked into index.html works; one
+      # reused across every response works; one served with an ETag, so the browser keeps
+      # replaying its cached copy, works. Measured on this repository: three loads of
+      # /login, one nonce, page correct every time, nothing blocked and nothing logged.
+      # No console error, no failed request, no visual defect, and nothing for axe to
+      # report. So this gate is mostly about the difference between two responses, which
+      # is the one thing a single request cannot show. See docs/security.md.
+      - name: Assert every document gets a fresh nonce and an enforceable policy
+        if: matrix.node-version == '22'
+        run: pnpm check:csp
         env:
           NODE_OPTIONS: --throw-deprecation
 

@@ -5,7 +5,15 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import type { Request } from 'express';
 import { join } from 'node:path';
+import {
+  applyCspNonce,
+  buildContentSecurityPolicy,
+  createCspNonce,
+  CSP_HEADER,
+} from '@/app/core/security';
+import { environment } from '@/environments/environment';
 
 /**
  * The Node process that serves the application.
@@ -55,17 +63,126 @@ app.use(
 );
 
 /**
+ * Whether a request is for a *document* rather than for a subresource.
+ *
+ * Only documents carry a nonce, so only documents need the conditional-request handling
+ * below. `Sec-Fetch-Dest` is the precise answer and every browser this application
+ * supports sends it; the `Accept` test is the fallback for the ones that do not and for
+ * `curl`, which `assert-csp.mjs` is effectively standing in for. A navigation asks for
+ * `text/html`; a fetch for a chunk does not.
+ */
+function isDocumentRequest(req: Request): boolean {
+  if (req.headers['sec-fetch-dest'] === 'document') return true;
+  return (req.headers.accept ?? '').includes('text/html');
+}
+
+/**
+ * The policy for one response, and the nonce it authorises.
+ *
+ * The three origins come from `environment`, which is a build-time constant — so there is
+ * no environment variable that can argue this server into relaxing its own policy, and
+ * the development build differs from the production one only in what `apiUrl` resolves
+ * to. `csp.ts` has the reasoning and the measurement behind that.
+ */
+function cspFor(nonce: string): string {
+  return buildContentSecurityPolicy({
+    nonce,
+    apiUrl: environment.apiUrl,
+    imageCdnUrl: environment.imageCdnUrl,
+    vitalsUrl: environment.vitalsUrl,
+  });
+}
+
+/**
+ * Give one rendered document a nonce, and the header that authorises it.
+ *
+ * Non-HTML responses are returned untouched: a policy on a JavaScript chunk governs
+ * nothing, and `express.static` above has already answered for the hashed assets anyway.
+ *
+ * ## Why the ETag has to go
+ *
+ * A prerendered route is a file on disk, and `@angular/ssr` serves it with an `ETag` and
+ * answers a conditional request with a 304. That is exactly right for a static page and
+ * exactly wrong for one carrying a nonce, because the `ETag` is computed from the *file*
+ * and the substitution above happens after it: three consecutive responses measured with
+ * the deletions below removed carried one identical `ETag` and three different nonces. A
+ * validator that reports "unchanged" about a body that changed is simply incorrect, and
+ * what it buys is that any cache holding the page — the browser's, or a shared one in
+ * front of it — may answer later requests from the copy it has.
+ *
+ * The symptom is the reason this is handled rather than noted. Loading `/login` three
+ * times in Chromium against that same build produced **one** nonce for all three loads,
+ * the page rendering correctly every time, nothing blocked, nothing logged. The policy
+ * and the document agree, so there is no violation to report; the nonce has just stopped
+ * being per-response, which is the entire property it exists for. A static nonce that
+ * cannot be distinguished from a working one is the failure `nonce.ts` is written against,
+ * arrived at from the other direction. The same three loads with the deletions in place
+ * produce three distinct nonces.
+ *
+ * So a nonced document drops its validator and says `no-cache`. `no-cache` rather than
+ * `no-store` on purpose — `no-store` would also make the page ineligible for the
+ * browser's back/forward cache, and there is nothing to gain by it: with no `ETag` and no
+ * `Last-Modified` there is no validator for a revalidation to succeed on, so the browser
+ * re-fetches and gets a fresh nonce either way. `private` is the half that matters most in
+ * a deployment: without it the prerendered HTML carries no `cache-control` at all, which
+ * makes it heuristically cacheable, and a CDN in front of this server would hand one
+ * visitor's nonce to every visitor.
+ *
+ * The cost is real and worth naming: prerendering `/login` exists to make it a file a CDN
+ * can hold, and a per-response nonce takes that back. `docs/security.md` argues the trade
+ * and what the alternative (a build-time hash policy) would cost instead.
+ */
+async function nonceDocument(response: Response, nonce: string): Promise<Response> {
+  if (!(response.headers.get('content-type') ?? '').includes('text/html')) {
+    return response;
+  }
+
+  const html = applyCspNonce(await response.text(), nonce);
+  const headers = new Headers(response.headers);
+
+  headers.set(CSP_HEADER, cspFor(nonce));
+  headers.delete('etag');
+  headers.delete('last-modified');
+  headers.set('cache-control', 'no-cache, private');
+  // The substitution changes the body's length, and the prerendered file's own
+  // `content-length` came with it. A stale one here truncates the page in the browser.
+  headers.set('content-length', String(new TextEncoder().encode(html).byteLength));
+
+  return new Response(html, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
  * Everything else is the Angular application: a prerendered page from the build, a
  * server render, or the client-side-rendering shell, decided by `app.routes.server.ts`.
  *
  * `next()` on a null response rather than a 404 written here, so a route this engine
  * does not claim falls through to Express' own final handler — and so that an API route
  * mounted after this one would still be reachable.
+ *
+ * The request's validators are dropped before the engine sees it, for the reason
+ * `nonceDocument` gives: a 304 and a fresh nonce cannot both be right, and the engine
+ * decides the 304 before this code gets a response to fix up. Stripping them here means
+ * the answer does not depend on what any intermediary happened to have cached — including
+ * a copy of this page served before the policy existed, which is the one case that
+ * `cache-control` on the way out cannot reach.
  */
 app.use((req, res, next) => {
+  if (isDocumentRequest(req)) {
+    delete req.headers['if-none-match'];
+    delete req.headers['if-modified-since'];
+  }
+
+  const nonce = createCspNonce();
+
   angularApp
     .handle(req)
-    .then((response) => (response ? writeResponseToNodeResponse(response, res) : next()))
+    .then(async (response) =>
+      response ? writeResponseToNodeResponse(await nonceDocument(response, nonce), res) : next()
+    )
     .catch(next);
 });
 

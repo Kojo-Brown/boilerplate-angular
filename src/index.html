@@ -8,6 +8,10 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
   </head>
   <body>
-    <app-root></app-root>
+    <!-- ngCspNonce is a placeholder; src/server.ts substitutes a real nonce per response.
+         Keep it equal to CSP_NONCE_PLACEHOLDER in src/app/core/security/nonce.ts, which
+         has the reasoning; assert-csp.mjs fails if the two drift. Comments here ship to
+         every visitor in the built HTML, so the argument lives in the TypeScript. -->
+    <app-root ngCspNonce="NGCSP_NONCE_SUBSTITUTED_PER_RESPONSE"></app-root>
   </body>
 </html>
