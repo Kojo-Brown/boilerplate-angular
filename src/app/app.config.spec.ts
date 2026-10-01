@@ -1,4 +1,4 @@
-import { Component, NgZone, signal } from '@angular/core';
+import { Component, CSP_NONCE, NgZone, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TitleStrategy } from '@angular/router';
@@ -133,5 +133,24 @@ describe('appConfig', () => {
    */
   it('gives the router the same title strategy the route announcer reads', () => {
     expect(TestBed.inject(TitleStrategy)).toBe(TestBed.inject(AppTitleStrategy));
+  });
+
+  /**
+   * `CSP_NONCE` belongs to `app.config.server.ts` and must not leak into the shared
+   * configuration.
+   *
+   * On the server it is provided as the build-time placeholder, so the renderer can stamp
+   * it onto the event-replay script it injects (see `core/security/nonce.ts`). In the
+   * browser Angular's own default for the token reads the live `ngCspNonce` attribute off
+   * `<app-root>`, which `src/server.ts` has by then rewritten to this response's real
+   * nonce.
+   *
+   * Providing it here would override that default with the placeholder, and every
+   * `<style>` element Angular injected as a lazy component arrived would carry a nonce
+   * the policy does not list. Nothing would error: the styles would simply not apply, on
+   * lazily-routed components only, in a production build only.
+   */
+  it('does not provide CSP_NONCE, which the browser must read from the document', () => {
+    expect(TestBed.inject(CSP_NONCE, null)).toBeNull();
   });
 });

@@ -45,6 +45,49 @@ export default tseslint.config(
     },
   },
   {
+    // The sanitisation policy, as a rule rather than a convention.
+    //
+    // `DomSanitizer.bypassSecurityTrust*` is the only way to get a string into a
+    // dangerous DOM sink with Angular's sanitiser switched off, which makes it the only
+    // place in a template where an XSS can originate. Nothing flags it: the names are
+    // deliberately alarming and that is the entire safeguard, so a call survives
+    // typecheck, lint, every spec, and review by anyone who reads `bypassSecurityTrust`
+    // as "this value is trusted" rather than as "stop checking".
+    //
+    // `no-restricted-syntax` on the member name rather than `no-restricted-imports` on
+    // `DomSanitizer`: importing the sanitiser is how you *sanitise*, which is what
+    // `HtmlSanitiser` in `@/app/core/security` does and what the policy asks for. It is
+    // the five bypasses that are banned, not the class.
+    //
+    // Matched on the property name alone, so it catches the call however the sanitiser
+    // was reached — `this.sanitizer.bypassSecurityTrustHtml(x)`,
+    // `inject(DomSanitizer).bypassSecurityTrustUrl(x)`, a destructured alias, or a
+    // `sanitizer['bypassSecurityTrustHtml']` written to get around a rule that looked
+    // only at dotted access.
+    //
+    // The runtime half of the same ban is the `trusted-types` directive in
+    // `src/app/core/security/csp.ts`, which omits the `angular#unsafe-bypass` policy
+    // these methods need; `docs/security.md` says why one mechanism is not enough.
+    files: ['src/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'MemberExpression[property.name=/^bypassSecurityTrust(Html|Style|Script|Url|ResourceUrl)$/]',
+          message:
+            'bypassSecurityTrust* turns Angular’s sanitiser off for that value. Render untrusted markup through HtmlSanitiser from @/app/core/security instead, which sanitises and returns a plain string. The CSP also refuses the angular#unsafe-bypass Trusted Types policy, so this throws in a browser as well — see docs/security.md.',
+        },
+        {
+          selector:
+            'MemberExpression[computed=true][property.value=/^bypassSecurityTrust(Html|Style|Script|Url|ResourceUrl)$/]',
+          message:
+            'bypassSecurityTrust* turns Angular’s sanitiser off for that value, and reaching it through a computed property does not change that. See docs/security.md.',
+        },
+      ],
+    },
+  },
+  {
     // The platform boundary, as a rule rather than a convention.
     //
     // Since SSR was turned on, everything under `src/app/` runs twice: once in a browser
