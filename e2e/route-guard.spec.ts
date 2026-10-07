@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { mockProfileSuccess, seedAuthSession, clearAuthSession } from './helpers/api-mocks';
+import {
+  mockLoginSuccess,
+  mockLogoutSuccess,
+  mockProfileSuccess,
+  seedAuthSession,
+  clearAuthSession,
+} from './helpers/api-mocks';
 
 test.describe('Route guard', () => {
   test('unauthenticated user is redirected from /dashboard to /login', async ({ page }) => {
@@ -31,17 +37,9 @@ test.describe('Route guard', () => {
   });
 
   test('returnUrl parameter is respected after successful login', async ({ page }) => {
-    await page.route('**/auth/login', (route) => {
-      void route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          user: { id: '1', email: 'test@example.com', name: 'Test', role: 'user' },
-          accessToken: 'mock-access-token',
-          refreshToken: 'mock-refresh-token',
-        }),
-      });
-    });
+    // The shared mock rather than an inline body: it is the one that sends the two
+    // `Set-Cookie` headers the API sends, which is what the sign-in contract now is.
+    await mockLoginSuccess(page);
 
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/login\?returnUrl=%2Fdashboard/);
@@ -53,7 +51,37 @@ test.describe('Route guard', () => {
     await expect(page).toHaveURL('/dashboard');
   });
 
-  test('logout clears session and redirects to login', async ({ page }) => {
+  /**
+   * Signing out through the interface, not by clearing the jar behind the page's back.
+   *
+   * It is a round trip on purpose: the refresh cookie is `HttpOnly`, so only the
+   * server's `Set-Cookie` can expire it, and a sign-out that skipped the request would
+   * leave the session restorable on the next load. The reload is what proves it did not.
+   *
+   * The reload is also why the assertion is not `toHaveURL('/login')` straight after the
+   * click. `DashboardShellComponent.onLogout` calls `signOut()` and nothing else, so the
+   * user is left on a dashboard with no session until the next navigation — a gap that
+   * predates this change and is not part of it. What is asserted here is the part that
+   * matters for the session: it is revoked, and it does not come back.
+   */
+  test('signing out revokes the session and a reload stays signed out', async ({ page }) => {
+    await mockProfileSuccess(page);
+    await page.goto('/login');
+    await seedAuthSession(page);
+    const logout = await mockLogoutSuccess(page);
+
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL('/dashboard');
+
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect.poll(() => logout.calls()).toBe(1);
+
+    await page.reload();
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  /** The same end state reached from the jar, for the cookie expiry the server performs. */
+  test('a cleared cookie jar is a signed-out reload', async ({ page }) => {
     await mockProfileSuccess(page);
     await page.goto('/login');
     await seedAuthSession(page);

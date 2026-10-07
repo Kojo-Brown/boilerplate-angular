@@ -25,16 +25,19 @@ Nothing else changed hands. `authGuard`, `roleGuard`, `jwtInterceptor` and
 `AuthStore` publishes twenty members. A component holding it could reach all of them.
 Three groups are worth naming, because each is a real mistake that now fails to compile:
 
-**The tokens.** `accessToken` and `refreshToken` are signals on the store. A component
-holding it can interpolate a bearer token into a template, log it, or hand it to a
-third-party widget, and nothing in the type system objects. `updateTokens` is the same
-hazard pointing the other way: a view that can rotate a session can corrupt one.
+**The token.** `accessToken` is a signal on the store. A component holding it can
+interpolate a bearer token into a template, log it, or hand it to a third-party widget,
+and nothing in the type system objects. `updateAccessToken` is the same hazard pointing
+the other way: a view that can rotate a session can corrupt one. The refresh token is
+not on this list because it is not on the store either — it is an `HttpOnly` cookie and
+this application never holds it, which is the one leak the facade does not have to
+prevent. See [token storage](./token-storage.md).
 
-**The session lifecycle.** `loadFromStorage`, `restoreSession`, `refreshAccessToken` and
+**The session lifecycle.** `restoreSession`, `refreshAccessToken`, `clearSession` and
 `loadCurrentUser` are bootstrap and transport concerns, wired once in `app.config.ts` and
 in `jwtInterceptor`, in a specific order and for stated reasons — `restoreSession` in
-particular *cannot* be called from the store's own `onInit` without `NG0200`. A component
-calling one of them mid-render has no legitimate case behind it.
+particular *cannot* be called from a store hook without `NG0200`. A component calling one
+of them mid-render has no legitimate case behind it.
 
 **RxJS, through a method that does not look like it.** `store.login` is an `rxMethod`:
 
@@ -52,9 +55,9 @@ forget to release — the subscription. The facade's signature is
 A spec pins the narrowing rather than trusting the class to stay narrow:
 
 ```ts
-it('does not expose tokens or the session lifecycle', () => {
-  const leaked = ['accessToken', 'refreshToken', 'updateTokens', 'refreshAccessToken',
-                  'restoreSession', 'loadFromStorage', 'loadCurrentUser']
+it('does not expose the token or the session lifecycle', () => {
+  const leaked = ['accessToken', 'updateAccessToken', 'refreshAccessToken',
+                  'restoreSession', 'clearSession', 'loadCurrentUser']
     .filter((member) => member in surface);
 
   expect(leaked).toEqual([]);
@@ -85,7 +88,7 @@ stating in that shape rather than the larger one, because the larger one would b
 ## Who is exempt
 
 `core/` is. `authGuard` waits on `isRestoringSession`, `roleGuard` reads `userRole`,
-`jwtInterceptor` reads `accessToken` and calls `updateTokens`, `app.config.ts` calls
+`jwtInterceptor` reads `accessToken` and calls `updateAccessToken`, `app.config.ts` calls
 `restoreSession`. These are the session's plumbing; asking them to go through a
 view-shaped facade would mean widening it until it was the store again, at which point
 there is no seam left to be exempt from.

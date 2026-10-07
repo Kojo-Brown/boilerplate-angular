@@ -36,11 +36,13 @@ export interface AuthFacadeApi {
  * `eslint.config.mjs` enforces by refusing `@ngrx/*` and `@/app/store/*` imports there.
  * Three things it takes away from a component, each of which was reachable before:
  *
- * 1. **The tokens.** `accessToken` and `refreshToken` are signals on the store, so any
- *    component holding it could interpolate a bearer token into a template or hand it to
- *    a third-party widget. They are not on this surface, and `updateTokens` is not
- *    either: rotating a session is the interceptor's job, not a view's.
- * 2. **The session lifecycle.** `loadFromStorage`, `restoreSession`, `refreshAccessToken`
+ * 1. **The token.** `accessToken` is a signal on the store, so any component holding it
+ *    could interpolate a bearer token into a template or hand it to a third-party
+ *    widget. It is not on this surface, and `updateAccessToken` is not either: rotating
+ *    a session is the interceptor's job, not a view's. The refresh token cannot leak
+ *    through here at all, because it is an `HttpOnly` cookie and the application never
+ *    holds it — see `docs/token-storage.md`.
+ * 2. **The session lifecycle.** `restoreSession`, `refreshAccessToken`, `clearSession`
  *    and `loadCurrentUser` are bootstrap and transport concerns, wired once in
  *    `app.config.ts` and `jwtInterceptor`. A component calling one of them mid-render is
  *    a bug with no legitimate case behind it.

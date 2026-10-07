@@ -68,6 +68,7 @@ NG_ALLOWED_HOSTS=localhost pnpm serve:ssr  # http://localhost:4000
 | `pnpm check:defer`  | Fails when a `@defer` block has stopped splitting its chunk             |
 | `pnpm check:routes` | Fails when a route exceeds its bundle budget, and prints the audit      |
 | `pnpm check:ssr`    | Starts the built server and checks what each route answers              |
+| `pnpm check:tokens` | Fails when shipped source persists an auth token anywhere readable      |
 
 CI runs lint, typecheck, format, tests, and the accessibility audit in parallel
 on Node 22, 24, and 26 (the audit on 22 only), then builds on all three once
@@ -266,6 +267,41 @@ See [docs/facade.md](./docs/facade.md) for what a component could reach before
 and cannot now, why the facade passes the store's signals through instead of
 wrapping them, and what the typed `createFakeAuthFacade` double replaced.
 
+## Token storage
+
+The access token lives **only in memory** — a field of `AuthStore`'s state — and the
+refresh token is an **`HttpOnly` cookie** the API sets, which this application
+cannot read, cannot write, and never receives in a response body. A page load
+starts with no credential at all and rebuilds the session from the cookie:
+`POST /auth/refresh` for a token, then `GET /auth/me` for the user.
+
+What that is worth is narrower than "httpOnly cookies prevent XSS", which is not
+true. An attacker with script execution can still read the in-memory token and
+act as the user for as long as the page is open. What it prevents is
+**exfiltrating a long-lived credential**: with both tokens in `localStorage`, one
+`fetch` hands over a refresh token good for thirty days from anywhere, and the
+blast radius is persistent account takeover rather than one page view.
+
+Two consequences worth knowing before adopting it:
+
+- **`POST /auth/logout` is not optional.** Only a `Set-Cookie` can expire an
+  `HttpOnly` cookie, so a sign-out that just drops client-side state leaves a
+  live refresh token in the jar and the next load signs the user back in.
+- **A readable `session_hint` cookie sits beside it**, carrying no credential.
+  Its only job is to tell a cold load whether a refresh is worth attempting, so
+  anonymous visitors do not each spend a credentialed round trip being told 401.
+  It is advisory in one direction only: it can start a restore, and nothing but a
+  successful refresh and profile fetch can finish one.
+
+`pnpm check:tokens` fails the build if any shipped source writes a token to web
+storage or assigns to `document.cookie` — the claim is about every line of
+source, which no spec can cover.
+
+See [docs/token-storage.md](./docs/token-storage.md) for the full request and
+response contract each endpoint has to honour, why the hint is a cookie rather
+than a `localStorage` flag, the same-site deployment constraint, and what is
+left to the CSRF item that follows.
+
 ## API error strategies
 
 How a failed response becomes an `ApiError` is a list, not a function body.
@@ -414,13 +450,18 @@ time. Which is which is one line per route in
 | `/login`, `/register`, `/unauthorized` | `Prerender` | Identical bytes for everyone.                           |
 | everything else                        | `Client`    | Depends on who is asking, which the server cannot know. |
 
-The session lives in `localStorage` and nothing carries it to the server, so on
-the server `AuthStore` is signed out for _everyone_ — signed-in visitors
-included. Rendering `/dashboard` there therefore has two possible outcomes and
-both are wrong: run `authGuard` and every request is a 302 to `/login`, or skip
-it and an anonymous request is served a dashboard frame the client takes back
-the moment it hydrates. `RenderMode.Client` says the honest thing instead.
-Phase 10's httpOnly refresh cookie is what would change the answer.
+The access token lives in memory and the refresh token in an `HttpOnly` cookie
+([token storage](./docs/token-storage.md)), and nothing carries either to the
+server, so on the server `AuthStore` is signed out for _everyone_ — signed-in
+visitors included. Rendering `/dashboard` there therefore has two possible
+outcomes and both are wrong: run `authGuard` and every request is a 302 to
+`/login`, or skip it and an anonymous request is served a dashboard frame the
+client takes back the moment it hydrates. `RenderMode.Client` says the honest
+thing instead. The refresh cookie does not change that answer, which is worth
+saying because it is the opposite of what one might expect from a credential the
+browser attaches automatically: `provideServerRendering` does not forward the
+request's cookies into the render, so the renderer still cannot tell who is
+asking.
 
 `provideClientHydration(withEventReplay())` in `app.config.ts` makes the browser
 adopt the server's DOM rather than rebuild it. Event replay is the only feature

@@ -35,7 +35,7 @@ And the mirror image — what each wrong answer costs, using the two flows in th
 | `switchMap` | ✅ one answer, always the newest | ❌ aborts a `POST` the server may have committed |
 | `exhaustMap` | ❌ shows results for `"a"`; later keystrokes dropped | ✅ the duplicate is ignored |
 | `concatMap` | ❌ three requests, answer lags by their total latency | ⚠️ logs in twice, one after the other |
-| `mergeMap` | ❌ three requests, whichever lands last wins the screen | ⚠️ two logins race for `localStorage` |
+| `mergeMap` | ❌ three requests, whichever lands last wins the screen | ⚠️ two logins race, and the loser's refresh cookie is the one in the jar |
 
 The typeahead row is not hypothetical: `"ang"` genuinely can come back after `"angular"`,
 because request latency has nothing to do with typing order, and under `mergeMap` the

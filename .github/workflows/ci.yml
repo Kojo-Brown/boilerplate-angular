@@ -36,6 +36,15 @@ concurrency:
 #     drifted from the catalogue it was made from. All three are silent otherwise:
 #     `ng extract-i18n` never sees an unmarked string, and an explicit id means a reworded
 #     English sentence keeps its stale translations rather than failing as missing.
+#   - `scripts/ci/assert-no-token-persistence.mjs` fails when shipped source puts an auth
+#     token where a later page load can read it — a write to web storage under a token-shaped
+#     key, or any assignment to `document.cookie`. It is a gate rather than a spec because
+#     the claim is about every line of source and a spec only covers the lines it calls: a
+#     "remember me" checkbox that persists the access token leaves every existing test green
+#     while removing the one defence that makes an XSS bug survivable. The nearby
+#     `no-restricted-globals` lint rule bans the bare `localStorage` *global* for a different
+#     reason (it is undefined under SSR), and `storageOf(...)` satisfies it. See
+#     `docs/token-storage.md`.
 #   - `scripts/ci/assert-logical-properties.mjs` fails on a physical-direction Tailwind
 #     utility. `dir="rtl"` moves only what is written logically, so a layout on `ml-`,
 #     `left-` or `border-r` mirrors into a consistent, plausible, wrong version of itself
@@ -155,6 +164,13 @@ jobs:
       # the rendered result; this bans the utilities that cause it.
       - name: Assert the layout is written in logical properties
         run: pnpm check:rtl
+
+      # Source-level, and the counterpart to `docs/token-storage.md`: the access token
+      # lives in memory and the refresh token never reaches JavaScript at all. Both are
+      # properties of every line rather than of any one call path, which is why they are
+      # checked here instead of only in a spec.
+      - name: Assert no auth token is persisted anywhere a page load can read it
+        run: pnpm check:tokens
 
   typecheck:
     name: Typecheck (Node ${{ matrix.node-version }})

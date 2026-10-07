@@ -4,6 +4,7 @@ import {
   mockLoginFailure,
   mockProfileSuccess,
   MOCK_TOKENS,
+  SESSION_HINT_COOKIE,
 } from './helpers/api-mocks';
 
 test.describe('Login flow', () => {
@@ -29,7 +30,14 @@ test.describe('Login flow', () => {
     await expect(page).toHaveURL('/dashboard');
   });
 
-  test('successful login stores tokens in localStorage', async ({ page }) => {
+  /**
+   * The inverse of the assertion this replaced, which read both tokens back out of
+   * `localStorage`. A successful sign-in must now leave *nothing* a later script can
+   * read: the access token is in memory and the refresh token is in a cookie the
+   * document is not shown. See `docs/token-storage.md` and `e2e/token-storage.spec.ts`,
+   * which covers the cookie attributes and the reload that rebuilds the session.
+   */
+  test('successful login persists no token the page can read', async ({ page }) => {
     await mockLoginSuccess(page);
     await mockProfileSuccess(page);
 
@@ -39,15 +47,19 @@ test.describe('Login flow', () => {
 
     await expect(page).toHaveURL('/dashboard');
 
-    const accessToken = await page.evaluate(() =>
-      localStorage.getItem('auth_access_token')
-    );
-    const refreshToken = await page.evaluate(() =>
-      localStorage.getItem('auth_refresh_token')
-    );
+    const persisted = await page.evaluate(() => ({
+      local: Object.entries({ ...localStorage }),
+      session: Object.entries({ ...sessionStorage }),
+      cookies: document.cookie,
+    }));
 
-    expect(accessToken).toBe(MOCK_TOKENS.accessToken);
-    expect(refreshToken).toBe(MOCK_TOKENS.refreshToken);
+    const serialised = JSON.stringify(persisted);
+    expect(serialised).not.toContain(MOCK_TOKENS.accessToken);
+    expect(serialised).not.toContain(MOCK_TOKENS.refreshToken);
+
+    // The one session cookie the document *is* allowed to see carries no credential.
+    expect(persisted.cookies).toContain(SESSION_HINT_COOKIE);
+    expect(persisted.cookies).not.toContain('refresh_token');
   });
 
   test('failed login displays error message', async ({ page }) => {
@@ -62,7 +74,11 @@ test.describe('Login flow', () => {
   });
 
   test('shows loading state during login request', async ({ page }) => {
-    let resolveRequest: () => void;
+    // Initialised rather than asserted non-null at the call site: the compiler cannot
+    // see that `Promise`'s executor runs synchronously, and `resolveRequest!()` is a
+    // claim the lint rules refuse on principle — rightly, since the next person to move
+    // the assignment into a callback would keep the assertion and lose the error.
+    let resolveRequest: () => void = () => undefined;
     const requestHeld = new Promise<void>((resolve) => {
       resolveRequest = resolve;
     });
@@ -75,7 +91,6 @@ test.describe('Login flow', () => {
         body: JSON.stringify({
           user: { id: '1', email: 'test@example.com', name: 'Test', role: 'user' },
           accessToken: 'tok',
-          refreshToken: 'ref',
         }),
       });
     });
@@ -87,7 +102,7 @@ test.describe('Login flow', () => {
     await expect(page.getByRole('button', { name: 'Signing in…' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Signing in…' })).toBeDisabled();
 
-    resolveRequest!();
+    resolveRequest();
   });
 
   test('link to register page is present and navigates', async ({ page }) => {

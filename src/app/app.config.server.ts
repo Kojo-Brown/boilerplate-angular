@@ -15,9 +15,9 @@ import { CSP_NONCE_PLACEHOLDER } from '@/app/core/security';
  * whole contract is that the second render agrees with the first.
  *
  * Anything that genuinely cannot be shared belongs behind an injection token with two
- * implementations instead — `AUTH_TOKEN_STORAGE` and `THEME_PREFERENCE_STORE` are both
- * that shape, and both already return an empty answer where there is no browser storage
- * to read, so neither needs an override here.
+ * implementations instead — `SESSION_HINT` and `THEME_PREFERENCE_STORE` are both that
+ * shape, and both already return an empty answer where there is no per-visitor browser
+ * state to read, so neither needs an override here.
  */
 const serverConfig: ApplicationConfig = {
   providers: [
