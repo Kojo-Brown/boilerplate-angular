@@ -22,10 +22,17 @@ late**. Each is a trade with a measurable cost, and each has a gate.
 
 ### Why authenticated routes are not server-rendered
 
-The session is an access token and a refresh token in `localStorage`
-(`AUTH_TOKEN_STORAGE`). Nothing carries it to the server: there is one Node process
-serving every visitor and no cookie for it to read. So on the server, `AuthStore` is
+The session is an access token in memory and a refresh token in an `HttpOnly` cookie
+(see [token storage](./token-storage.md)). Nothing carries it to the server: there is one
+Node process serving every visitor, it holds no visitor's memory, and `provideServerRendering`
+does not forward the request's cookies into the render. So on the server, `AuthStore` is
 always signed out — for everyone, including people who are signed in.
+
+The cookie makes this *more* true than it was, not less. The previous design kept both
+tokens in `localStorage`, which the server also could not read; now the access token does
+not survive the page load that created it, so there is nothing on the client either until
+`/auth/refresh` answers. A server render of a guarded route would be a render of the
+signed-out state in every case, with no exceptions to reason about.
 
 Server-rendering `/dashboard` under that constraint has two possible outcomes, and both
 are wrong:
@@ -92,17 +99,18 @@ reproduce — and the symptom is a hydration mismatch in a component nowhere nea
 provider. Anything that genuinely differs belongs behind an injection token with two
 implementations instead. Two already exist:
 
-- **`AUTH_TOKEN_STORAGE`** (`src/app/store/auth/token-storage.ts`) — the session's two
-  keys, behind `read`/`write`/`clear`.
+- **`SESSION_HINT`** (`src/app/store/auth/session-hint.ts`) — whether a cold load should
+  spend a request trying to restore a session, read from a cookie.
 - **`THEME_PREFERENCE_STORE`** (`src/app/core/theme/theme-preference.ts`) — the theme
   choice and the OS preference.
 
-Both resolve to a no-op where there is no browser storage, so neither needs a server
-override.
+Both resolve to an empty answer where there is no per-visitor browser state, so neither
+needs a server override.
 
 ### `storageOf`, and the bug that is not a missing global
 
-Both tokens reach `localStorage` through one helper, `src/app/core/platform/web-storage.ts`:
+Every reader of `localStorage` goes through one helper,
+`src/app/core/platform/web-storage.ts`:
 
 ```ts
 export function storageOf(view: Window | null): Storage | null {
@@ -125,6 +133,10 @@ with a stable answer.
 
 And in a browser, *reading the property itself* throws when site data is blocked, which
 is why the access is inside the `try` rather than only the calls after it.
+
+`src/app/core/platform/document-cookies.ts` is the same helper for `document.cookie`,
+for the same two reasons: the accessor throws in a sandboxed iframe, and a server-side
+document has no one visitor's cookies to hold.
 
 ### The lint rule
 

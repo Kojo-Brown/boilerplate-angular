@@ -16,6 +16,7 @@
     "check:form-types": "node scripts/ci/assert-form-types.mjs",
     "check:i18n": "node scripts/ci/assert-i18n-coverage.mjs",
     "check:rtl": "node scripts/ci/assert-logical-properties.mjs",
+    "check:tokens": "node scripts/ci/assert-no-token-persistence.mjs",
     "i18n:extract": "ng extract-i18n --output-path src/locale --out-file messages.xlf",
     "check:fixtures": "node scripts/dev/make-placeholder-images.mjs --check",
     "stats": "ng build --configuration production --stats-json --output-path .stats",

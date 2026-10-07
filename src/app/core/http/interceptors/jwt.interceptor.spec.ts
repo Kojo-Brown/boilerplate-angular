@@ -5,41 +5,38 @@ import { of, throwError } from 'rxjs';
 import { AUTH_BYPASS_PATHS, jwtInterceptor } from './jwt.interceptor';
 import { AuthStore } from '@/app/store/auth/auth.store';
 import { AuthService } from '@/app/store/auth/auth.service';
+import { SESSION_HINT, type SessionHint } from '@/app/store/auth/session-hint';
 
 const ACCESS_TOKEN = 'test-access-token';
-const REFRESH_TOKEN = 'test-refresh-token';
 const NEW_ACCESS_TOKEN = 'new-access-token';
-const NEW_REFRESH_TOKEN = 'new-refresh-token';
 
 describe('jwtInterceptor', () => {
   let http: HttpClient;
   let controller: HttpTestingController;
   let authStoreSpy: {
     accessToken: jasmine.Spy;
-    refreshToken: jasmine.Spy;
-    logout: jasmine.Spy;
-    updateTokens: jasmine.Spy;
+    clearSession: jasmine.Spy;
+    updateAccessToken: jasmine.Spy;
   };
   let authServiceSpy: jasmine.SpyObj<AuthService>;
+  let hint: SessionHint;
 
   beforeEach(() => {
     authStoreSpy = {
       accessToken: jasmine.createSpy('accessToken').and.returnValue(ACCESS_TOKEN),
-      refreshToken: jasmine.createSpy('refreshToken').and.returnValue(REFRESH_TOKEN),
-      logout: jasmine.createSpy('logout'),
-      updateTokens: jasmine.createSpy('updateTokens'),
+      clearSession: jasmine.createSpy('clearSession'),
+      updateAccessToken: jasmine.createSpy('updateAccessToken'),
     };
 
     authServiceSpy = jasmine.createSpyObj<AuthService>('AuthService', [
-      'refreshToken',
+      'refresh',
       'login',
       'register',
       'logout',
       'getProfile',
     ]);
-    authServiceSpy.refreshToken.and.returnValue(
-      of({ accessToken: NEW_ACCESS_TOKEN, refreshToken: NEW_REFRESH_TOKEN })
-    );
+    authServiceSpy.refresh.and.returnValue(of({ accessToken: NEW_ACCESS_TOKEN }));
+    hint = { exists: () => true, forget: () => undefined };
 
     TestBed.configureTestingModule({
       providers: [
@@ -47,6 +44,7 @@ describe('jwtInterceptor', () => {
         provideHttpClientTesting(),
         { provide: AuthStore, useValue: authStoreSpy },
         { provide: AuthService, useValue: authServiceSpy },
+        { provide: SESSION_HINT, useValue: hint },
       ],
     });
 
@@ -125,16 +123,22 @@ describe('jwtInterceptor', () => {
       expect(retryReq.request.headers.get('Authorization')).toBe(`Bearer ${NEW_ACCESS_TOKEN}`);
       retryReq.flush({ ok: true });
 
-      expect(authServiceSpy.refreshToken).toHaveBeenCalledWith(REFRESH_TOKEN);
-      expect(authStoreSpy.updateTokens).toHaveBeenCalledWith({
-        accessToken: NEW_ACCESS_TOKEN,
-        refreshToken: NEW_REFRESH_TOKEN,
-      });
+      // No argument: the interceptor has no refresh token to pass, because there is no
+      // refresh token on the client. The credential travels as the `HttpOnly` cookie
+      // `AuthService.refresh` sends with `withCredentials`.
+      expect(authServiceSpy.refresh).toHaveBeenCalledWith();
+      expect(authStoreSpy.updateAccessToken).toHaveBeenCalledWith(NEW_ACCESS_TOKEN);
       expect(result).toEqual({ ok: true });
     });
 
-    it('calls logout and emits error when no refresh token is present', () => {
-      authStoreSpy.refreshToken.and.returnValue(null);
+    /**
+     * `clearSession`, not `logout`. The server has just rejected the refresh cookie, so
+     * a `POST /auth/logout` asking it to revoke the same credential is a request with
+     * nothing left to do — and one more failure to handle on a path that is already
+     * failing.
+     */
+    it('clears the session and emits error when the refresh is rejected', () => {
+      authServiceSpy.refresh.and.returnValue(throwError(() => new Error('Refresh failed')));
 
       let errorEmitted = false;
       http.get('/api/data').subscribe({ error: () => (errorEmitted = true) });
@@ -142,21 +146,46 @@ describe('jwtInterceptor', () => {
       const req = controller.expectOne('/api/data');
       req.flush(null, { status: 401, statusText: 'Unauthorized' });
 
-      expect(authStoreSpy.logout).toHaveBeenCalled();
+      expect(authStoreSpy.clearSession).toHaveBeenCalled();
+      expect(authServiceSpy.logout).not.toHaveBeenCalled();
       expect(errorEmitted).toBeTrue();
     });
 
-    it('calls logout and emits error when refresh request fails', () => {
-      authServiceSpy.refreshToken.and.returnValue(throwError(() => new Error('Refresh failed')));
+    /**
+     * Whether a refresh cookie exists is not readable from here, so the 401 of a visitor
+     * who was never signed in cannot be told apart by inspecting a token — except in the
+     * one case where both halves of the evidence are absent. Refreshing there would be a
+     * second request guaranteed to fail.
+     */
+    it('does not attempt a refresh for a visitor with neither a token nor a hint', () => {
+      authStoreSpy.accessToken.and.returnValue(null);
+      hint.exists = (): boolean => false;
 
       let errorEmitted = false;
       http.get('/api/data').subscribe({ error: () => (errorEmitted = true) });
 
-      const req = controller.expectOne('/api/data');
-      req.flush(null, { status: 401, statusText: 'Unauthorized' });
+      controller.expectOne('/api/data').flush(null, { status: 401, statusText: 'Unauthorized' });
 
-      expect(authStoreSpy.logout).toHaveBeenCalled();
+      expect(authServiceSpy.refresh).not.toHaveBeenCalled();
       expect(errorEmitted).toBeTrue();
+    });
+
+    /**
+     * The other side of that rule: a reload has lost the in-memory access token while
+     * the refresh cookie is still live, so a hint with no token must still refresh.
+     */
+    it('attempts a refresh when the token is gone but the hint remains', () => {
+      authStoreSpy.accessToken.and.returnValue(null);
+
+      http.get('/api/data').subscribe();
+
+      controller.expectOne('/api/data').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+      const retry = controller.expectOne('/api/data');
+      expect(retry.request.headers.get('Authorization')).toBe(`Bearer ${NEW_ACCESS_TOKEN}`);
+      retry.flush({ ok: true });
+
+      expect(authServiceSpy.refresh).toHaveBeenCalled();
     });
 
     it('passes through non-401 errors unchanged', () => {
@@ -169,7 +198,7 @@ describe('jwtInterceptor', () => {
       req.flush(null, { status: 403, statusText: 'Forbidden' });
 
       expect(caughtStatus).toBe(403);
-      expect(authServiceSpy.refreshToken).not.toHaveBeenCalled();
+      expect(authServiceSpy.refresh).not.toHaveBeenCalled();
     });
   });
 });
@@ -186,9 +215,10 @@ describe('AUTH_BYPASS_PATHS', () => {
         provideHttpClientTesting(),
         {
           provide: AuthStore,
-          useValue: { accessToken: (): string => ACCESS_TOKEN, refreshToken: (): null => null },
+          useValue: { accessToken: (): string => ACCESS_TOKEN },
         },
         { provide: AuthService, useValue: {} },
+        { provide: SESSION_HINT, useValue: { exists: () => false, forget: () => undefined } },
         { provide: AUTH_BYPASS_PATHS, useValue: ['/auth/magic-link'] },
       ],
     });

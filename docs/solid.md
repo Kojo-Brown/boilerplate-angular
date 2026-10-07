@@ -412,12 +412,14 @@ refresh, and a server-rendered request would share them across users. The fix is
 the coordination into an injectable — which is a behaviour change to the refresh flow,
 not a refactor, and wants its own change with its own tests.
 
-**`AuthStore` persists tokens itself.** Six call sites in the store write
-`localStorage.setItem(ACCESS_TOKEN_KEY, …)` inline. That is a single-responsibility
-violation and a duplication, and extracting a `TokenStorage` seam is the obvious repair —
-but Phase 10's `token storage hardening` item replaces the mechanism outright with an
-in-memory access token and an httpOnly refresh cookie. Extracting a seam now, to delete
-it two items later, is churn.
+**`AuthStore` persists tokens itself.** ~~Six call sites in the store write
+`localStorage.setItem(ACCESS_TOKEN_KEY, …)` inline.~~ **Resolved**, and not by the
+repair this entry proposed. The plan was to extract a `TokenStorage` seam, which was
+deferred on the grounds that Phase 10's `token storage hardening` item would replace the
+mechanism outright. It did: there is no persistence left to extract, because the access
+token stays in the store's own state and the refresh token is a cookie the application
+never holds. See [token storage](./token-storage.md). Worth recording that the
+deferral's reasoning held — a seam extracted at the time would have been deleted here.
 
 **`AuthService` bypasses `ApiService`.** It injects `HttpClient` directly and rebuilds
 `${environment.apiUrl}/auth` for itself, so base-URL handling exists in two places. It is

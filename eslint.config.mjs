@@ -120,7 +120,7 @@ export default tseslint.config(
         {
           name: 'localStorage',
           message:
-            'Not defined during server-side rendering. Go through AUTH_TOKEN_STORAGE, THEME_PREFERENCE_STORE, or `storageOf(inject(DOCUMENT).defaultView)` for a new one.',
+            'Not defined during server-side rendering — and no auth token may be persisted in it at all, which `scripts/ci/assert-no-token-persistence.mjs` enforces separately. Go through THEME_PREFERENCE_STORE, or `storageOf(inject(DOCUMENT).defaultView)` for a new one.',
         },
         {
           name: 'sessionStorage',

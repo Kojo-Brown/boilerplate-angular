@@ -5,8 +5,18 @@ import { TitleStrategy } from '@angular/router';
 import { appConfig } from './app.config';
 import { AppTitleStrategy } from '@/app/core/routing/title.strategy';
 import { AuthStore } from '@/app/store/auth/auth.store';
+import { SESSION_HINT_COOKIE } from '@/app/store/auth/session-hint';
 import { SUBSCRIBE_WEB_VITALS } from '@/app/core/vitals';
 import { host, requireEl } from '@/testing';
+
+/** The marker the API sets beside the refresh cookie. See `docs/token-storage.md`. */
+function setSessionHint(): void {
+  document.cookie = `${SESSION_HINT_COOKIE}=1; Path=/`;
+}
+
+function clearSessionHint(): void {
+  document.cookie = `${SESSION_HINT_COOKIE}=; Path=/; Max-Age=0`;
+}
 
 /**
  * Reads one signal and one plain field into the same template, so a single assertion
@@ -40,7 +50,7 @@ describe('appConfig', () => {
     // because they belong to the page rather than to the injector. They then report
     // against Karma's own document as the suite ends. What these specs are about is
     // change detection; `core/vitals/` has its own.
-    localStorage.clear();
+    clearSessionHint();
     TestBed.configureTestingModule({
       providers: [
         ...appConfig.providers,
@@ -50,7 +60,7 @@ describe('appConfig', () => {
     });
   });
 
-  afterEach(() => localStorage.clear());
+  afterEach(clearSessionHint);
 
   function text(fixture: ReturnType<typeof TestBed.createComponent<ProbeComponent>>): string {
     return requireEl(host(fixture), '[data-testid="probe"]').textContent?.trim() ?? '';
@@ -97,26 +107,48 @@ describe('appConfig', () => {
     expect(text(fixture)).toBe('b/b');
   });
 
-  // Regression test for NG0200. `jwtInterceptor` injects `AuthStore`, so a `/auth/me`
-  // issued from the store's own `onInit` re-enters its factory, the request never
-  // leaves, and the session silently fails to restore. Driving it from an app
-  // initializer instead means the store is fully constructed by the time it runs — and
-  // this spec fails at `expectOne` if that ever moves back.
-  it('restores a stored session from an app initializer', () => {
-    localStorage.setItem('auth_access_token', 'mock-access-token');
-    localStorage.setItem('auth_refresh_token', 'mock-refresh-token');
+  // Regression test for NG0200, and the one place the restore runs through the real
+  // interceptor chain. `jwtInterceptor` injects `AuthStore`, so a request issued from a
+  // store hook re-enters its factory, never leaves, and the session silently fails to
+  // restore. Driving it from an app initializer instead means the store is fully
+  // constructed by the time it runs — and this spec fails at `expectOne` if that ever
+  // moves back.
+  //
+  // What it restores *from* is the point of `docs/token-storage.md`: nothing on the
+  // client but a cookie this code cannot read. The access token comes back over the
+  // wire and is then attached to the profile request by the interceptor.
+  it('rebuilds a session from the refresh cookie in an app initializer', () => {
+    setSessionHint();
 
     // The first injection runs the app initializers.
     const store = TestBed.inject(AuthStore);
     const httpTesting = TestBed.inject(HttpTestingController);
 
     expect(store.isRestoringSession()).toBeTrue();
-    const request = httpTesting.expectOne('http://localhost:3000/api/v1/auth/me');
-    expect(request.request.headers.get('Authorization')).toBe('Bearer mock-access-token');
 
-    request.flush({ id: '1', email: 'test@example.com', name: 'Test User', role: 'user' });
+    const refresh = httpTesting.expectOne('http://localhost:3000/api/v1/auth/refresh');
+    expect(refresh.request.withCredentials)
+      .withContext('the refresh cookie only travels on a credentialed request')
+      .toBeTrue();
+    expect(refresh.request.headers.has('Authorization'))
+      .withContext('/auth/refresh is an AUTH_BYPASS_PATH — its 401 is not a stale token')
+      .toBeFalse();
+    refresh.flush({ accessToken: 'mock-access-token' });
+
+    const profile = httpTesting.expectOne('http://localhost:3000/api/v1/auth/me');
+    expect(profile.request.headers.get('Authorization')).toBe('Bearer mock-access-token');
+    profile.flush({ id: '1', email: 'test@example.com', name: 'Test User', role: 'user' });
 
     expect(store.isAuthenticated()).toBeTrue();
+    expect(store.isRestoringSession()).toBeFalse();
+    httpTesting.verify();
+  });
+
+  /** No hint, no request: an anonymous visitor pays nothing for the restore path. */
+  it('restores nothing when no session hint is present', () => {
+    const store = TestBed.inject(AuthStore);
+    const httpTesting = TestBed.inject(HttpTestingController);
+
     expect(store.isRestoringSession()).toBeFalse();
     httpTesting.verify();
   });

@@ -40,7 +40,6 @@ export function createMockPost(overrides: Partial<Post> = {}): Post {
 export interface MockAuthStoreOverrides {
   user?: User | null;
   accessToken?: string | null;
-  refreshToken?: string | null;
   isLoading?: boolean;
   isRestoringSession?: boolean;
   error?: string | null;
@@ -69,7 +68,6 @@ export interface MockAuthStoreOverrides {
 export function createMockAuthStore(overrides: MockAuthStoreOverrides = {}) {
   const user = overrides.user ?? null;
   const accessToken = overrides.accessToken ?? null;
-  const refreshToken = overrides.refreshToken ?? null;
   const userRole = overrides.userRole ?? user?.role ?? null;
   const isAuthenticated = overrides.isAuthenticated ?? (accessToken !== null && user !== null);
   const isAdmin = overrides.isAdmin ?? userRole === 'admin';
@@ -78,7 +76,6 @@ export function createMockAuthStore(overrides: MockAuthStoreOverrides = {}) {
     // State signals.
     user: jasmine.createSpy('user').and.returnValue(user),
     accessToken: jasmine.createSpy('accessToken').and.returnValue(accessToken),
-    refreshToken: jasmine.createSpy('refreshToken').and.returnValue(refreshToken),
     isLoading: jasmine.createSpy('isLoading').and.returnValue(overrides.isLoading ?? false),
     error: jasmine.createSpy('error').and.returnValue(overrides.error ?? null),
     isRestoringSession: jasmine
@@ -95,10 +92,10 @@ export function createMockAuthStore(overrides: MockAuthStoreOverrides = {}) {
     login: jasmine.createSpy('login'),
     register: jasmine.createSpy('register'),
     logout: jasmine.createSpy('logout'),
-    updateTokens: jasmine.createSpy('updateTokens'),
+    clearSession: jasmine.createSpy('clearSession'),
+    updateAccessToken: jasmine.createSpy('updateAccessToken'),
     clearError: jasmine.createSpy('clearError'),
     loadCurrentUser: jasmine.createSpy('loadCurrentUser'),
-    loadFromStorage: jasmine.createSpy('loadFromStorage'),
     refreshAccessToken: jasmine.createSpy('refreshAccessToken'),
     restoreSession: jasmine.createSpy('restoreSession'),
     hasRole: jasmine

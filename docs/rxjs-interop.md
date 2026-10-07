@@ -123,13 +123,15 @@ the teardown.
 
 ### Where this codebase does it
 
-[`authGuard`](../src/app/core/guards/auth.guard.ts). On a hard reload the store restores
-the tokens from `localStorage` synchronously, but `isAuthenticated` also requires the
-user behind them, and that is an HTTP round trip — started by the `provideAppInitializer`
-in [`app.config.ts`](../src/app/app.config.ts), which does not block bootstrap. So the
-router's first navigation runs its guards while the answer is still unknown, and a guard
-that read the signal alone would redirect a signed-in user to `/login` on every refresh
-of a guarded route.
+[`authGuard`](../src/app/core/guards/auth.guard.ts). On a hard reload the store holds
+nothing — the access token was in memory and the page load lost it — so the session is
+rebuilt from the refresh cookie: `/auth/refresh` for a token, then `/auth/me` for the
+user `isAuthenticated` also requires. Two HTTP round trips, started by the
+`provideAppInitializer` in [`app.config.ts`](../src/app/app.config.ts), which does not
+block bootstrap. So the router's first navigation runs its guards while the answer is
+still unknown, and a guard that read the signal alone would redirect a signed-in user to
+`/login` on every refresh of a guarded route. [Token storage](./token-storage.md) covers
+why there is nothing synchronous left to read.
 
 ```ts
 if (authStore.isAuthenticated()) return true;

@@ -307,6 +307,10 @@ rule 1.
 
 ## What is not covered
 
+- **Where the session's credentials live is a separate document.** The CSP and the
+  sanitisation bans here raise the cost of getting script onto the page;
+  [token storage](./token-storage.md) is about what that script can take if it succeeds,
+  and the two are complementary rather than overlapping. Neither claims to prevent XSS.
 - **The policy is not report-only anywhere, and there is no reporting endpoint.** A
   `report-to` would turn violations in the field into data; it needs a collector, which is
   a deployment decision rather than a repository one.

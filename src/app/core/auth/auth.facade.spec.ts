@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { AuthStore } from '@/app/store/auth/auth.store';
 import type { AuthResponse } from '@/app/store/auth/auth.models';
+import { SESSION_HINT, absentSessionHint } from '@/app/store/auth/session-hint';
 import { AuthFacade } from './auth.facade';
 
 const API = 'http://localhost:3000/api/v1/auth';
@@ -10,7 +11,6 @@ const API = 'http://localhost:3000/api/v1/auth';
 const authResponse: AuthResponse = {
   user: { id: '1', email: 'test@example.com', name: 'Test User', role: 'user' },
   accessToken: 'mock-access-token',
-  refreshToken: 'mock-refresh-token',
 };
 
 /**
@@ -25,9 +25,14 @@ describe('AuthFacade', () => {
   let httpTesting: HttpTestingController;
 
   beforeEach(() => {
-    localStorage.clear();
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        // No session to restore and nothing for a cold load to attempt: these specs are
+        // about what the facade exposes, not about the startup path.
+        { provide: SESSION_HINT, useValue: absentSessionHint() },
+      ],
     });
     facade = TestBed.inject(AuthFacade);
     httpTesting = TestBed.inject(HttpTestingController);
@@ -35,7 +40,6 @@ describe('AuthFacade', () => {
 
   afterEach(() => {
     httpTesting.verify();
-    localStorage.clear();
   });
 
   describe('the surface it presents', () => {
@@ -48,19 +52,20 @@ describe('AuthFacade', () => {
 
     /**
      * The point of the pattern, as an assertion. Every name here is a member of
-     * `AuthStore` that a component holding the store could reach, and three of them
-     * are the session's credentials.
+     * `AuthStore` that a component holding the store could reach, and the first two are
+     * the access token itself and the method that rotates it. The refresh token is on
+     * neither list any more — it is not a member of the store either, because the
+     * application never holds it. See `docs/token-storage.md`.
      */
-    it('does not expose tokens or the session lifecycle', () => {
+    it('does not expose the token or the session lifecycle', () => {
       const surface = facade as unknown as Record<string, unknown>;
 
       const leaked = [
         'accessToken',
-        'refreshToken',
-        'updateTokens',
+        'updateAccessToken',
         'refreshAccessToken',
         'restoreSession',
-        'loadFromStorage',
+        'clearSession',
         'loadCurrentUser',
       ].filter((member) => member in surface);
 
@@ -130,7 +135,7 @@ describe('AuthFacade', () => {
   });
 
   describe('signOut', () => {
-    it('ends the session', () => {
+    it('ends the session, and asks the server to expire the refresh cookie', () => {
       facade.signIn({ email: 'test@example.com', password: 'password' });
       httpTesting.expectOne(`${API}/login`).flush(authResponse);
 
@@ -138,6 +143,11 @@ describe('AuthFacade', () => {
 
       expect(facade.isSignedIn()).toBeFalse();
       expect(facade.currentUser()).toBeNull();
+
+      // Through the facade, so this is the whole sign-out a component can trigger: the
+      // revocation request included. Without it the `HttpOnly` cookie survives and the
+      // next page load restores the session the user just ended.
+      httpTesting.expectOne(`${API}/logout`).flush(null);
     });
   });
 
