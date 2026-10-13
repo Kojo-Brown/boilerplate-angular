@@ -24,12 +24,14 @@
     "check:routes": "node scripts/ci/assert-route-budgets.mjs",
     "check:ssr": "node scripts/ci/assert-ssr.mjs",
     "check:csp": "node scripts/ci/assert-csp.mjs",
+    "check:csrf": "node scripts/ci/assert-csrf.mjs",
     "test": "ng test --no-watch --no-progress",
     "test:ci": "ng test --no-watch --no-progress --browsers=ChromeHeadlessCI",
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,css}\"",
     "e2e": "playwright test --project=chromium",
     "e2e:a11y": "playwright test --project=a11y",
+    "e2e:csrf": "playwright test --project=csrf",
     "prepare": "husky"
   },
   "dependencies": {

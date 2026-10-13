@@ -6,16 +6,25 @@ import { appConfig } from './app.config';
 import { AppTitleStrategy } from '@/app/core/routing/title.strategy';
 import { AuthStore } from '@/app/store/auth/auth.store';
 import { SESSION_HINT_COOKIE } from '@/app/store/auth/session-hint';
+import { CSRF_BOOTSTRAP_PATH, CSRF_CONTRACT } from '@/app/core/http/csrf';
 import { SUBSCRIBE_WEB_VITALS } from '@/app/core/vitals';
 import { host, requireEl } from '@/testing';
 
-/** The marker the API sets beside the refresh cookie. See `docs/token-storage.md`. */
+/**
+ * The two readable cookies the API sets beside the `HttpOnly` refresh cookie: the marker
+ * that says a session exists, and the CSRF token that authorises acting within it. See
+ * `docs/token-storage.md` and `docs/csrf.md` — both are set in the same response, with
+ * the same `Max-Age`, which is what makes the restore below cost one request rather than
+ * two.
+ */
 function setSessionHint(): void {
   document.cookie = `${SESSION_HINT_COOKIE}=1; Path=/`;
+  document.cookie = `${CSRF_CONTRACT.cookieName}=mock-csrf-token; Path=/`;
 }
 
 function clearSessionHint(): void {
   document.cookie = `${SESSION_HINT_COOKIE}=; Path=/; Max-Age=0`;
+  document.cookie = `${CSRF_CONTRACT.cookieName}=; Path=/; Max-Age=0`;
 }
 
 /**
@@ -133,6 +142,11 @@ describe('appConfig', () => {
     expect(refresh.request.headers.has('Authorization'))
       .withContext('/auth/refresh is an AUTH_BYPASS_PATH — its 401 is not a stale token')
       .toBeFalse();
+    // The endpoint CSRF protection exists for: it is authorised by a cookie rather than
+    // by a bearer token, which is exactly what makes it forgeable. See `docs/csrf.md`.
+    expect(refresh.request.headers.get(CSRF_CONTRACT.headerName))
+      .withContext('a cookie-authorised mutation carries the CSRF token')
+      .toBe('mock-csrf-token');
     refresh.flush({ accessToken: 'mock-access-token' });
 
     const profile = httpTesting.expectOne('http://localhost:3000/api/v1/auth/me');
@@ -141,6 +155,43 @@ describe('appConfig', () => {
 
     expect(store.isAuthenticated()).toBeTrue();
     expect(store.isRestoringSession()).toBeFalse();
+    httpTesting.verify();
+  });
+
+  /**
+   * What it costs when the API has not set the CSRF cookie alongside the hint — a token
+   * that expired early, or an API that only sets one on `/csrf`.
+   *
+   * The restore is a `POST`, so it cannot go out without a token, and the bootstrap has
+   * to complete first: two sequential round trips before the session comes back instead
+   * of one. That is the reason `docs/csrf.md` requires the token to be set in the same
+   * response as `session_hint` with the same `Max-Age`, rather than leaving it to the
+   * bootstrap — and it is asserted here so the requirement has a failing test behind it
+   * rather than a sentence in a document.
+   */
+  it('bootstraps a CSRF token first when the API left none beside the hint', () => {
+    document.cookie = `${SESSION_HINT_COOKIE}=1; Path=/`;
+
+    const store = TestBed.inject(AuthStore);
+    const httpTesting = TestBed.inject(HttpTestingController);
+
+    expect(store.isRestoringSession()).toBeTrue();
+
+    // The refresh is waiting on a token rather than in flight.
+    httpTesting.expectNone('http://localhost:3000/api/v1/auth/refresh');
+    const bootstrap = httpTesting.expectOne(`http://localhost:3000/api/v1${CSRF_BOOTSTRAP_PATH}`);
+    document.cookie = `${CSRF_CONTRACT.cookieName}=late-csrf-token; Path=/`;
+    bootstrap.flush('');
+
+    const refresh = httpTesting.expectOne('http://localhost:3000/api/v1/auth/refresh');
+    expect(refresh.request.headers.get(CSRF_CONTRACT.headerName)).toBe('late-csrf-token');
+    refresh.flush({ accessToken: 'mock-access-token' });
+
+    httpTesting
+      .expectOne('http://localhost:3000/api/v1/auth/me')
+      .flush({ id: '1', email: 'test@example.com', name: 'Test User', role: 'user' });
+
+    expect(store.isAuthenticated()).toBeTrue();
     httpTesting.verify();
   });
 
