@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
+import { CSRF_BOOTSTRAP_PATH, CSRF_CONTRACT } from '@/app/core/http/csrf';
 
-const API_BASE = 'http://localhost:3000/api/v1';
+export const API_BASE = 'http://localhost:3000/api/v1';
 
 export const MOCK_USER = {
   id: 'user-1',
@@ -27,6 +28,15 @@ export const MOCK_AUTH_RESPONSE = {
 export const SESSION_HINT_COOKIE = 'session_hint';
 
 /**
+ * The CSRF token these mocks hand out, and the cookie it arrives in.
+ *
+ * Deliberately obviously fake, like every other value in this file. The name comes from
+ * the application's own contract rather than being written out, so a rename cannot leave
+ * the mocks quietly setting a cookie nothing reads — see `docs/csrf.md`.
+ */
+export const MOCK_CSRF_TOKEN = 'mock-csrf-token';
+
+/**
  * The two `Set-Cookie` headers the API sends beside a sign-in response.
  *
  * `HttpOnly` on the refresh token and not on the hint is the whole contract — see
@@ -37,12 +47,18 @@ export const SESSION_HINT_COOKIE = 'session_hint';
 const SESSION_COOKIES = [
   `refresh_token=${MOCK_TOKENS.refreshToken}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000`,
   `${SESSION_HINT_COOKIE}=1; SameSite=Strict; Path=/; Max-Age=2592000`,
+  // Beside the other two and with the same `Max-Age`, which `docs/csrf.md` requires for a
+  // reason worth restating here: the session restore is itself a `POST`, so a returning
+  // visitor holding a hint and no CSRF token has to bootstrap one and *then* refresh,
+  // sequentially, before the session comes back.
+  `${CSRF_CONTRACT.cookieName}=${MOCK_CSRF_TOKEN}; SameSite=Strict; Path=/; Max-Age=2592000`,
 ];
 
-/** The headers that expire both, as `POST /auth/logout` answers. */
+/** The headers that expire all three, as `POST /auth/logout` answers. */
 const CLEARED_SESSION_COOKIES = [
   'refresh_token=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0',
   `${SESSION_HINT_COOKIE}=; SameSite=Strict; Path=/; Max-Age=0`,
+  `${CSRF_CONTRACT.cookieName}=; SameSite=Strict; Path=/; Max-Age=0`,
 ];
 
 /**
@@ -234,6 +250,38 @@ export async function mockPosts(page: Page): Promise<void> {
   });
 }
 
+/**
+ * Answers `GET /csrf` with a token cookie, and reports how many times it was asked.
+ *
+ * Needed by any test that mutates from a cold start: the first API request a visit to
+ * `/login` makes is `POST /auth/login`, so there has been no response to set the cookie
+ * and `csrfInterceptor` fetches one first. The count is the assertion that matters —
+ * a bootstrap per mutation, rather than one per browser, would be a silent extra round
+ * trip on every write. See `docs/csrf.md`.
+ */
+export async function mockCsrfBootstrap(
+  page: Page,
+  token = MOCK_CSRF_TOKEN
+): Promise<{ readonly calls: () => number }> {
+  let calls = 0;
+
+  await page.route(`${API_BASE}${CSRF_BOOTSTRAP_PATH}`, (route) => {
+    calls += 1;
+    void route.fulfill({
+      status: 200,
+      headers: {
+        'set-cookie': `${CSRF_CONTRACT.cookieName}=${token}; SameSite=Strict; Path=/; Max-Age=2592000`,
+        // A cached bootstrap is a request that returns without a `Set-Cookie`: it looks
+        // like success and sets nothing.
+        'cache-control': 'no-store',
+      },
+      body: '',
+    });
+  });
+
+  return { calls: () => calls };
+}
+
 export async function mockProfileSuccess(page: Page): Promise<void> {
   await page.route(`${API_BASE}/auth/me`, (route) => {
     void route.fulfill({
@@ -271,6 +319,18 @@ export async function seedAuthSession(page: Page): Promise<void> {
     {
       name: SESSION_HINT_COOKIE,
       value: '1',
+      domain: url.hostname,
+      path: '/',
+      httpOnly: false,
+      sameSite: 'Strict',
+    },
+    // The API sets this in the same response as the hint, so a returning visitor already
+    // has it — and the restore, which is a `POST`, needs no bootstrap before it can go
+    // out. A seed that left it off would be testing the degraded two-round-trip path on
+    // every spec that reloads. See `docs/csrf.md`.
+    {
+      name: CSRF_CONTRACT.cookieName,
+      value: MOCK_CSRF_TOKEN,
       domain: url.hostname,
       path: '/',
       httpOnly: false,

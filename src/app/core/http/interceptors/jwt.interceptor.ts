@@ -4,6 +4,7 @@ import { BehaviorSubject, catchError, filter, switchMap, take, throwError } from
 import { AuthStore } from '@/app/store/auth/auth.store';
 import { AuthService } from '@/app/store/auth/auth.service';
 import { SESSION_HINT } from '@/app/store/auth/session-hint';
+import { CSRF_BOOTSTRAP_PATH } from '../csrf';
 
 /**
  * URL fragments that must never carry an `Authorization` header, and whose 401 means
@@ -17,10 +18,22 @@ import { SESSION_HINT } from '@/app/store/auth/session-hint';
  *
  * `/auth/refresh` being on this list is also what keeps the refresh below from
  * recursing: its own 401 is an error to report, never a reason to refresh again.
+ *
+ * {@link CSRF_BOOTSTRAP_PATH} is here for the first of those two reasons only. It is an
+ * unauthenticated `GET` that exists to collect a `Set-Cookie` — there is no identity for
+ * a bearer token to assert on it, and a 401 from it is a misconfigured API rather than an
+ * expired token, so spending a refresh on one would be a wasted credentialed request
+ * ahead of the mutation that is actually waiting.
  */
 export const AUTH_BYPASS_PATHS = new InjectionToken<readonly string[]>('AUTH_BYPASS_PATHS', {
   providedIn: 'root',
-  factory: () => ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'],
+  factory: () => [
+    '/auth/login',
+    '/auth/register',
+    '/auth/refresh',
+    '/auth/logout',
+    CSRF_BOOTSTRAP_PATH,
+  ],
 });
 
 let isRefreshing = false;

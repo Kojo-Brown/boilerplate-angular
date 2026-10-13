@@ -1,7 +1,7 @@
 import type { ApplicationConfig } from '@angular/core';
 import { inject, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, TitleStrategy, withComponentInputBinding } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@angular/common/http';
 import {
   provideClientHydration,
   withEventReplay,
@@ -15,6 +15,8 @@ import { errorInterceptor } from '@/app/core/http/interceptors/error.interceptor
 import { jwtInterceptor } from '@/app/core/http/interceptors/jwt.interceptor';
 import { loggingInterceptor } from '@/app/core/http/interceptors/logging.interceptor';
 import { cacheInterceptor } from '@/app/core/http/interceptors/cache.interceptor';
+import { csrfInterceptor } from '@/app/core/http/interceptors/csrf.interceptor';
+import { CSRF_CONTRACT } from '@/app/core/http/csrf';
 import { retryInterceptor } from '@/app/core/http/interceptors/retry.interceptor';
 import { telemetryInterceptor } from '@/app/core/http/interceptors/telemetry.interceptor';
 import {
@@ -86,14 +88,39 @@ export const appConfig: ApplicationConfig = {
     //   logging    — dev console, inside telemetry so it cannot skew the measurement
     //   error      — normalises failures, so nothing above it sees an HttpErrorResponse
     //   jwt        — owns the Authorization header and the 401 refresh queue
+    //   csrf       — echoes the XSRF cookie back on every mutation, with credentials
     //   cache      — keys on the request jwt will actually send, credential included
     //   retry      — nearest the transport, so one request can be several attempts
     //
-    // `cache` and `retry` are scoped to this application's own API. Neither is safe to
-    // apply blind to a third-party URL: the cache would key someone else's endpoint by
-    // our `Authorization` header, and the retry would decide on our behalf that another
-    // service's 503 is worth a second request.
+    // `csrf`, `cache` and `retry` are scoped to this application's own API, and for
+    // `csrf` the scope is the security property rather than a tidiness measure: a CSRF
+    // token echoed to an arbitrary origin is a token handed to whoever is on the other
+    // end. It is the reason Angular's built-in XSRF interceptor refuses cross-origin
+    // requests outright — and, because this API *is* cross-origin, the reason
+    // `withXsrfConfiguration` below is not by itself a CSRF defence here. See
+    // `csrf.interceptor.ts` for the early return in Angular's own source and
+    // `docs/csrf.md` for the server's half.
+    //
+    // `csrf` sits beneath `jwt` because the two endpoints that most need it,
+    // `POST /auth/refresh` and `POST /auth/logout`, are on `jwt`'s bypass list: they are
+    // authorised by a cookie rather than by a bearer token, which is precisely what makes
+    // them forgeable. Above `cache` and `retry` so that the header is on the request the
+    // cache keys and the retry replays.
+    //
+    // Neither `cache` nor `retry` is safe to apply blind to a third-party URL either: the
+    // cache would key someone else's endpoint by our `Authorization` header, and the
+    // retry would decide on our behalf that another service's 503 is worth a second
+    // request.
     provideHttpClient(
+      // What Angular's own XSRF support is pointed at: `HttpXsrfTokenExtractor` reads
+      // this cookie, and `csrfInterceptor` writes this header. One object passed to both
+      // halves, so they cannot drift apart — `scripts/ci/assert-csrf.mjs` holds the rest
+      // of the repository, `docs/csrf.md` included, to the same two values.
+      //
+      // Keeping it also keeps a same-origin deployment correct: there the built-in
+      // interceptor does act, and the two coexist because neither overwrites a header the
+      // other has already set.
+      withXsrfConfiguration(CSRF_CONTRACT),
       withInterceptors([
         telemetryInterceptor,
         loggingInterceptor,
@@ -101,7 +128,7 @@ export const appConfig: ApplicationConfig = {
         jwtInterceptor,
         interceptWhen(
           requestsUnder(environment.apiUrl),
-          composeInterceptors(cacheInterceptor, retryInterceptor)
+          composeInterceptors(csrfInterceptor, cacheInterceptor, retryInterceptor)
         ),
       ])
     ),

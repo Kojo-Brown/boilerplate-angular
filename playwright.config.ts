@@ -14,10 +14,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      // `e2e/a11y/` is its own project below, and CI runs only that one. Without this the
-      // audit would also run here, in a project whose `colorScheme` is the runner's
-      // default — the setting `useTheme` exists to pin.
-      testIgnore: '**/a11y/**',
+      // `e2e/a11y/` and `e2e/csrf/` are their own projects below, and CI runs only those.
+      // Without this the audit would also run here, in a project whose `colorScheme` is
+      // the runner's default — the setting `useTheme` exists to pin — and the CSRF suite
+      // would run twice, the second time under this project's parallel workers against a
+      // shared dev server, which is the arrangement it is explicitly configured to avoid.
+      testIgnore: ['**/a11y/**', '**/csrf/**'],
       use: { ...devices['Desktop Chrome'] },
     },
     {
@@ -31,6 +33,23 @@ export default defineConfig({
       name: 'a11y',
       testDir: './e2e/a11y',
       use: { ...devices['Desktop Chrome'], reducedMotion: 'reduce' },
+    },
+    {
+      // The CSRF contract, adjudicated by a real implementation of the server's half.
+      // Its own project for the same reason `a11y` is: CI can run this gate without
+      // taking on the rest of the e2e suite, which still has the pre-existing failures
+      // the Phase 0 carry-over records.
+      //
+      // It is also the one project that must not run in parallel with the others against
+      // the shared dev server. Each case installs an API that *rejects* non-compliant
+      // requests, and a second worker driving the same server would be answering a
+      // different contract — so the cases are serialised here rather than left to the
+      // top-level `fullyParallel`.
+      name: 'csrf',
+      testDir: './e2e/csrf',
+      fullyParallel: false,
+      workers: 1,
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
   webServer: {

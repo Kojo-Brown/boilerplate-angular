@@ -45,6 +45,13 @@ concurrency:
 #     `no-restricted-globals` lint rule bans the bare `localStorage` *global* for a different
 #     reason (it is undefined under SSR), and `storageOf(...)` satisfies it. See
 #     `docs/token-storage.md`.
+#   - `scripts/ci/assert-csrf.mjs` fails when the CSRF contract has drifted apart from
+#     itself, or when `csrfInterceptor` leaves the scope that bounds where the token may
+#     travel. Both are invisible to the test suites: each half of a drifted contract is
+#     internally consistent and passes its own assertions, and an unscoped interceptor
+#     leaks the token only to hosts no test posts to. The `csrf` job below is the
+#     behavioural half, in a browser, against a real implementation of the server's rules.
+#     See `docs/csrf.md`.
 #   - `scripts/ci/assert-logical-properties.mjs` fails on a physical-direction Tailwind
 #     utility. `dir="rtl"` moves only what is written logically, so a layout on `ml-`,
 #     `left-` or `border-r` mirrors into a consistent, plausible, wrong version of itself
@@ -172,6 +179,18 @@ jobs:
       - name: Assert no auth token is persisted anywhere a page load can read it
         run: pnpm check:tokens
 
+      # Source-level, and about agreement rather than behaviour. The two names in the CSRF
+      # contract have six readers — `withXsrfConfiguration`, the interceptor that writes
+      # the header, the server contract in `e2e/helpers/`, the mocks, the specs and
+      # `docs/csrf.md` — and a repository where one of them had grown its own literal
+      # passes every test, because each half of the disagreement is internally consistent.
+      # It also fails if `csrfInterceptor` leaves the `requestsUnder(environment.apiUrl)`
+      # scope, which is where the security property lives: a token sent to an arbitrary
+      # origin is a token handed to whoever is on the other end, and no test here posts to
+      # a third-party host to notice. See `docs/csrf.md`.
+      - name: Assert the CSRF contract has one definition and the document matches it
+        run: pnpm check:csrf
+
   typecheck:
     name: Typecheck (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
@@ -291,6 +310,50 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: a11y-report
+          path: playwright-report/
+          retention-days: 7
+
+  csrf:
+    name: CSRF contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # The other half of `check:csrf`, and the half that needs a browser. Every API
+      # request these cases make is adjudicated by `e2e/helpers/csrf-contract.ts` — the
+      # rules in `docs/csrf.md`, implemented — and anything failing them is answered 403
+      # before it reaches an endpoint. So a regression that stopped sending the token does
+      # not fail a header expectation, it fails sign-in: proven by removing
+      # `csrfInterceptor` from the chain, which turns all seven browser cases red on
+      # `expect(page).toHaveURL('/dashboard')`.
+      #
+      # Two things only a browser can answer, which is why this is not left to the unit
+      # suite. Whether the cookie the token came from is actually *attached* to the request
+      # is `withCredentials` plus the browser's own `SameSite`, `Path`, `Domain` and
+      # port-insensitivity rules, none of which a `TestBed` can observe — a spec can prove
+      # the flag was set, only this can prove it had the intended effect. And whether the
+      # protection refuses the request an attacker can actually cause: the cookie attached
+      # by the browser, no header, because no cross-site page can set one.
+      #
+      # One Node major, like `a11y` and the bundle gates: what this measures is a property
+      # of the requests the application makes, not of the runtime that served them.
+      - name: Verify the CSRF contract against a real browser
+        run: pnpm e2e:csrf
+        env:
+          NODE_OPTIONS: --throw-deprecation
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csrf-report
           path: playwright-report/
           retention-days: 7
 
