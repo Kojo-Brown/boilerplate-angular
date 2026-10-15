@@ -18,6 +18,13 @@
 // satisfy it, and both are legitimate. What is banned here is narrower and different:
 // not reaching web storage, but putting a *token* in it, through whatever accessor.
 //
+// Two claims in `docs/owasp-top-10.md` rest on this gate rather than on any spec, for
+// exactly the reason above: both are about every line of source, and a spec covers the
+// lines it calls.
+//
+// @owasp A04.no-token-survives-a-page-load
+// @owasp A06.the-session-is-designed-to-survive-an-xss
+//
 // ## What is flagged
 //
 //   1. A write to web storage (`setItem`, index or property assignment) whose key or

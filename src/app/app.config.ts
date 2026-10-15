@@ -125,10 +125,22 @@ export const appConfig: ApplicationConfig = {
         telemetryInterceptor,
         loggingInterceptor,
         errorInterceptor,
-        jwtInterceptor,
+        // Everything that carries a credential is installed *inside* this scope, and that
+        // is a security property rather than a tidiness measure: a bearer token sent to an
+        // arbitrary origin is a token handed to whoever is on the other end. `jwtInterceptor`
+        // used to sit outside it, beside the three above, which meant every request
+        // `HttpClient` ever made to any host would have been given the access token — the
+        // same mistake `assert-csrf.mjs` already refuses for the strictly less valuable
+        // CSRF token. Nothing failed, because every URL this application builds today comes
+        // from `environment.apiUrl`; the exposure was the next third-party call anyone
+        // added. See `docs/owasp-top-10.md` (A01) and `docs/csrf.md`.
+        //
+        // Order within the scope is unchanged: `jwtInterceptor` stays outside
+        // `csrfInterceptor`, `cacheInterceptor` and `retryInterceptor`, so a 401 refresh
+        // still wraps the retries beneath it.
         interceptWhen(
           requestsUnder(environment.apiUrl),
-          composeInterceptors(csrfInterceptor, cacheInterceptor, retryInterceptor)
+          composeInterceptors(jwtInterceptor, csrfInterceptor, cacheInterceptor, retryInterceptor)
         ),
       ])
     ),

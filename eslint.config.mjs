@@ -131,6 +131,20 @@ export default tseslint.config(
           name: 'navigator',
           message: 'Not defined during server-side rendering. Reach it via `inject(DOCUMENT).defaultView`.',
         },
+        {
+          // `window` above already blocks `window.location`; this is the bare global,
+          // which is a separate binding and was reachable. It is on this list for the
+          // SSR reason the others are — `location` does not exist in Node — and kept
+          // here for a second one: `location`/`location.href`/`location.assign` is the
+          // sink an open redirect needs. `Router.navigateByUrl` cannot leave the origin,
+          // so with this global out of reach a user-controlled string has no path
+          // off-site; `login.component.spec.ts` asserts that boundary from the other
+          // end, and `scripts/ci/assert-lint-bans.mjs` proves this rule still fires.
+          // See docs/owasp-top-10.md (A01).
+          name: 'location',
+          message:
+            'Not defined during server-side rendering — and it is the sink an open redirect needs, which `Router.navigateByUrl` is not. Navigate through `Router`, or read the URL via `inject(DOCUMENT).defaultView?.location` / `PlatformLocation` where SSR allows it. See docs/owasp-top-10.md.',
+        },
       ],
     },
   },
