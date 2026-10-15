@@ -3,6 +3,7 @@ import { AUTH_ROUTES } from '@/app/features/auth/auth.routes';
 import { ADMIN_ROUTES } from '@/app/features/admin/admin.routes';
 import { DASHBOARD_ROUTES } from '@/app/features/dashboard/dashboard.routes';
 import { UnauthorizedComponent } from '@/app/features/errors/unauthorized.component';
+import { authGuard } from '@/app/core/guards';
 import { loadChildRoutes, loadRouteComponent } from '@/testing';
 
 describe('app routes', () => {
@@ -63,6 +64,53 @@ describe('app routes', () => {
     it('unauthorized loadComponent resolves to UnauthorizedComponent', async () => {
       const unauth = routes.find((r) => r.path === 'unauthorized');
       await expectAsync(loadRouteComponent(unauth)).toBeResolvedTo(UnauthorizedComponent);
+    });
+  });
+  /**
+   * The route table as an access-control decision, read as a whole rather than one route
+   * at a time.
+   *
+   * The assertions above name `dashboard` and `admin` and check each carries its guards,
+   * which is the right test for the routes that exist and no test at all for the route
+   * added next year. A new feature mounted at the top level with no `canActivate` is
+   * invisible: it compiles, it renders, every existing spec here still passes, and the
+   * only way to notice is for somebody to read `app.routes.ts` and remember what the
+   * guards are for.
+   *
+   * So the partition is asserted instead of the members. Everything that is not a
+   * redirect must carry `authGuard` unless its path is on this list, and the list is
+   * short enough to be read in a diff — which turns "I added a public route" from an
+   * omission into an edit a reviewer sees.
+   *
+   * `authGuard` specifically, not "some guard": a route behind `roleGuard` alone would
+   * send an anonymous visitor to `/login`, but only after `roleGuard` had read a store
+   * that an unauthenticated visitor has no business having populated. The two compose in
+   * that order on `admin` for a reason, and `docs/owasp-top-10.md` (A01) says what the
+   * guards are and are not: navigation, never authorisation, which belongs to the API.
+   */
+  describe('as an access-control decision', () => {
+    /** The routes a visitor with no session may reach. Everything else needs `authGuard`. */
+    const PUBLIC_PATHS = ['', 'unauthorized'];
+
+    it('requires a session for every route that is not explicitly public', () => {
+      const reachableWithoutASession = routes
+        .filter((route) => route.redirectTo === undefined)
+        .filter((route) => !(route.canActivate ?? []).includes(authGuard))
+        .map((route) => route.path ?? '');
+
+      expect(reachableWithoutASession.sort()).toEqual([...PUBLIC_PATHS].sort());
+    });
+
+    /**
+     * The other half: a public path has to stay a path, not a prefix. `path: ''` with
+     * `loadChildren` is how the auth feature mounts `/login` and `/register` at the root,
+     * and it is the one entry on the list that could grow a child nobody meant to publish.
+     */
+    it('publishes only the auth feature at the public root', async () => {
+      const publicRoot = routes.find((route) => route.path === '' && route.pathMatch !== 'full');
+      const children = await loadChildRoutes(publicRoot);
+
+      expect(children.map((child) => child.path).sort()).toEqual(['login', 'register']);
     });
   });
 });

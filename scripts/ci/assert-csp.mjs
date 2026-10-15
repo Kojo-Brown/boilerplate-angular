@@ -45,6 +45,13 @@
 //   9. Subresources are left alone — a hashed chunk keeps its `ETag` and its long
 //      `max-age`. Nonce-ing documents must not have made the whole site uncacheable.
 //
+// Rules 2, 3 and 4 are what `docs/owasp-top-10.md` cites for a policy that is actually
+// enforced and actually per-response; rules 4 to 9 are what it cites for the served
+// artifact being the artifact the policy describes.
+//
+// @owasp A02.csp-is-enforced-and-per-response
+// @owasp A08.the-built-artifact-is-what-it-claims
+//
 // Usage: node scripts/ci/assert-csp.mjs [dist-dir]
 //        (default: dist/boilerplate-angular, matching `outputPath` in angular.json)
 

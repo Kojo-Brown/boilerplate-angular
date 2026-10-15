@@ -52,6 +52,25 @@ concurrency:
 #     leaks the token only to hosts no test posts to. The `csrf` job below is the
 #     behavioural half, in a browser, against a real implementation of the server's rules.
 #     See `docs/csrf.md`.
+#   - `scripts/ci/assert-owasp-checklist.mjs` fails when the OWASP checklist in
+#     `src/app/core/security/owasp.ts` claims something this workflow does not actually
+#     check. Every claim names the test that proves it, and the gate resolves each one
+#     against the filesystem and against this file: a spec that was renamed, an e2e case
+#     parked in the `chromium` project (which is deliberately not a gate here), a
+#     `check:*` script dropped from the jobs below, or a rule deleted from inside a gate
+#     these jobs still run. All four leave the checklist reading green, which is the whole
+#     failure mode of a checklist — it is the most reassuring artifact a repository can
+#     hold and every way it rots is silent. The gate also owns the two supply-chain claims
+#     that are about the manifest rather than any line of code: that no dependency runs an
+#     install script, and that CI installs the lockfile it was given. See
+#     `docs/owasp-top-10.md`.
+#   - `scripts/ci/assert-lint-bans.mjs` proves the two security bans in `eslint.config.mjs`
+#     still fire, by linting source that must be refused — `bypassSecurityTrust*` and the
+#     `location` sink an open redirect needs. `pnpm lint` enforces both, but only while the
+#     rules still *match*: a mistyped alternation in the AST selector, or one object
+#     removed from a `no-restricted-globals` array, leaves `pnpm lint` passing on every
+#     file forever, and the only signal is the absence of an error nobody was expecting.
+#     See `docs/security.md` and `docs/owasp-top-10.md`.
 #   - `scripts/ci/assert-logical-properties.mjs` fails on a physical-direction Tailwind
 #     utility. `dir="rtl"` moves only what is written logically, so a layout on `ml-`,
 #     `left-` or `border-r` mirrors into a consistent, plausible, wrong version of itself
@@ -190,6 +209,27 @@ jobs:
       # a third-party host to notice. See `docs/csrf.md`.
       - name: Assert the CSRF contract has one definition and the document matches it
         run: pnpm check:csrf
+
+      # Source-level, and about agreement like `check:csrf` — but between a claim and the
+      # thing that enforces it rather than between two copies of a name. `docs/owasp-top-10.md`
+      # is what an auditor reads and what an API author implements the server half from, and
+      # the ways it rots are all silent: a spec renamed while tidying leaves the claim it
+      # carried unproven with the suite still green; a Playwright case cited from the
+      # `chromium` project is a test somebody wrote rather than a check that blocks a merge;
+      # a `check:*` script dropped from this workflow keeps working on a developer's machine
+      # and enforces nothing on a pull request. So every proof is resolved against the
+      # filesystem and against this file, in both directions.
+      - name: Assert every claim in the OWASP checklist is one CI actually checks
+        run: pnpm check:owasp
+
+      # The other half of the sanitisation ban, and of the open-redirect one. Both are
+      # enforced by a lint rule and by nothing else, and a rule that has stopped matching
+      # is indistinguishable from a repository that complies — so the rules are run against
+      # source that is supposed to trip them, plus compliant source that must stay clean.
+      # Same arrangement as `check:form-types`, which proves the typed-form helpers by
+      # compiling code that must not compile.
+      - name: Assert the security lint bans still fire
+        run: pnpm check:lint-bans
 
   typecheck:
     name: Typecheck (Node ${{ matrix.node-version }})

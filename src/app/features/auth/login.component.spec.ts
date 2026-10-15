@@ -1,6 +1,7 @@
 import { DeferBlockBehavior, DeferBlockState, TestBed } from '@angular/core/testing';
 import type { ComponentFixture, DeferBlockFixture } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { LoginComponent } from './login.component';
 import { AuthFacade } from '@/app/core/auth';
 import { createFakeAuthFacade, host, settleUntil } from '@/testing';
@@ -124,5 +125,82 @@ describe('LoginComponent', () => {
 
       expect(host(fixture).querySelector('app-login-form')).toBeTruthy();
     });
+  });
+});
+
+/**
+ * `returnUrl` is the one value on this page that an attacker chooses: `authGuard` puts
+ * the blocked URL in the query string, and the component hands whatever it finds there
+ * straight to `Router.navigateByUrl`. In a server-rendered application that is the
+ * textbook open redirect — a crafted link that signs the victim in and lands them on a
+ * host the attacker controls, with the referrer intact.
+ *
+ * Here it is not, and the reason is worth pinning rather than reasoning about again in
+ * the next audit: `Router.navigateByUrl` cannot leave the origin. It parses its argument
+ * as an application URL, matches it against the route table, and falls to the wildcard
+ * when nothing matches; it never reaches a sink that can cross an origin. The open-redirect
+ * sinks in a SPA are `location`/`location.href`, `window.open` and an `href` bound from
+ * data — `window` is already banned in `src/app/**` and `location` is banned beside it,
+ * both checked by `scripts/ci/assert-lint-bans.mjs`, so the only route off-origin is
+ * through a rule someone would have to delete.
+ *
+ * So these cases assert the boundary, not the sanitisation of the string: a foreign origin
+ * in `returnUrl` gets the visitor an in-application route. If a future Angular made
+ * `navigateByUrl` honour an absolute URL, this is what would fail — and, as written today,
+ * nothing else in the repository would.
+ */
+describe('LoginComponent and the returnUrl a visitor can put in the query string', () => {
+  let auth: FakeAuthFacade;
+
+  beforeEach(() => {
+    auth = createFakeAuthFacade();
+    TestBed.configureTestingModule({
+      deferBlockBehavior: DeferBlockBehavior.Manual,
+      providers: [
+        { provide: AuthFacade, useValue: auth },
+        // A real route table, because what is under test is what the Router does with the
+        // string — a stub Router would only ever prove what was handed to it.
+        provideRouter([
+          { path: 'login', component: LoginComponent },
+          { path: 'dashboard', children: [{ path: 'posts', children: [] }] },
+          { path: '**', redirectTo: 'dashboard' },
+        ]),
+      ],
+    });
+  });
+
+  /** Signs in on `/login?returnUrl=…` and answers with the URL the Router settled on. */
+  async function signInArrivingWith(query: string): Promise<string> {
+    const harness = await RouterTestingHarness.create(`/login${query}`);
+    const router = TestBed.inject(Router);
+
+    auth.isSignedIn.set(true);
+    harness.detectChanges();
+    await settleUntil(harness.fixture, () => router.url !== `/login${query}`);
+
+    return router.url;
+  }
+
+  it('sends a visitor with no returnUrl to the dashboard', async () => {
+    expect(await signInArrivingWith('')).toBe('/dashboard');
+  });
+
+  it('honours a returnUrl naming a route of this application', async () => {
+    expect(await signInArrivingWith('?returnUrl=%2Fdashboard%2Fposts')).toBe('/dashboard/posts');
+  });
+
+  it('does not take a visitor off-origin for a returnUrl naming another host', async () => {
+    const settled = await signInArrivingWith('?returnUrl=https%3A%2F%2Fevil.example%2Fpwn');
+
+    expect(settled).not.toContain('evil.example');
+    expect(settled).toBe('/dashboard');
+  });
+
+  it('does not take a visitor off-origin for a protocol-relative returnUrl', async () => {
+    // The form that defeats a naive "starts with http" check, and the one a hand-rolled
+    // allow-list usually misses.
+    const settled = await signInArrivingWith('?returnUrl=%2F%2Fevil.example%2Fpwn');
+
+    expect(settled).not.toContain('evil.example');
   });
 });

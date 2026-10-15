@@ -1,5 +1,6 @@
 import { Component, CSP_NONCE, NgZone, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { HttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TitleStrategy } from '@angular/router';
 import { appConfig } from './app.config';
@@ -8,6 +9,7 @@ import { AuthStore } from '@/app/store/auth/auth.store';
 import { SESSION_HINT_COOKIE } from '@/app/store/auth/session-hint';
 import { CSRF_BOOTSTRAP_PATH, CSRF_CONTRACT } from '@/app/core/http/csrf';
 import { SUBSCRIBE_WEB_VITALS } from '@/app/core/vitals';
+import { environment } from '@/environments/environment';
 import { host, requireEl } from '@/testing';
 
 /**
@@ -235,5 +237,78 @@ describe('appConfig', () => {
    */
   it('does not provide CSP_NONCE, which the browser must read from the document', () => {
     expect(TestBed.inject(CSP_NONCE, null)).toBeNull();
+  });
+  /**
+   * Where the credentials are allowed to travel, asserted against the chain the
+   * application actually bootstraps.
+   *
+   * This is deliberately not in `jwt.interceptor.spec.ts`, and that is the whole point of
+   * it being here. `jwtInterceptor` is correct in isolation — handed a request and a
+   * token, it attaches a `Bearer` header, which is its job and what its own spec proves.
+   * Whether that is *safe* is decided one level up, by where the interceptor is installed:
+   * for most of this repository's life it sat at the top of `withInterceptors([…])`,
+   * outside the `requestsUnder(environment.apiUrl)` scope that already bounded the CSRF
+   * token, so every request `HttpClient` made to any host in the world would have carried
+   * the access token.
+   *
+   * Nothing failed, and nothing could have: every URL this application builds is
+   * `environment.apiUrl` plus a path, so no existing spec and no e2e case ever posted to a
+   * third-party host to notice. The exposure was entirely in the next call someone added —
+   * an analytics endpoint, a feature-flag service, a map tile server — which would have
+   * been handed a working session token with nothing in CI to say so. A bearer token is
+   * strictly more valuable than the CSRF token the repository already refuses to leak.
+   *
+   * So the assertion is about the configuration, not the interceptor, and the off-origin
+   * case is the one that would have been green before the fix.
+   */
+  describe('where a credential is allowed to travel', () => {
+    function withSession(): HttpTestingController {
+      TestBed.inject(AuthStore).updateAccessToken('mock-access-token');
+      return TestBed.inject(HttpTestingController);
+    }
+
+    it('attaches the bearer token to a request for the configured API', () => {
+      const httpTesting = withSession();
+
+      TestBed.inject(HttpClient)
+        .get(`${environment.apiUrl}/posts`)
+        .subscribe({ error: () => undefined });
+
+      const request = httpTesting.expectOne(`${environment.apiUrl}/posts`);
+      expect(request.request.headers.get('Authorization')).toBe('Bearer mock-access-token');
+      request.flush([]);
+    });
+
+    it('sends no bearer token to an origin that is not the configured API', () => {
+      const httpTesting = withSession();
+      const thirdParty = 'https://third-party.example/collect';
+
+      TestBed.inject(HttpClient)
+        .get(thirdParty)
+        .subscribe({ error: () => undefined });
+
+      const request = httpTesting.expectOne(thirdParty);
+      expect(request.request.headers.has('Authorization')).toBeFalse();
+      request.flush({});
+    });
+
+    /**
+     * The 401 handler is credential machinery too. A third-party host answering 401 — for
+     * its own unrelated reasons — must not spend this application's refresh cookie, which
+     * is what an unscoped `jwtInterceptor` would do: one 401 from an analytics endpoint
+     * and the session is refreshed, or, if the refresh fails, cleared.
+     */
+    it('does not spend the refresh cookie on a 401 from somewhere else', () => {
+      const httpTesting = withSession();
+      const thirdParty = 'https://third-party.example/collect';
+
+      TestBed.inject(HttpClient)
+        .get(thirdParty)
+        .subscribe({ error: () => undefined });
+      httpTesting.expectOne(thirdParty).flush({}, { status: 401, statusText: 'Unauthorized' });
+
+      httpTesting.verify();
+      expect(TestBed.inject(AuthStore).accessToken()).toBe('mock-access-token');
+    });
   });
 });

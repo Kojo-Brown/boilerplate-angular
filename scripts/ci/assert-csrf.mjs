@@ -129,6 +129,8 @@ export function auditSource(file, source, contract) {
 /**
  * Checks the interceptor is installed, and installed inside the API scope.
  *
+ * @owasp A01.credentials-never-leave-the-api
+ *
  * Deliberately lexical and deliberately narrow: it asserts that `csrfInterceptor` appears
  * in the same `interceptWhen(requestsUnder(...), composeInterceptors(...))` call that
  * already scopes caching and retries. A rewrite of that chain should fail this and be

@@ -29,6 +29,38 @@ describe('createCspNonce', () => {
   it('is never the placeholder', () => {
     expect(createCspNonce()).not.toBe(CSP_NONCE_PLACEHOLDER);
   });
+
+  /**
+   * Where the bytes come from, which is the one property the three assertions above
+   * cannot see.
+   *
+   * `Math.random()` passes every one of them: sixteen bytes drawn from it decode to
+   * length 16, encode inside the base64-value grammar, and 500 draws collide with a
+   * probability of roughly zero — so the entropy and uniqueness tests stay green while
+   * the nonce has become predictable, which is the only security property a nonce has.
+   * V8 seeds `Math.random` per context from a 128-bit state and leaks enough of it in a
+   * handful of outputs for the sequence to be recovered; `docs/security.md` sets out why
+   * a guessable nonce is worse than no nonce, because the policy then reads as strict
+   * while authorising injected script.
+   *
+   * So this asserts the provenance directly: the CSPRNG was asked, `Math.random` was
+   * not, and the bytes the CSPRNG returned are the bytes that were encoded — a wrapper
+   * that called `getRandomValues` and then encoded something else would otherwise
+   * satisfy the call assertions.
+   */
+  it('draws its bytes from the platform CSPRNG, never from Math.random', () => {
+    const csprng = spyOn(Crypto.prototype, 'getRandomValues').and.callThrough();
+    const mathRandom = spyOn(Math, 'random').and.callThrough();
+
+    const nonce = createCspNonce();
+
+    expect(mathRandom).not.toHaveBeenCalled();
+    expect(csprng).toHaveBeenCalledTimes(1);
+
+    const bytes = csprng.calls.mostRecent().returnValue as Uint8Array;
+    expect(bytes.length).toBe(16);
+    expect(nonce).toBe(btoa(String.fromCharCode(...bytes)));
+  });
 });
 
 describe('CSP_NONCE_PLACEHOLDER', () => {
