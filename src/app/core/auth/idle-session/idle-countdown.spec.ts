@@ -101,6 +101,28 @@ describe('idleCountdown', () => {
       expect(later.status).toBe('expired');
       expect(expiredAtOf(later)).toBe(expiredAtOf(expired));
     });
+
+    /**
+     * Identity, not equality. The caller keeps the countdown in a field and detects the
+     * transition into `expired` by comparing references, so a `settledAt` that rebuilds
+     * an equal object reports a change on every poll: the sign-out would fire once a
+     * poll for as long as the tab stayed open.
+     */
+    it('hands back the countdown it was given while the session is still running', () => {
+      const countdown = countdownFrom(PAGE_LOAD);
+
+      expect(settledAt(countdown, PAGE_LOAD + 1_000, FIFTEEN_MINUTES)).toBe(countdown);
+    });
+
+    it('hands back the countdown it was given when it is already expired', () => {
+      const expired = settledAt(
+        countdownFrom(PAGE_LOAD),
+        PAGE_LOAD + FIFTEEN_MINUTES.idleAfterMs,
+        FIFTEEN_MINUTES
+      );
+
+      expect(settledAt(expired, PAGE_LOAD + 60 * 60_000, FIFTEEN_MINUTES)).toBe(expired);
+    });
   });
 
   describe('withActivityAt', () => {
@@ -146,6 +168,18 @@ describe('idleCountdown', () => {
 
       expect(afterActivity.status).toBe('expired');
       expect(afterActivity).toBe(expired);
+    });
+
+    /**
+     * The same identity rule as `settledAt`'s, and the one that matters more often: the
+     * caller applies the recorded activity on every poll, so for a session where nobody
+     * has touched anything since the last poll this is the call that must report that
+     * nothing happened.
+     */
+    it('hands back the countdown it was given when the activity is at the reading it holds', () => {
+      const countdown = countdownFrom(PAGE_LOAD);
+
+      expect(withActivityAt(countdown, PAGE_LOAD)).toBe(countdown);
     });
   });
 });
