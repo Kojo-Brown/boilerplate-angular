@@ -1,11 +1,14 @@
 /**
- * The idle-session decision: has this session been left alone for longer than the policy
- * allows?
+ * The idle-session decision, as the transitions of one immutable value.
  *
  * Nothing here touches Angular, the DOM, a timer or a clock. The verdict is a question
  * about two numbers, and `now` is a parameter so every case — the boundary instant, a
  * visitor who came back after the deadline, a poll that arrived an hour late — is one
  * call rather than a wait.
+ *
+ * `now` must come from a **monotonic** clock. Every function here measures an interval,
+ * and `Date.now()` does not measure intervals: an NTP correction can move it in either
+ * direction while the page is open.
  */
 
 /** The policy: how long a session may sit unused. */
@@ -61,5 +64,11 @@ export function settledAt(
 
 /** Move the deadline out to `now`, because the user did something at `now`. */
 export function withActivityAt(countdown: IdleCountdown, now: number): IdleCountdown {
+  // Expiry is terminal. Without this, the mouse movement of someone returning to a
+  // laptop left open on a dashboard cancels the expiry that was meant to protect it.
+  if (countdown.status === 'expired') {
+    return countdown;
+  }
+
   return { status: 'counting', lastActivityAt: now };
 }
