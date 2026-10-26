@@ -1,4 +1,4 @@
-import { countdownFrom, settledAt } from './idle-countdown';
+import { countdownFrom, settledAt, withActivityAt } from './idle-countdown';
 import type { IdleCountdown, IdleWindow } from './idle-countdown';
 
 /** The policy `app.config.ts` ships. */
@@ -87,6 +87,33 @@ describe('idleCountdown', () => {
       // rate is allowed to change.
       expect(expiredAtOf(once)).toBe(PAGE_LOAD + 600_000);
       expect(expiredAtOf(polled)).toBe(PAGE_LOAD + 60_000);
+    });
+  });
+
+  describe('withActivityAt', () => {
+    it('moves the deadline out to the new activity', () => {
+      const countdown = withActivityAt(countdownFrom(PAGE_LOAD), PAGE_LOAD + 10 * 60_000);
+
+      // Twenty minutes after the page loaded and ten after the activity: inside the
+      // window measured from the activity, five minutes past it measured from the load.
+      // Reading it from the load is the implementation this is here to refuse, so the
+      // instant has to be one the two disagree about — an assertion a `withActivityAt`
+      // that did nothing could also satisfy would be no test at all.
+      const settled = settledAt(countdown, PAGE_LOAD + 20 * 60_000, FIFTEEN_MINUTES);
+
+      expect(settled.status).toBe('counting');
+    });
+
+    it('gives back the whole window from the moment of the activity', () => {
+      const activeAt = PAGE_LOAD + 10 * 60_000;
+      const countdown = withActivityAt(countdownFrom(PAGE_LOAD), activeAt);
+
+      expect(
+        settledAt(countdown, activeAt + FIFTEEN_MINUTES.idleAfterMs - 1, FIFTEEN_MINUTES).status
+      ).toBe('counting');
+      expect(
+        settledAt(countdown, activeAt + FIFTEEN_MINUTES.idleAfterMs, FIFTEEN_MINUTES).status
+      ).toBe('expired');
     });
   });
 });
