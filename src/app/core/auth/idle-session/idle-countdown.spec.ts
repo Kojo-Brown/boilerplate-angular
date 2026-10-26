@@ -88,6 +88,19 @@ describe('idleCountdown', () => {
       expect(expiredAtOf(once)).toBe(PAGE_LOAD + 600_000);
       expect(expiredAtOf(polled)).toBe(PAGE_LOAD + 60_000);
     });
+
+    it('leaves an expired countdown expired', () => {
+      const expired = settledAt(
+        countdownFrom(PAGE_LOAD),
+        PAGE_LOAD + FIFTEEN_MINUTES.idleAfterMs,
+        FIFTEEN_MINUTES
+      );
+
+      const later = settledAt(expired, PAGE_LOAD + 60 * 60_000, FIFTEEN_MINUTES);
+
+      expect(later.status).toBe('expired');
+      expect(expiredAtOf(later)).toBe(expiredAtOf(expired));
+    });
   });
 
   describe('withActivityAt', () => {
@@ -114,6 +127,25 @@ describe('idleCountdown', () => {
       expect(
         settledAt(countdown, activeAt + FIFTEEN_MINUTES.idleAfterMs, FIFTEEN_MINUTES).status
       ).toBe('expired');
+    });
+
+    /**
+     * The security property. Someone walks away from a laptop left open on a dashboard,
+     * the session expires, and a stranger moves the mouse: if that movement restarts the
+     * countdown, the only sessions this feature ever ends are the ones nobody came back
+     * to — which are the ones it was not protecting.
+     */
+    it('does not revive a session that has already expired', () => {
+      const expired = settledAt(
+        countdownFrom(PAGE_LOAD),
+        PAGE_LOAD + FIFTEEN_MINUTES.idleAfterMs,
+        FIFTEEN_MINUTES
+      );
+
+      const afterActivity = withActivityAt(expired, PAGE_LOAD + 60 * 60_000);
+
+      expect(afterActivity.status).toBe('expired');
+      expect(afterActivity).toBe(expired);
     });
   });
 });
