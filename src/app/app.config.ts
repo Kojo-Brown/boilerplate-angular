@@ -32,6 +32,7 @@ import {
 } from '@/app/core/http/errors/api-error-mappers';
 import { AuthStore } from '@/app/store/auth/auth.store';
 import { provideAppImageLoader } from '@/app/core/images';
+import { provideIdleSessionTimeout } from '@/app/core/auth/idle-session';
 import { provideRouteFocus } from '@/app/core/a11y';
 import {
   WEB_VITALS_SINK,
@@ -194,6 +195,23 @@ export const appConfig: ApplicationConfig = {
     // candidates are the same file. `docs/images.md` covers that and what a configured CDN
     // then changes.
     provideAppImageLoader(environment.imageCdnUrl),
+
+    // End a session that has been left alone for fifteen minutes.
+    //
+    // The other half of `docs/token-storage.md`. The refresh cookie there is good for
+    // thirty days, and until this was added nothing made the *tab* stop using it: a
+    // signed-in dashboard left open on a screen somebody else can reach stayed signed in
+    // for as long as the browser was open. Fifteen minutes is the policy, and it is a
+    // number rather than a setting because a deployment that wants a different one is
+    // changing a security posture, which belongs in a reviewed diff and not in an
+    // environment file.
+    //
+    // Costs nothing while nobody is signed in: the poll is paused rather than running
+    // against an anonymous visitor, and the activity listeners are registered after the
+    // first render, so the server never adds them. See
+    // `src/app/core/auth/idle-session/provide-idle-session.ts` and `docs/tdd.md`, whose
+    // kata built the countdown this reads.
+    provideIdleSessionTimeout({ idleAfterMs: 15 * 60_000 }),
 
     // Turn tokens restored from storage into a real session, before the router's
     // initial navigation runs its guards. Deliberately synchronous and non-blocking:

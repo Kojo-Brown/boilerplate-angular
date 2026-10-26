@@ -82,6 +82,23 @@ Measured at the commit that added the gate, against a 561.47 kB initial bundle
 > provider) and **0.87 kB is the stylesheet**, Tailwind emitting `sr-only`, `not-sr-only`
 > and the `focus:` variants the skip link needs. Every per-route budget held untouched.
 
+> **The `initial` budget moved 592 kB → 595 kB** for the idle-session timeout, measured
+> rather than estimated: 591.56 → 593.89 kB, +2.33 kB. This is the other kind of eager
+> cost from the one above — not a thing that has to be in the first paint, but a thing that
+> has to *run* whether or not any component asks for it. The countdown is registered from
+> an app initializer, so it is reachable from `app.config.ts` and chunk-assigned to the
+> initial bundle; behind a lazy route it would start when the first dashboard chunk landed,
+> which is after the window it is supposed to be measuring has already begun.
+>
+> It was 596.40 kB first. `provide-idle-session.ts` imported `intervalSignal` from
+> `@/app/core/reactivity`, and the barrel brought 2.51 kB of primitives the feature does
+> not use into the first paint — `typeahead`, `controlSignal` and the rest, none of them
+> tree-shaken out, because reaching one export through a barrel makes the module graph of
+> every sibling reachable too. Importing `@/app/core/reactivity/interval-signal` directly
+> costs 2.51 kB less and is why this move is 3 kB and not 5. Worth knowing before adding
+> the next barrel import to anything in the initial graph; the per-route budgets below did
+> not move.
+
 "Lazy JS" is what the route adds to the initial bundle; "cold start" is everything a first
 visit fetches, the global stylesheet included. Transfer sizes are gzipped and reported
 only — zlib's output moves a few bytes between Node builds, and a budget that shifts under

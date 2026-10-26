@@ -53,7 +53,7 @@ wherever the verdict is not `client-mitigated`.
 | [A04:2025 — Cryptographic Failures](#a042025--cryptographic-failures) | `shared-with-server` | Where the two client-held secrets live, and where the nonce comes from. |
 | [A05:2025 — Injection](#a052025--injection) | `client-mitigated` | Every sink that could commit an XSS is in this repository. |
 | [A06:2025 — Insecure Design](#a062025--insecure-design) | `shared-with-server` | The session design, and what a guard does with a question it cannot yet answer. |
-| [A07:2025 — Authentication Failures](#a072025--authentication-failures) | `server-owned` | That signing out and failing to refresh both end a session rather than half of it. |
+| [A07:2025 — Authentication Failures](#a072025--authentication-failures) | `server-owned` | That signing out, failing to refresh, and sitting idle all end a session rather than half of it. |
 | [A08:2025 — Software or Data Integrity Failures](#a082025--software-or-data-integrity-failures) | `shared-with-server` | That the code which runs is the code that was built. |
 | [A09:2025 — Logging & Alerting Failures](#a092025--logging--alerting-failures) | `server-owned` | That what the client sends out carries nothing it should not. |
 | [A10:2025 — Mishandling of Exceptional Conditions](#a102025--mishandling-of-exceptional-conditions) | `client-mitigated` | How this application behaves when something fails. |
@@ -313,6 +313,14 @@ session rather than half of one.
   out locally.
 - **`A07.a-refused-refresh-ends-the-session`** — a rejected refresh clears the session
   rather than leaving a user object with no usable token behind it.
+- **`A07.an-idle-session-ends-itself`** — a signed-in session left alone for fifteen
+  minutes is ended in the tab that holds it, and input arriving after the deadline does not
+  revive it. This is the other half of `docs/token-storage.md`: the refresh cookie is good
+  for thirty days, and until this existed nothing made the *tab* stop using it, so a
+  dashboard left open on a screen somebody else could reach stayed signed in for as long as
+  the browser did. It bounds a session left unattended; it does nothing about a closed
+  laptop or a credential already stolen. See `src/app/core/auth/idle-session/` and
+  `docs/tdd.md`.
 
 ### What the server must do
 
@@ -327,6 +335,13 @@ session rather than half of one.
 - Signing out does not navigate: the user is left on a dashboard with no session until the
   next navigation. `e2e/route-guard.spec.ts` asserts revocation plus a reload for this
   reason.
+- An idle sign-out inherits that, deliberately — it does exactly what the button does — and
+  there is no warning before it, which would need a dialog, a focus trap, a live region and
+  two translated strings. `idle-countdown.ts` can already answer how long is left.
+- The idle window is fifteen minutes for every user and every route, enforced per tab. A
+  second tab signed into the same session has its own countdown, so the session ends when
+  the *last* active tab's window elapses rather than when the user stops using the
+  application.
 - The client-side password rule and the server's must agree, and nothing checks that they do.
 
 ---

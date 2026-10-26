@@ -27,6 +27,7 @@
     "check:csrf": "node scripts/ci/assert-csrf.mjs",
     "check:lint-bans": "node scripts/ci/assert-lint-bans.mjs",
     "check:owasp": "node scripts/ci/assert-owasp-checklist.mjs",
+    "check:kata": "node scripts/ci/assert-tdd-kata.mjs",
     "test": "ng test --no-watch --no-progress",
     "test:ci": "ng test --no-watch --no-progress --browsers=ChromeHeadlessCI",
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
