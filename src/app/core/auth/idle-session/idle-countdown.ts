@@ -70,5 +70,12 @@ export function withActivityAt(countdown: IdleCountdown, now: number): IdleCount
     return countdown;
   }
 
+  // Nothing changed, so hand back the value that was passed in. The caller applies the
+  // recorded activity on every poll and detects a change by identity, so an equal-but-new
+  // object reports a change once a poll for as long as the tab is open.
+  if (countdown.lastActivityAt === now) {
+    return countdown;
+  }
+
   return { status: 'counting', lastActivityAt: now };
 }
