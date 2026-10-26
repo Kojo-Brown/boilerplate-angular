@@ -36,13 +36,25 @@ export function countdownFrom(now: number): IdleCountdown {
 }
 
 /**
- * The verdict at `now`. Decides nothing yet: this step exists to get the spec past the
- * compiler so the assertion can be the thing that fails.
+ * The verdict at `now`: expired once the session has been idle for the whole window.
+ *
+ * `>=` rather than `>`, so a window of exactly `idleAfterMs` is over at the instant it
+ * elapses rather than one clock reading later.
+ *
+ * The expired case returns early because the compiler insists: `lastActivityAt` is a
+ * field of `CountingDown` and not of `Expired`, so the union cannot be read without
+ * first establishing which state it is in.
  */
 export function settledAt(
   countdown: IdleCountdown,
   now: number,
   idleWindow: IdleWindow
 ): IdleCountdown {
-  return countdown;
+  if (countdown.status === 'expired') {
+    return countdown;
+  }
+
+  return now - countdown.lastActivityAt >= idleWindow.idleAfterMs
+    ? { status: 'expired', expiredAt: now }
+    : countdown;
 }
