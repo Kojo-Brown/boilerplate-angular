@@ -71,6 +71,17 @@ concurrency:
 #     removed from a `no-restricted-globals` array, leaves `pnpm lint` passing on every
 #     file forever, and the only signal is the absence of an error nobody was expecting.
 #     See `docs/security.md` and `docs/owasp-top-10.md`.
+#   - `scripts/ci/assert-tdd-kata.mjs` replays the recorded kata in `katas/` — every step,
+#     through this repository's own test command — and fails when a step has stopped being
+#     the colour it records, or has become that colour for a different reason. It is a gate
+#     rather than a document because every way a recorded kata rots is silent and most of
+#     them read as tidying: a green step whose spec was edited (which is the one move the
+#     discipline has no answer for), a red step that also changed the implementation, a red
+#     whose failure moved to another assertion, a deleted test, an `xit`, a "refactor" that
+#     follows a red step, or a last step describing a module `src/` has since moved past.
+#     `git log` cannot check any of it — the squash merge that lands each item replaces the
+#     eleven commits with one and deletes the branch, which is why the steps are recorded in
+#     the tree at all. See `docs/tdd.md`.
 #   - `scripts/ci/assert-logical-properties.mjs` fails on a physical-direction Tailwind
 #     utility. `dir="rtl"` moves only what is written logically, so a layout on `ml-`,
 #     `left-` or `border-r` mirrors into a consistent, plausible, wrong version of itself
@@ -311,6 +322,39 @@ jobs:
           name: coverage-node-${{ matrix.node-version }}
           path: coverage/
           retention-days: 7
+
+  kata:
+    name: TDD kata replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          node-version: '22'
+
+      # Same resolution as the `test` job, and needed for the same reason: each step is
+      # replayed through `ng test`, which launches Chrome through `CHROME_BIN`.
+      - name: Resolve Chrome binary
+        run: |
+          CHROME="$(command -v google-chrome || command -v chromium-browser || command -v chromium || true)"
+          if [ -z "$CHROME" ]; then
+            echo "::error::No Chrome/Chromium binary found on this runner."
+            exit 1
+          fi
+          echo "CHROME_BIN=$CHROME" >> "$GITHUB_ENV"
+
+      # Its own job because it needs a browser and because it is eleven builds — about
+      # four minutes, which is longer than any step in `test` and would stretch the
+      # fastest-failing job in the workflow.
+      #
+      # One Node major. What a step's colour is a property of is the source and the
+      # compiler, and the gate's own rules are pure functions checked by `--self-test`
+      # before it certifies anything.
+      - name: Replay the recorded kata
+        run: pnpm check:kata
+        env:
+          NODE_OPTIONS: --throw-deprecation
 
   a11y:
     name: Accessibility (WCAG 2.2 AA, focus and live regions)

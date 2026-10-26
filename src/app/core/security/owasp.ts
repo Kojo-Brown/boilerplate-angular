@@ -583,6 +583,24 @@ export const OWASP_TOP_10: readonly OwaspCategory[] = [
         ],
       },
       {
+        id: 'A07.an-idle-session-ends-itself',
+        claim:
+          'A signed-in session left alone for fifteen minutes is ended in the tab that ' +
+          'holds it, and input arriving after the deadline does not revive it.',
+        proofs: [
+          {
+            kind: 'spec',
+            file: 'src/app/core/auth/idle-session/provide-idle-session.spec.ts',
+            test: 'signs the user out once the window has elapsed with no activity',
+          },
+          {
+            kind: 'spec',
+            file: 'src/app/core/auth/idle-session/provide-idle-session.spec.ts',
+            test: 'does not let activity after the deadline revive the session',
+          },
+        ],
+      },
+      {
         id: 'A07.a-refused-refresh-ends-the-session',
         claim:
           'A rejected refresh clears the session rather than leaving a user object with no ' +
@@ -606,7 +624,9 @@ export const OWASP_TOP_10: readonly OwaspCategory[] = [
         'are all the API’s, and a client-side password rule is a usability feature that an ' +
         'attacker posting to the endpoint directly never sees.',
       'Signing out does not navigate: the user is left on a dashboard with no session until ' +
-        'the next navigation.',
+        'the next navigation. An idle sign-out inherits that, deliberately — it behaves ' +
+        'exactly as the button does — and there is no warning before it either, which ' +
+        '`docs/tdd.md` records as the gap it is.',
     ],
   },
   {

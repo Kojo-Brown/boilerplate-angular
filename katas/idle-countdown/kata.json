@@ -1,0 +1,106 @@
+{
+  "title": "An idle-session countdown, built test first",
+  "subject": {
+    "implementation": "src/app/core/auth/idle-session/idle-countdown.ts",
+    "spec": "src/app/core/auth/idle-session/idle-countdown.spec.ts"
+  },
+  "files": {
+    "implementation": "idle-countdown.ts",
+    "spec": "idle-countdown.spec.ts"
+  },
+  "steps": [
+    {
+      "dir": "01-red-no-such-module",
+      "kind": "red-compile",
+      "diagnostic": "TS2307",
+      "note": "The spec, and nothing for it to import. The first red in a typed language is almost always this one, and it is worth exactly one step: the compiler has refused the file, so not one assertion has run and nothing has been learnt about the behaviour being specified."
+    },
+    {
+      "dir": "02-red-declare-the-api",
+      "kind": "red-declare",
+      "note": "The smallest declaration that lets the assertions speak: the two states, the window, and a `settledAt` that decides nothing. Now the bar is red because the behaviour is missing rather than because the file is. Two of the four tests pass already, and one of those is the boundary from below — an assertion a function that does nothing can satisfy, which is why it is here beside its opposite rather than instead of it.",
+      "failing": [
+        {
+          "spec": "idleCountdown settledAt expires a session that has been idle for the whole window",
+          "message": "Expected 'counting' to be 'expired'"
+        },
+        {
+          "spec": "idleCountdown settledAt reports the reading the deadline was noticed at",
+          "message": "Expected null to be 908234"
+        },
+        {
+          "spec": "idleCountdown settledAt reaches the same verdict in one late call as in every call it missed",
+          "message": "Expected 'counting' to be 'expired'"
+        }
+      ]
+    },
+    {
+      "dir": "03-green-expire-at-the-window",
+      "kind": "green",
+      "note": "`>=` against the window, and an early return for the expired state that the compiler insists on: `lastActivityAt` belongs to `CountingDown` and not to `Expired`, so the union cannot be read without saying which state it is. That guard is the whole of two properties steps 7 and 9 go on to test, and it arrived here for free — which is the asymmetry this kata is really about."
+    },
+    {
+      "dir": "04-red-no-such-export",
+      "kind": "red-compile",
+      "diagnostic": "TS2305",
+      "note": "A second function, and the second compiler red — a different diagnostic from step 1 (the module is there, the export is not) and the same lesson. Two of every three red bars in a typed language are this, which is why each step here records which kind it was."
+    },
+    {
+      "dir": "05-red-declare-activity",
+      "kind": "red-declare",
+      "note": "`withActivityAt` declared and inert. Both new tests measure at an instant the two readings disagree about — ten minutes after the activity, twenty after the page load — so neither can be satisfied by a function that hands the countdown straight back.",
+      "failing": [
+        {
+          "spec": "idleCountdown withActivityAt moves the deadline out to the new activity",
+          "message": "Expected 'expired' to be 'counting'"
+        },
+        {
+          "spec": "idleCountdown withActivityAt gives back the whole window from the moment of the activity",
+          "message": "Expected 'expired' to be 'counting'"
+        }
+      ]
+    },
+    {
+      "dir": "06-green-activity-moves-the-deadline",
+      "kind": "green",
+      "note": "One line: activity means a countdown from the new reading. It passes both tests and is wrong in two ways neither of them can see, because neither one hands it a session that is already over."
+    },
+    {
+      "dir": "07-red-activity-revives-an-expired-session",
+      "kind": "red",
+      "note": "The first way. Someone walks away from a laptop left open on a dashboard, the window elapses, and a stranger moves the mouse: step 6 restarts the countdown, so the only sessions the feature ever ends are the ones nobody came back to. The matching test for `settledAt` was green the moment it was written — the narrowing in step 3 had already closed it there.",
+      "failing": [
+        {
+          "spec": "idleCountdown withActivityAt does not revive a session that has already expired",
+          "message": "Expected 'counting' to be 'expired'"
+        }
+      ]
+    },
+    {
+      "dir": "08-green-expiry-is-terminal",
+      "kind": "green",
+      "note": "Expiry is terminal: the guard `settledAt` was given by the type system, written out by hand for the function that never had to look."
+    },
+    {
+      "dir": "09-red-a-fresh-object-every-poll",
+      "kind": "red",
+      "note": "The second way, and the one that reads as correct: a new object for every call, equal to the one before it. The caller applies the recorded activity on every poll and detects a change by identity, so an equal-but-new value reports a change once a poll — which is one sign-out request a poll, for as long as the tab is open. Two of the three new tests pass on arrival, both of them `settledAt`'s, for the third time in this kata and for the same reason.",
+      "failing": [
+        {
+          "spec": "idleCountdown withActivityAt hands back the countdown it was given when the activity is at the reading it holds",
+          "message": "to be Object({ status: 'counting', lastActivityAt: 1234 })"
+        }
+      ]
+    },
+    {
+      "dir": "10-green-nothing-changed-means-the-same-value",
+      "kind": "green",
+      "note": "Nothing changed, so hand back what was passed in. Eleven tests green, and the implementation now carries the same two guards twice over."
+    },
+    {
+      "dir": "11-refactor-one-home-for-the-invariants",
+      "kind": "refactor",
+      "note": "`whileCounting` — the one place where a transition is skipped on an expired countdown. The two properties steps 7 and 9 paid for stop being things each function has to remember and become properties of the shape every transition is written in, so the fourth one gets them without a test to teach it. Not one character of the spec moves, which is the only thing that makes the word refactor true. This is the file `src/` ships."
+    }
+  ]
+}

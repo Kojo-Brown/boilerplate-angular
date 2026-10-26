@@ -33,3 +33,4 @@ coverage/
 # uploads as a CI artifact on failure
 playwright-report/
 test-results/
+src/kata-run/
