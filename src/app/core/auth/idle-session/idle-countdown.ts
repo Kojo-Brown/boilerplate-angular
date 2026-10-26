@@ -59,10 +59,7 @@ export function settledAt(
     : countdown;
 }
 
-/**
- * Move the deadline out to `now`. A stub, for the same reason `settledAt` was one a few
- * steps ago: the compiler has to be satisfied before an assertion can speak.
- */
+/** Move the deadline out to `now`, because the user did something at `now`. */
 export function withActivityAt(countdown: IdleCountdown, now: number): IdleCountdown {
-  return countdown;
+  return { status: 'counting', lastActivityAt: now };
 }
