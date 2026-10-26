@@ -58,3 +58,11 @@ export function settledAt(
     ? { status: 'expired', expiredAt: now }
     : countdown;
 }
+
+/**
+ * Move the deadline out to `now`. A stub, for the same reason `settledAt` was one a few
+ * steps ago: the compiler has to be satisfied before an assertion can speak.
+ */
+export function withActivityAt(countdown: IdleCountdown, now: number): IdleCountdown {
+  return countdown;
+}
