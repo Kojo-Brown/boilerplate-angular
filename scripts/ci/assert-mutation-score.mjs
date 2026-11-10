@@ -230,19 +230,27 @@ export function checkFloors(report, floors) {
           'Fewer mutants means less was checked, and a shrinking denominator raises the score.'
       );
     }
-    // A `Timeout` counts as *detected*, which makes it the one status that can raise a
-    // score without any assertion having objected to anything. It is also how this
-    // configuration was first mis-measured: Stryker's allowance is `netTime *
-    // timeoutFactor + timeoutMS`, and `netTime` excludes the karma round trip — 5.9s of
-    // tests against 15.4s of overhead — so every mutant that needed a full-suite run
-    // exceeded the default allowance and was scored as killed. See `timeoutMS` in
-    // `stryker.conf.json`. A real infinite loop is worth catching, but it should be
-    // caught deliberately and written into the row's `why`, not absorbed silently.
-    if (measured.timeout > 0) {
+    // A `Timeout` counts as *detected*, so it is the one status that can raise a score
+    // without an assertion having objected to anything — and it has two causes that look
+    // identical in the report.
+    //
+    // Sometimes it is real: a mutant that makes a loop or a poll never finish hangs the
+    // spec, and hanging is a perfectly good way for a test to notice. `idle-countdown.ts`
+    // has exactly one of those.
+    //
+    // Sometimes it is the allowance being wrong. Stryker's is `netTime * timeoutFactor +
+    // timeoutMS`, and `netTime` counts only time spent *inside* the tests — 5.9s here
+    // against 15.4s of karma round trip — so the default `timeoutMS: 5000` scored every
+    // mutant needing a full-suite run as killed. See `timeoutMS` in `stryker.conf.json`.
+    //
+    // The report cannot tell them apart, so the floor row declares how many it expects and
+    // owes a `why` naming each. More than declared fails; fewer passes, because a mutant
+    // that graduated from hanging to being asserted against is an improvement.
+    if (measured.timeout > (floor.timeouts ?? 0)) {
       problems.push(
-        `${path}: ${measured.timeout} mutant(s) ended in Timeout, which the score counts as ` +
-          'detected. Raise `timeoutMS` until the run fits, then re-measure — a mutant killed by the ' +
-          'clock is not a mutant any test objected to.'
+        `${path}: ${measured.timeout} mutant(s) ended in Timeout, the row declares ` +
+          `${floor.timeouts ?? 0}. A Timeout counts as detected, so an undeclared one raises the ` +
+          'score for free. Check whether the mutant really hangs or whether `timeoutMS` is too low.'
       );
     }
     if (measured.invalid > 0) {
@@ -268,14 +276,18 @@ export function checkFloors(report, floors) {
   return problems;
 }
 
-/** A floor below 100 has to say why, so lowering one is an argument and not an edit. */
+/**
+ * A floor that concedes something has to say what, so conceding is an argument and not an
+ * edit. Two things count as conceding: a score below 100, and a declared timeout — both
+ * are a mutant that no assertion objected to, recorded as acceptable.
+ */
 export function checkLoweredFloorsAreJustified(floors) {
   return Object.entries(floors)
-    .filter(([, floor]) => floor.score < 100 && !(floor.why ?? '').trim())
+    .filter(([, floor]) => (floor.score < 100 || (floor.timeouts ?? 0) > 0) && !(floor.why ?? '').trim())
     .map(
       ([path]) =>
-        `FLOORS["${path}"]: a score floor below 100 needs a "why". ` +
-        'Never lower a floor to turn a red build green — if the surviving mutant is genuinely not worth killing, say so here.'
+        `FLOORS["${path}"]: a score floor below 100, or a declared timeout, needs a "why". ` +
+        'Never lower a floor to turn a red build green — if the mutant is genuinely not worth killing, or genuinely hangs, say so here.'
     );
 }
 
@@ -441,12 +453,40 @@ const SELF_TESTS = [
       ).some((p) => p.includes('CompileError')),
   ],
   [
-    'a mutant killed by the clock fails rather than counting as detected',
+    'an undeclared timeout fails rather than counting as detected',
     () =>
       checkFloors(
         { files: { 'src/a.ts': { mutants: [mutant('Killed'), mutant('Timeout')] } } },
         { 'src/a.ts': { score: 100, mutants: 2 } }
       ).some((p) => p.includes('Timeout')),
+  ],
+  [
+    'a declared timeout passes',
+    () =>
+      checkFloors(
+        { files: { 'src/a.ts': { mutants: [mutant('Killed'), mutant('Timeout')] } } },
+        { 'src/a.ts': { score: 100, mutants: 2, timeouts: 1, why: 'it really hangs' } }
+      ).length === 0,
+  ],
+  [
+    'one more timeout than declared fails',
+    () =>
+      checkFloors(
+        { files: { 'src/a.ts': { mutants: [mutant('Timeout'), mutant('Timeout')] } } },
+        { 'src/a.ts': { score: 100, mutants: 2, timeouts: 1, why: 'one hangs' } }
+      ).some((p) => p.includes('Timeout')),
+  ],
+  [
+    'fewer timeouts than declared is an improvement and passes',
+    () =>
+      checkFloors(
+        { files: { 'src/a.ts': { mutants: [mutant('Killed'), mutant('Killed')] } } },
+        { 'src/a.ts': { score: 100, mutants: 2, timeouts: 1, why: 'one hangs' } }
+      ).length === 0,
+  ],
+  [
+    'a declared timeout still needs a reason',
+    () => checkLoweredFloorsAreJustified({ 'src/a.ts': { score: 100, mutants: 2, timeouts: 1 } }).length === 1,
   ],
   [
     'a mutant silenced with a disable comment fails rather than vanishes',
