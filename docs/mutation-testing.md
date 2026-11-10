@@ -17,30 +17,24 @@ pnpm mutation        # run Stryker, write reports/mutation/{mutation.json,mutati
 pnpm check:mutation  # hold every file to its floor; this is the gate
 ```
 
-Both run in the `mutation` CI job and both block a merge. The current run is **29 mutants
-over two files in about five minutes**, and the score is 96.55% — 28 detected, one surviving
-mutant that is written up below as unkillable.
+Both run in the `mutation` CI job and both block a merge. The current run is **one module,
+24 mutants, 100%**, in about four minutes.
 
 ## Per-file floors
 
 | File | Score | Mutants | Notes |
 | --- | --- | --- | --- |
 | `core/auth/idle-session/idle-countdown.ts` | 100% | 24 | The TDD kata's subject. |
-| `core/i18n/plural.ts` | 80% | 5 | One equivalent mutant; see below. |
 
 `FLOORS` in `scripts/ci/assert-mutation-score.mjs` is the authority; the table above is a
 copy for readers. `pnpm check:mutation --print` shows measured against floor without
 failing.
 
-**The one survivor is an equivalent mutant.** Stryker replaces the options object in
-`new Intl.PluralRules(locale, { type: 'cardinal' })` with `{}`, and `'cardinal'` is that
-constructor's default — so the mutant is the same program. The option is spelled out in the
-source precisely because it is a default worth stating: the other kind, `'ordinal'`, selects
-a different set of categories for the same language and would be a bug with no symptom in
-English. There is nothing observable for a test to assert on, and anything that appeared to
-kill it would be asserting on `Intl`'s defaults rather than on this function. So the floor
-is 80 with a written reason, which is the mechanism the gate provides for exactly this case
-— not a lowered bar.
+**One module is a deliberately small start, and the reason is the reproducibility problem
+below rather than taste.** This is the one file whose mutation score has been measured to be
+the same on two different machines. Extending the scope means establishing that for each new
+file, which is work, not a config edit — and the gate makes the floor table change in the
+same diff either way.
 
 ## What is in scope, and why it is small
 
@@ -60,6 +54,11 @@ section below has the measurements. Three things were tried and dropped:
   and the cause was never established before it was dropped on cost. Its only loop is a
   bounded `for (const key of Object.keys(specs))`, so an infinite loop is not an obvious
   explanation. It is out for cost, not because anything about it was proven.
+- **`plural.ts`, and this is the one that matters.** It measured **80% locally and 0% on a
+  GitHub runner** — four of its five mutants changed verdict between machines. Its specs are
+  ordinary and pass everywhere; it is the *measurement* that is not reproducible, not the
+  module. It is out until that is understood, and it is the concrete lead for anyone picking
+  this up: same config, same commit, two machines, four mutants flipping.
 
 Adding a file to `mutate` requires adding a row to `FLOORS` — the gate fails if the two
 disagree, in either direction — so the scope cannot drift from the thing holding it to a
@@ -105,28 +104,24 @@ Both of these were found by measurement, both produce a *greener* result when wr
 
 ### `maxTestRunnerReuse: 15`
 
-**The karma worker degrades as the run proceeds, and late mutants time out for being late.**
-Ordering a completed 29-mutant run by mutant id, with this unset:
+**The karma worker's verdicts depend on how long it has been alive, and both directions
+hurt.** Three measurements:
 
-```
-0-18   Killed
-19-28  Timeout (one exception)
-```
+| Setting | Local (4 cores, 16GB) | GitHub runner (2 cores) |
+| --- | --- | --- |
+| unset (infinite reuse) | mutants 0–18 `Killed`, 19–28 almost all `Timeout`; worker at 5.5GB | not measured |
+| **15** | `idle-countdown.ts` **100% / 24** | `idle-countdown.ts` **100% / 24** |
+| 5 | survivors and timeouts by the 13th mutant | `idle-countdown.ts` **20.83%** |
 
-The timeouts cluster by *position in the run*, not by which mutant it was. The same mutants —
-`whileCounting`'s ternary, `selectPlural`'s body — were reported `Killed` in earlier, shorter
-runs, and `Survived` in others: three different verdicts for identical mutants under
-identical settings. The worker was at 5.5 GB resident by the end.
+Unset, the verdicts cluster by *position in the run* rather than by which mutant it was —
+the same mutants were reported `Killed` in earlier, shorter runs. A `Timeout` counts as
+detected, so the run still reported 100% with ten mutants unmeasured, which is the worst
+shape this failure can take.
 
-A `Timeout` counts as detected, so the run still reported 100%. That is the whole problem: a
-score of 100% where the back half of the run was not measured, and no way to tell from the
-report. Stryker's own note on this option describes it as being for "memory leaks you are
-unable to resolve", which is the situation. Restarting the worker every 15 mutants fixed it
-and made the run **four times faster** (5m05s against 21m13s), because each spurious timeout
-had been costing its full allowance plus a restart.
-
-The gate refuses `0` — Stryker's default, meaning infinite reuse, which is what produced the
-above — and refuses anything past 18, where degradation was first seen.
+Restarting *more* often is not the safe direction, which is the counter-intuitive part and
+the reason this is pinned rather than tuned: at 5 both machines got dramatically worse. Why
+is not understood. 15 is simply the only value measured to give the same answer twice on
+different hardware, and `assert-mutation-score.mjs` refuses `0` and anything above 18.
 
 ### `concurrency: 1`
 
@@ -160,9 +155,11 @@ matters more than the number, because it decides what can be added to the scope:
 - **~2 minutes of setup.** Stryker copies the project into a sandbox and `ng test` builds it
   once (about 90s, and up to 3 minutes from a cold `.angular/cache`). `ignorePatterns` keeps
   the copy to 337 files instead of 1213, which is most of what can be done about this half.
-- **~6s per ordinary mutant.** Only the specs covering the mutant run — 5.9 on average here —
-  so this is almost entirely the karma round trip, not the tests. It means **mutant count is
-  the only lever that matters**, and a module's cost has little to do with its size.
+- **~6s per ordinary mutant.** Only the specs covering the mutant run, so this is almost
+  entirely the karma round trip, not the tests. It means **mutant count is the only lever
+  that matters**, and a module's cost has little to do with its size. The karma overhead is
+  itself machine-dependent and not in the direction you would guess: about 15s locally
+  against 2s on a GitHub runner, where the whole 1248-spec suite runs in 6 seconds.
 - **~90s per *restart*.** Every 15 mutants by configuration, and additionally whenever a
   mutant run errors or times out, because with the Angular karma builder a test-runner
   restart is a full `ng test` rebuild.
@@ -242,8 +239,13 @@ answers, in the order they turn up:
 - **The behaviour is genuinely unpinned.** No test ever passes the value that makes the branch
   matter. The fix is a test.
 - **The mutant is equivalent.** Two spellings of the same program, so nothing can tell them
-  apart and nothing should try. `plural.ts`'s one survivor is this. The fix is a floor below
-  100 and a `why` naming the mutant.
+  apart and nothing should try. The clearest example found here is in `plural.ts`, which is
+  no longer in scope: `new Intl.PluralRules(locale, { type: 'cardinal' })` with the options
+  object replaced by `{}`, where `'cardinal'` is the constructor's default, so the mutant is
+  the same program. The fix for one of these is a floor below 100 and a `why` naming it.
+- **The measurement is not reproducible.** Establish this before believing any of the above:
+  re-run, and if possible re-run elsewhere. A hand-applied mutation under plain `pnpm test`
+  is the tiebreaker and has settled every disagreement in this item so far.
 
 What a survivor never justifies is removing its file from `mutate`, excluding a spec, or
 lowering a floor without the third answer above. That is the move `CLAUDE.md` names first, and

@@ -69,7 +69,7 @@ NG_ALLOWED_HOSTS=localhost pnpm serve:ssr  # http://localhost:4000
 | `pnpm check:routes` | Fails when a route exceeds its bundle budget, and prints the audit      |
 | `pnpm check:ssr`    | Starts the built server and checks what each route answers              |
 | `pnpm check:tokens` | Fails when shipped source persists an auth token anywhere readable      |
-| `pnpm mutation`     | Stryker mutation run over the pure-logic core modules (~5 min)          |
+| `pnpm mutation`     | Stryker mutation run over the scoped core module (~4 min)               |
 | `pnpm check:mutation` | Holds every mutated file to its recorded score and mutant-count floor |
 
 CI runs lint, typecheck, format, tests, and the accessibility audit in parallel
@@ -962,11 +962,12 @@ non-deterministically — four runs of one 24-mutant file returned 24/24 killed
 twice and 13/11 and 12/12 the other two times, each false survivor confirmed
 killed under `coverageAnalysis: "off"` and one by hand against `pnpm test`.
 
-**The scope is deliberately small**: two self-contained decision modules, 29
-mutants, about five minutes. Cost is almost entirely per-mutant karma round
-trip, so mutant count is the only lever that matters and a module's cost has
-little to do with its size — a module that is mostly a module-level table is
-the expensive kind.
+**The scope is one module**: `idle-countdown.ts`, 24 mutants, 100%, about four
+minutes. That is the one file whose score has been measured to be the same on
+two different machines. A second candidate, `plural.ts`, measured 80% locally
+and 0% on a GitHub runner — four of five mutants changing verdict — and is out
+until that is understood. Extending the scope means establishing
+reproducibility per file, not editing a list.
 
 See [docs/mutation-testing.md](./docs/mutation-testing.md) for the per-file
 floors, how to read a survivor, the one spec excluded from the run and why, and

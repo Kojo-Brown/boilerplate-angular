@@ -18,14 +18,14 @@
       }
     }
   },
-  "coverageAnalysis": "off",
+  "coverageAnalysis": "perTest",
   "timeoutMS_comment": "Stryker's allowance is netTime * timeoutFactor + timeoutMS, and `netTime` is time spent *in* the tests: 5.9s here, against 15.4s of karma round-trip overhead the allowance would otherwise ignore. The default 5000 gives ~14s for a run that really costs ~21s, so every mutant needing a full-suite run timed out — and a Timeout counts as *detected*, so those mutants were scored as killed without any assertion having objected. 30s covers the overhead. `assert-mutation-score.mjs` fails on any Timeout for the same reason.",
   "timeoutMS": 30000,
   "concurrency_comment": "MUST stay 1. See docs/mutation-testing.md: with more than one test-runner process the run reports false survivors non-deterministically — measured on 4 runs of one 24-mutant file, concurrency 2 returned 24/24 killed twice and 13/11 and 12/12 the other two times, while concurrency 1 returned 24/24 on all four. `assert-mutation-score.mjs` fails if this is raised, because the symptom is a score that drops for no reason in the source.",
   "concurrency": 1,
-  "maxTestRunnerReuse_comment": "Restart the karma worker every 5 mutant runs. Not a tuning knob: the worker degrades as a run proceeds and the mutants after that point come back Survived or Timeout regardless of the tests, and the threshold is machine-dependent. Measured with it unset, locally: mutants 0-18 Killed, 19-28 almost all Timeout, worker at 5.5GB. Measured at 15 on a 2-core GitHub runner: the second worker's first nine mutants Killed, then all five of plural.ts's Survived - degradation at the worker's tenth mutant rather than its twenty-fourth. 5 is chosen for margin below the worst case seen, and lower is always safer: a shorter window costs a rebuild and cannot make the score better. `assert-mutation-score.mjs` caps it at 8.",
-  "maxTestRunnerReuse": 5,
-  "mutate": ["src/app/core/auth/idle-session/idle-countdown.ts", "src/app/core/i18n/plural.ts"],
+  "maxTestRunnerReuse_comment": "15 is the only value measured to give the same answer on two different machines, and it is not a free parameter in either direction. Unset (Stryker's default, infinite reuse) the karma worker degrades: a 29-mutant local run returned Killed for mutants 0-18 and Timeout for 19-28, clustered by position in the run rather than by mutant, worker at 5.5GB - and a Timeout counts as detected, so the score still read 100% with ten mutants unmeasured. Restarting *more* often is worse, not safer: at 5, CI scored idle-countdown.ts at 20.83% and the local run had survivors and timeouts by its thirteenth mutant. At 15, idle-countdown.ts measured 100% on 24 mutants on both a 4-core/16GB box and a 2-core GitHub runner. Why both directions hurt is not understood; see docs/mutation-testing.md.",
+  "maxTestRunnerReuse": 15,
+  "mutate": ["src/app/core/auth/idle-session/idle-countdown.ts"],
   "ignorePatterns_comment": "Sandbox contents only — this does not narrow what is mutated, and `assert-mutation-score.mjs` pins the one entry that does exclude a test. Everything but that entry is weight: the copy drops from 1213 files to 338.",
   "ignorePatterns": [
     ".angular",
@@ -54,5 +54,5 @@
     "low": 95,
     "break": 0
   },
-  "coverageAnalysis_comment": "`off`, not `perTest`, and this is a correctness setting rather than a performance one. `perTest` selects only the specs that cover a mutant, and on this stack that selection machinery is where every false survivor came from: mutants reported Survived whose own `coveredBy` list contained the spec that kills them. `off` runs the entire suite for every mutant and does no selection at all, which is the mode the early false survivors were confirmed against by hand - it is the oracle, so it is now also the gate. The cost is the whole suite per mutant; on a GitHub runner that is about 8s (1248 specs in 6s with 2s of karma overhead), which is affordable for 29 mutants."
+  "coverageAnalysis_comment": "`perTest` runs only the specs covering a mutant. `off` and `all` run the whole suite per mutant and are the fallback if a result is ever in doubt - they are what the early false survivors were confirmed against by hand - at several times the cost."
 }
