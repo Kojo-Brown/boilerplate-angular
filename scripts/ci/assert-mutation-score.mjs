@@ -356,6 +356,32 @@ export function checkOnlyDocumentedSpecsAreExcluded(config) {
     );
 }
 
+/**
+ * The karma worker is recycled, because it degrades as the run proceeds.
+ *
+ * Measured on a 29-mutant run with this unset: mutants 0–18 came back `Killed` and 19–28
+ * almost all `Timeout`, with the worker at 5.5GB resident. The timeouts cluster by
+ * *position in the run*, not by which mutant it was — the same mutants had been reported
+ * `Killed` in earlier, shorter runs. A `Timeout` counts as detected, so the shape of that
+ * failure is a score that stays respectable while the back half of the run stops being
+ * measured at all.
+ *
+ * `0` means infinite reuse, which is Stryker's default and the setting that produced the
+ * above, so this rule refuses it as well as refusing a value past where degradation was
+ * first seen.
+ */
+const MAX_TEST_RUNNER_REUSE = 18;
+
+export function checkTestRunnerIsRecycled(config) {
+  const reuse = config.maxTestRunnerReuse;
+  if (typeof reuse === 'number' && reuse > 0 && reuse <= MAX_TEST_RUNNER_REUSE) return [];
+  return [
+    `${CONFIG}: maxTestRunnerReuse is ${JSON.stringify(reuse)}, must be between 1 and ${MAX_TEST_RUNNER_REUSE}. ` +
+      '0 (Stryker\'s default) means infinite reuse, and the karma worker degrades long before the end of a ' +
+      'run: late mutants time out spuriously, which counts as detected. See docs/mutation-testing.md.',
+  ];
+}
+
 /** `thresholds.break` is 0 on purpose, and this gate is the reason. */
 export function checkBreakIsDelegated(config) {
   if (config.thresholds?.break === 0) return [];
@@ -551,6 +577,14 @@ const SELF_TESTS = [
       }).length === 0,
   ],
 
+  ['a recycled worker passes', () => checkTestRunnerIsRecycled({ maxTestRunnerReuse: 15 }).length === 0],
+  ['infinite reuse fails', () => checkTestRunnerIsRecycled({ maxTestRunnerReuse: 0 }).length === 1],
+  ['an unset reuse fails', () => checkTestRunnerIsRecycled({}).length === 1],
+  [
+    'a reuse past where degradation was seen fails',
+    () => checkTestRunnerIsRecycled({ maxTestRunnerReuse: 40 }).length === 1,
+  ],
+
   ['break 0 passes', () => checkBreakIsDelegated({ thresholds: { break: 0 } }).length === 0],
   ['a second threshold fails', () => checkBreakIsDelegated({ thresholds: { break: 80 } }).length === 1],
 ];
@@ -641,6 +675,7 @@ function main() {
     () => checkReportIsFresh(report, reportMtimeMs, sourceMtimeMs),
     () => checkWorkflowRunsBoth(workflowText),
     () => checkOnlyDocumentedSpecsAreExcluded(config),
+    () => checkTestRunnerIsRecycled(config),
     () => checkBreakIsDelegated(config),
   ];
   const problems = rules.flatMap((rule) => rule());
