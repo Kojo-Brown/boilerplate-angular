@@ -114,6 +114,7 @@ export function scoreOf(mutants) {
     undetected,
     invalid: count('CompileError', 'RuntimeError'),
     ignored: count('Ignored'),
+    timeout: count('Timeout'),
     survived: count('Survived'),
     noCoverage: count('NoCoverage'),
     total: mutants.length,
@@ -227,6 +228,21 @@ export function checkFloors(report, floors) {
       problems.push(
         `${path}: produced ${measured.total} mutants, floor is ${floor.mutants}. ` +
           'Fewer mutants means less was checked, and a shrinking denominator raises the score.'
+      );
+    }
+    // A `Timeout` counts as *detected*, which makes it the one status that can raise a
+    // score without any assertion having objected to anything. It is also how this
+    // configuration was first mis-measured: Stryker's allowance is `netTime *
+    // timeoutFactor + timeoutMS`, and `netTime` excludes the karma round trip — 5.9s of
+    // tests against 15.4s of overhead — so every mutant that needed a full-suite run
+    // exceeded the default allowance and was scored as killed. See `timeoutMS` in
+    // `stryker.conf.json`. A real infinite loop is worth catching, but it should be
+    // caught deliberately and written into the row's `why`, not absorbed silently.
+    if (measured.timeout > 0) {
+      problems.push(
+        `${path}: ${measured.timeout} mutant(s) ended in Timeout, which the score counts as ` +
+          'detected. Raise `timeoutMS` until the run fits, then re-measure — a mutant killed by the ' +
+          'clock is not a mutant any test objected to.'
       );
     }
     if (measured.invalid > 0) {
@@ -423,6 +439,14 @@ const SELF_TESTS = [
         { files: { 'src/a.ts': { mutants: [mutant('Killed'), mutant('Killed'), mutant('CompileError')] } } },
         okFloors()
       ).some((p) => p.includes('CompileError')),
+  ],
+  [
+    'a mutant killed by the clock fails rather than counting as detected',
+    () =>
+      checkFloors(
+        { files: { 'src/a.ts': { mutants: [mutant('Killed'), mutant('Timeout')] } } },
+        { 'src/a.ts': { score: 100, mutants: 2 } }
+      ).some((p) => p.includes('Timeout')),
   ],
   [
     'a mutant silenced with a disable comment fails rather than vanishes',
