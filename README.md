@@ -959,7 +959,7 @@ the score.
 
 See [docs/mutation-testing.md](./docs/mutation-testing.md) for the per-file
 floors, how to read a survivor, the one spec excluded from the run and why, and
-the spec-timeout defect the investigation turned up.
+the open caveat about the spec timeout inside the sandbox.
 
 ## Spec Progress
 

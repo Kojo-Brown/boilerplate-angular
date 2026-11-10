@@ -154,13 +154,23 @@ kill shows up as a *survivor*, so it argues for attention rather than hiding. Wh
 cost is a scope that reached `core/vitals/`, which is why the exclusion is one named file
 and not a directory.
 
-The same investigation found a real defect in the suite's own configuration, now fixed in
-`src/testing/test-main.ts`: the 10s spec timeout lived in `karma.conf.js`'s `client.jasmine`
-block, and a runner that drives this suite through its own karma configuration **replaces**
-`client` rather than merging into it. Under Stryker every spec silently got Jasmine's 5s
-default instead. The timeout now lives in the suite's entry point, where every runner sees
-it. `random: true` is still replaced the same way — Stryker needs a deterministic order —
-so the mutation run does not exercise the spec-order independence the normal run does.
+The same investigation turned up a real caveat about the suite's configuration, which is
+**open, not fixed**. `karma.conf.js` sets `client.jasmine.timeoutInterval: 10000`, and
+Stryker's karma runner **replaces** the whole `client` object rather than merging into it,
+so inside the mutation sandbox every spec runs with Jasmine's 5s default instead of the
+10s this repository asked for. `random: true` is replaced the same way, deliberately —
+Stryker needs a deterministic spec order — so the mutation run also does not exercise the
+spec-order independence the normal run does.
+
+The obvious fix does not work and was reverted rather than left in: moving the timeout into
+`src/testing/test-main.ts` as
+`jasmine.getEnv().configure({ defaultTimeoutInterval: … })` does not compile, because
+`defaultTimeoutInterval` is not a key of Jasmine's `Env.configure` — the global
+`jasmine.DEFAULT_TIMEOUT_INTERVAL` is a separate mechanism. That mistake is worth recording
+for one reason: **Stryker's sandbox adds `// @ts-nocheck` to every file it copies**
+(`disableTypeChecks`), so the sandbox compiled and ran happily for four dry runs while
+`pnpm test` would not compile at all. A change verified only through a mutation run has not
+been verified. Run `pnpm test`.
 
 ## Reading a survivor
 
