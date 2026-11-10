@@ -1,0 +1,64 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "pnpm",
+  "testRunner": "karma",
+  "plugins_comment": "pnpm installs into a symlinked store, and Stryker's default plugin discovery globs `node_modules/@stryker-mutator/*` without following those links: it finds nothing and fails with `Cannot find TestRunner plugin \"karma\"`. Naming the plugin is not belt-and-braces, it is the only thing that loads it here.",
+  "plugins": ["@stryker-mutator/karma-runner"],
+  "karma_comment": "Overrides applied on top of karma.conf.js. `codeCoverage=false` below turns the istanbul instrumentation off; this also drops the `coverage` reporter, whose `check.global` thresholds in karma.conf.js are written for the whole suite and would fail every mutant run, which executes a handful of specs.",
+  "karma": {
+    "projectType": "angular-cli",
+    "configFile": "karma.conf.js",
+    "config": {
+      "browsers": ["ChromeHeadlessCI"],
+      "reporters": ["progress"]
+    },
+    "ngConfig": {
+      "testArguments": {
+        "codeCoverage": "false"
+      }
+    }
+  },
+  "coverageAnalysis": "perTest",
+  "concurrency_comment": "MUST stay 1. See docs/mutation-testing.md: with more than one test-runner process the run reports false survivors non-deterministically — measured on 4 runs of one 24-mutant file, concurrency 2 returned 24/24 killed twice and 13/11 and 12/12 the other two times, while concurrency 1 returned 24/24 on all four. `assert-mutation-score.mjs` fails if this is raised, because the symptom is a score that drops for no reason in the source.",
+  "concurrency": 1,
+  "mutate": [
+    "src/app/core/auth/idle-session/idle-countdown.ts",
+    "src/app/core/forms/error-messages.ts",
+    "src/app/core/forms/typed-form.ts",
+    "src/app/core/http/csrf.ts",
+    "src/app/core/http/errors/api-error-mappers.ts",
+    "src/app/core/http/http-cache.ts",
+    "src/app/core/i18n/plural.ts",
+    "src/app/core/images/image-loader.ts",
+    "src/app/core/security/nonce.ts",
+    "src/app/core/security/sanitisation.ts"
+  ],
+  "ignorePatterns_comment": "Sandbox contents only — this does not narrow what is mutated, and `assert-mutation-score.mjs` pins the one entry that does exclude a test. Everything but that entry is weight: the copy drops from 1213 files to 338.",
+  "ignorePatterns": [
+    ".angular",
+    "dist",
+    "coverage",
+    "/reports",
+    "e2e",
+    "katas",
+    ".husky",
+    "docs",
+    ".stats",
+    "src/app/core/vitals/subscribe-web-vitals.spec.ts"
+  ],
+  "reporters": ["clear-text", "html", "json"],
+  "htmlReporter": {
+    "fileName": "reports/mutation/mutation.html"
+  },
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  },
+  "clearTextReporter": {
+    "maxTestsToLog": 2
+  },
+  "thresholds": {
+    "high": 100,
+    "low": 95,
+    "break": 0
+  }
+}

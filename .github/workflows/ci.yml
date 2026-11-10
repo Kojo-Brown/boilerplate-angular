@@ -82,6 +82,19 @@ concurrency:
 #     `git log` cannot check any of it — the squash merge that lands each item replaces the
 #     eleven commits with one and deletes the branch, which is why the steps are recorded in
 #     the tree at all. See `docs/tdd.md`.
+#   - `pnpm mutation` mutates the pure-logic modules under `src/app/core/` listed in
+#     `stryker.conf.json`, and `scripts/ci/assert-mutation-score.mjs` holds each one to its
+#     own recorded floor. The question it answers is the one coverage cannot: this suite
+#     runs 97% of the statements, so "did the line execute" is settled, and what is left is
+#     whether any assertion would object to the line *changing*. The floors are a separate
+#     gate from Stryker's own `thresholds.break` — which is 0 here — because every cheap way
+#     to raise a mutation score raises the aggregate too: dropping a file from `mutate`
+#     (the weakest file is the one holding the number down, so removing it helps), leaving a
+#     glob pointing at a file that was renamed, letting one file rot behind nine healthy
+#     ones, or making mutants fail to compile, which takes them out of the score's
+#     denominator rather than failing it. So the floors are per file, each paired with a
+#     mutant count, with the mutate list pinned against the table and `concurrency` pinned
+#     to 1. See `docs/mutation-testing.md`.
 #   - `scripts/ci/assert-logical-properties.mjs` fails on a physical-direction Tailwind
 #     utility. `dir="rtl"` moves only what is written logically, so a layout on `ml-`,
 #     `left-` or `border-r` mirrors into a consistent, plausible, wrong version of itself
@@ -355,6 +368,58 @@ jobs:
         run: pnpm check:kata
         env:
           NODE_OPTIONS: --throw-deprecation
+
+  mutation:
+    name: Mutation testing (Stryker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          node-version: '22'
+
+      # Same resolution as the `test` and `kata` jobs, and needed for the same reason:
+      # Stryker drives this suite through `ng test`, which launches Chrome via `CHROME_BIN`.
+      - name: Resolve Chrome binary
+        run: |
+          CHROME="$(command -v google-chrome || command -v chromium-browser || command -v chromium || true)"
+          if [ -z "$CHROME" ]; then
+            echo "::error::No Chrome/Chromium binary found on this runner."
+            exit 1
+          fi
+          echo "CHROME_BIN=$CHROME" >> "$GITHUB_ENV"
+
+      # Its own job because it is the longest gate in the workflow and it holds a browser
+      # for all of it. `concurrency` is pinned to 1 in `stryker.conf.json` and the gate
+      # below fails if it is raised — with more than one test-runner process this stack
+      # reports false survivors non-deterministically, which on a merge gate is worse than
+      # being slow. `docs/mutation-testing.md` has the measurements.
+      #
+      # One Node major, like `kata`. A mutant's fate is a property of the source and the
+      # assertions, and the three majors already run the suite itself in `test`.
+      - name: Mutate the scoped modules
+        run: pnpm mutation
+
+      # Stryker is configured with `thresholds.break: 0`, so this step is the threshold —
+      # per file, each floor paired with a mutant count, with the mutate list pinned
+      # against the table. The run above cannot fail the job on a score, deliberately:
+      # one number over ten files goes *up* when the weakest file leaves the scope.
+      - name: Hold every file to its floor
+        run: pnpm check:mutation
+        env:
+          NODE_OPTIONS: --throw-deprecation
+
+      # The HTML report is the only artifact that shows a survivor in its source context,
+      # which is what someone fixing one actually needs. Uploaded on failure too — that is
+      # the run where it matters.
+      - name: Upload the mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          retention-days: 7
 
   a11y:
     name: Accessibility (WCAG 2.2 AA, focus and live regions)

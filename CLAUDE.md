@@ -15,7 +15,19 @@ Production-grade Angular 22 standalone-component boilerplate. Spec-driven and PR
    pnpm lint
    pnpm test
    pnpm build
+   pnpm mutation && pnpm check:mutation
    ```
+   `pnpm check:mutation` is the `mutation` CI job and blocks a merge like the rest, so it
+   belongs in this list. It is the slowest gate here — about twenty minutes, because 19% of
+   the mutants are *static* and cost a full suite run each — so run it last, after the
+   cheap gates are green. `pnpm mutation` exits 0 whatever the score (`thresholds.break` is
+   deliberately 0), so the threshold is the separate script, which holds each file to its
+   own floor rather than to an aggregate. Read `docs/mutation-testing.md` before changing
+   the `mutate` list or a floor; the three things that bite are that `concurrency` must
+   stay 1 (above it the run reports false survivors non-deterministically), that
+   `ignoreStatic` is not a speed-up but 71 mutants removed from the score, and that
+   dropping a file from `mutate` makes the aggregate go *up*, which is why the floors are
+   per file and pinned against the list.
 6. Commit, `git push -u origin <branch>`, then `gh pr create`.
 7. `gh pr checks --watch` → **merge only if every check is green**:
    `gh pr merge --squash --delete-branch`

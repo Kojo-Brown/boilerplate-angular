@@ -69,6 +69,8 @@ NG_ALLOWED_HOSTS=localhost pnpm serve:ssr  # http://localhost:4000
 | `pnpm check:routes` | Fails when a route exceeds its bundle budget, and prints the audit      |
 | `pnpm check:ssr`    | Starts the built server and checks what each route answers              |
 | `pnpm check:tokens` | Fails when shipped source persists an auth token anywhere readable      |
+| `pnpm mutation`     | Stryker mutation run over the pure-logic core modules (~20 min)         |
+| `pnpm check:mutation` | Holds every mutated file to its recorded score and mutant-count floor |
 
 CI runs lint, typecheck, format, tests, and the accessibility audit in parallel
 on Node 22, 24, and 26 (the audit on 22 only), then builds on all three once
@@ -915,6 +917,49 @@ exists to postpone back on the load path, with no diagnostic anywhere.
 See [docs/i18n.md](./docs/i18n.md) for why plurals belong in templates and what
 it costs when they cannot be, what is deliberately left untranslated, and the
 three gaps the gates do not close.
+
+## Mutation testing
+
+```bash
+pnpm mutation        # Stryker over the pure-logic core modules
+pnpm check:mutation  # hold every file to its floor — this is the gate
+```
+
+**97% statement coverage has stopped being interesting.** It says every line was
+reached; it does not say a test would notice the line changing, and
+`karma.conf.js`'s thresholds are satisfied by a spec that calls a function and
+asserts nothing. A mutation score answers the second question: Stryker changes
+the code and reports whether any assertion refused.
+
+**The threshold is a separate gate, and `thresholds.break` is 0 on purpose.** One
+number over the whole run is the wrong instrument, because every cheap way to
+raise a mutation score raises it too — dropping a file from `mutate` (the weakest
+file is the one holding the aggregate down, so removing it *helps*), leaving a
+glob pointing at a renamed file, letting one file rot behind nine healthy ones,
+or making mutants fail to compile, which takes them out of the score's
+denominator rather than failing it. So
+[`assert-mutation-score.mjs`](./scripts/ci/assert-mutation-score.mjs) holds each
+file to its own recorded score *and* mutant count, pins the `mutate` list against
+that table in both directions, and requires any floor below 100 to carry a
+written reason.
+
+**`concurrency` is 1 and the gate fails if it is raised.** With more than one
+test-runner process this stack reports false survivors non-deterministically: four
+runs of one 24-mutant file returned 24/24 killed twice and 13/11 and 12/12 the
+other two times, against 24/24 four times out of four at `concurrency: 1`. Each
+false survivor was confirmed killed under `coverageAnalysis: "off"`, and one by
+hand against `pnpm test`.
+
+**It is the slowest gate here**, about twenty minutes in its own job, and 19% of
+the mutants account for most of that: a *static* mutant — one that runs during
+module evaluation rather than inside a test — cannot be narrowed by per-test
+coverage, so Stryker runs the whole suite for each one. Stryker suggests
+`ignoreStatic: true`; that does not make them cheap, it deletes 71 mutants from
+the score.
+
+See [docs/mutation-testing.md](./docs/mutation-testing.md) for the per-file
+floors, how to read a survivor, the one spec excluded from the run and why, and
+the spec-timeout defect the investigation turned up.
 
 ## Spec Progress
 
