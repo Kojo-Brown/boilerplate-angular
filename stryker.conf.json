@@ -23,14 +23,8 @@
   "concurrency": 1,
   "mutate": [
     "src/app/core/auth/idle-session/idle-countdown.ts",
-    "src/app/core/forms/error-messages.ts",
-    "src/app/core/forms/typed-form.ts",
-    "src/app/core/http/csrf.ts",
-    "src/app/core/http/errors/api-error-mappers.ts",
     "src/app/core/http/http-cache.ts",
     "src/app/core/i18n/plural.ts",
-    "src/app/core/images/image-loader.ts",
-    "src/app/core/security/nonce.ts",
     "src/app/core/security/sanitisation.ts"
   ],
   "ignorePatterns_comment": "Sandbox contents only — this does not narrow what is mutated, and `assert-mutation-score.mjs` pins the one entry that does exclude a test. Everything but that entry is weight: the copy drops from 1213 files to 338.",
@@ -46,7 +40,7 @@
     ".stats",
     "src/app/core/vitals/subscribe-web-vitals.spec.ts"
   ],
-  "reporters": ["clear-text", "html", "json"],
+  "reporters": ["clear-text", "progress", "html", "json"],
   "htmlReporter": {
     "fileName": "reports/mutation/mutation.html"
   },
