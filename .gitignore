@@ -34,3 +34,8 @@ coverage/
 playwright-report/
 test-results/
 src/kata-run/
+
+# Stryker — the sandbox it mutates in and the JSON report the mutation gate reads
+.stryker-tmp/
+reports/
+stryker.log
