@@ -69,7 +69,7 @@ NG_ALLOWED_HOSTS=localhost pnpm serve:ssr  # http://localhost:4000
 | `pnpm check:routes` | Fails when a route exceeds its bundle budget, and prints the audit      |
 | `pnpm check:ssr`    | Starts the built server and checks what each route answers              |
 | `pnpm check:tokens` | Fails when shipped source persists an auth token anywhere readable      |
-| `pnpm mutation`     | Stryker mutation run over the scoped core module (~4 min)               |
+| `pnpm mutation`     | Stryker mutation run over the scoped core modules (~7 min in CI)        |
 | `pnpm check:mutation` | Holds every mutated file to its recorded score and mutant-count floor |
 
 CI runs lint, typecheck, format, tests, and the accessibility audit in parallel
@@ -950,28 +950,25 @@ other two times, against 24/24 four times out of four at `concurrency: 1`. Each
 false survivor was confirmed killed under `coverageAnalysis: "off"`, and one by
 hand against `pnpm test`.
 
-**Two settings are not tuning knobs, and the gate refuses changes to both.**
-`maxTestRunnerReuse: 15` restarts the karma worker, because it degrades as a
-run proceeds: with it unset, a 29-mutant run came back `Killed` for mutants
-0-18 and `Timeout` for 19-28 — clustered by *position in the run*, not by
-which mutant it was, with the worker at 5.5 GB. A `Timeout` counts as
-detected, so the score still read 100% while ten mutants went unmeasured.
-Recycling the worker fixed it and made the run four times faster.
-`concurrency: 1` is pinned because above it the run reports false survivors
-non-deterministically — four runs of one 24-mutant file returned 24/24 killed
-twice and 13/11 and 12/12 the other two times, each false survivor confirmed
-killed under `coverageAnalysis: "off"` and one by hand against `pnpm test`.
+**`coverageAnalysis: "off"` is a correctness setting, not a performance one**,
+and it is the line that took the whole item to find. `perTest` runs only the
+specs covering a mutant, and that selection is where every false survivor came
+from — the giveaway being that the selection was *right*: a "surviving"
+mutant's own `coveredBy` list contained the spec that kills it. Under
+`perTest` the same commit scored `plural.ts` at 80% locally and **0%** on a
+GitHub runner; under `off`, which does no selection, it scored 96.55% on both.
+`off` is also what the original false survivors were confirmed killed against,
+and what agreed with a mutation applied by hand under plain `pnpm test` — it
+was the oracle before it was the gate. `concurrency: 1` is pinned for a
+related reason, and the gate refuses changes to either.
 
-**The scope is one module**: `idle-countdown.ts`, 24 mutants, 100%, about four
-minutes. That is the one file whose score has been measured to be the same on
-two different machines. A second candidate, `plural.ts`, measured 80% locally
-and 0% on a GitHub runner — four of five mutants changing verdict — and is out
-until that is understood. Extending the scope means establishing
-reproducibility per file, not editing a list.
+**The scope is two modules**, 29 mutants, 96.55%, about seven minutes in CI.
+The cost is the whole suite per mutant, so mutant count is the only lever that
+matters and a module's size says little about it.
 
 See [docs/mutation-testing.md](./docs/mutation-testing.md) for the per-file
 floors, how to read a survivor, the one spec excluded from the run and why, and
-the open caveat about the spec timeout inside the sandbox.
+the open caveats — the excluded spec and the sandbox spec timeout.
 
 ## Spec Progress
 

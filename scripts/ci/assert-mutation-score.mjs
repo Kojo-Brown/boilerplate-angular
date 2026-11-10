@@ -86,6 +86,18 @@ const WORKFLOW = '.github/workflows/ci.yml';
 const FLOORS = {
   'src/app/core/auth/idle-session/idle-countdown.ts': { score: 100, mutants: 24 },
 
+  'src/app/core/i18n/plural.ts': {
+    score: 80,
+    mutants: 5,
+    why:
+      "The survivor is `new Intl.PluralRules(locale, { type: 'cardinal' })` with the options " +
+      "object replaced by `{}`, and `'cardinal'` is that constructor's default — so the mutant " +
+      'is the same program. It is written out in the source precisely because it is a default ' +
+      "worth stating (the other kind, `'ordinal'`, selects different categories for the same " +
+      'language and would be a bug with no symptom in English). There is no observable ' +
+      'difference for a test to assert on, and anything that appeared to kill it would be ' +
+      "asserting on Intl's defaults rather than on this function.",
+  },
 };
 
 // ---------------------------------------------------------------------------------------

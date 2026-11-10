@@ -18,14 +18,14 @@
       }
     }
   },
-  "coverageAnalysis": "perTest",
+  "coverageAnalysis": "off",
   "timeoutMS_comment": "Stryker's allowance is netTime * timeoutFactor + timeoutMS, and `netTime` is time spent *in* the tests: 5.9s here, against 15.4s of karma round-trip overhead the allowance would otherwise ignore. The default 5000 gives ~14s for a run that really costs ~21s, so every mutant needing a full-suite run timed out — and a Timeout counts as *detected*, so those mutants were scored as killed without any assertion having objected. 30s covers the overhead. `assert-mutation-score.mjs` fails on any Timeout for the same reason.",
   "timeoutMS": 30000,
   "concurrency_comment": "MUST stay 1. See docs/mutation-testing.md: with more than one test-runner process the run reports false survivors non-deterministically — measured on 4 runs of one 24-mutant file, concurrency 2 returned 24/24 killed twice and 13/11 and 12/12 the other two times, while concurrency 1 returned 24/24 on all four. `assert-mutation-score.mjs` fails if this is raised, because the symptom is a score that drops for no reason in the source.",
   "concurrency": 1,
-  "maxTestRunnerReuse_comment": "15 is the only value measured to give the same answer on two different machines, and it is not a free parameter in either direction. Unset (Stryker's default, infinite reuse) the karma worker degrades: a 29-mutant local run returned Killed for mutants 0-18 and Timeout for 19-28, clustered by position in the run rather than by mutant, worker at 5.5GB - and a Timeout counts as detected, so the score still read 100% with ten mutants unmeasured. Restarting *more* often is worse, not safer: at 5, CI scored idle-countdown.ts at 20.83% and the local run had survivors and timeouts by its thirteenth mutant. At 15, idle-countdown.ts measured 100% on 24 mutants on both a 4-core/16GB box and a 2-core GitHub runner. Why both directions hurt is not understood; see docs/mutation-testing.md.",
-  "maxTestRunnerReuse": 15,
-  "mutate": ["src/app/core/auth/idle-session/idle-countdown.ts"],
+  "maxTestRunnerReuse_comment": "5 is the value measured green end to end with `coverageAnalysis: off`. Reuse matters because the karma worker's verdicts depend on how long it has been alive: unset (Stryker's default, infinite reuse) a 29-mutant local run returned Killed for mutants 0-18 and Timeout for 19-28, clustered by position in the run rather than by mutant, with the worker at 5.5GB - and a Timeout counts as *detected*, so the score still read 100% with ten mutants unmeasured. `assert-mutation-score.mjs` refuses 0 and anything above 18.",
+  "maxTestRunnerReuse": 5,
+  "mutate": ["src/app/core/auth/idle-session/idle-countdown.ts", "src/app/core/i18n/plural.ts"],
   "ignorePatterns_comment": "Sandbox contents only — this does not narrow what is mutated, and `assert-mutation-score.mjs` pins the one entry that does exclude a test. Everything but that entry is weight: the copy drops from 1213 files to 338.",
   "ignorePatterns": [
     ".angular",
@@ -54,5 +54,5 @@
     "low": 95,
     "break": 0
   },
-  "coverageAnalysis_comment": "`perTest` runs only the specs covering a mutant. `off` and `all` run the whole suite per mutant and are the fallback if a result is ever in doubt - they are what the early false survivors were confirmed against by hand - at several times the cost."
+  "coverageAnalysis_comment": "`off`, not `perTest`, and this is a correctness setting rather than a performance one. `perTest` runs only the specs covering a mutant, and that selection is where every false survivor in this repository's experience came from - the giveaway being that the selection was right: a 'surviving' mutant's own coveredBy list contained the spec that kills it. Under perTest, plural.ts measured 80% locally and 0% on a GitHub runner. Under `off`, which does no selection and runs the whole suite per mutant, the same commit measured 96.55% on both. It is also the mode the original false survivors were confirmed killed against by hand, so it was the oracle before it was the gate. The cost is the whole suite per mutant: about 7 minutes for 29 mutants on a GitHub runner, and longer locally, where karma's per-run overhead is 15s rather than 2s."
 }

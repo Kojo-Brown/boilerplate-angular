@@ -18,13 +18,14 @@ Production-grade Angular 22 standalone-component boilerplate. Spec-driven and PR
    pnpm mutation && pnpm check:mutation
    ```
    `pnpm check:mutation` is the `mutation` CI job and blocks a merge like the rest, so it
-   belongs in this list. It is about four minutes for 24 mutants over one module — run it
+   belongs in this list. It is about seven minutes in CI for 29 mutants over two modules, and slower locally — run it
    last, after the cheap gates are green. `pnpm mutation` exits 0 whatever the score
    (`thresholds.break` is deliberately 0), so the threshold is the separate script, which
    holds each file to its own floor and mutant count rather than to an aggregate. Read
    `docs/mutation-testing.md` before changing the `mutate` list, a floor, or anything in
-   `stryker.conf.json`; the four things that bite are that `maxTestRunnerReuse` must stay 15 (both
-   raising and lowering it measurably corrupted verdicts, in both directions), that `concurrency` must stay 1 (above it the run reports
+   `stryker.conf.json`; the four things that bite are that `coverageAnalysis` must stay `off` (under
+   `perTest` the same commit scored a module 80% locally and 0% in CI — the selection is
+   where false survivors come from), that `concurrency` must stay 1 (above it the run reports
    false survivors non-deterministically), that `ignoreStatic` is not a speed-up but
    mutants removed from the score, and that dropping a file from `mutate` makes the
    aggregate go *up*, which is why the floors are per file and pinned against the list.

@@ -17,24 +17,31 @@ pnpm mutation        # run Stryker, write reports/mutation/{mutation.json,mutati
 pnpm check:mutation  # hold every file to its floor; this is the gate
 ```
 
-Both run in the `mutation` CI job and both block a merge. The current run is **one module,
-24 mutants, 100%**, in about four minutes.
+Both run in the `mutation` CI job and both block a merge. The current run is **29 mutants
+over two modules** and scores **96.55%** — 28 detected, one surviving mutant written up below
+as unkillable. The same commit measured 96.55% on a 4-core/16GB box and on a 2-core GitHub
+runner, which is the property that matters and the one that took the most work to get.
 
 ## Per-file floors
 
 | File | Score | Mutants | Notes |
 | --- | --- | --- | --- |
 | `core/auth/idle-session/idle-countdown.ts` | 100% | 24 | The TDD kata's subject. |
+| `core/i18n/plural.ts` | 80% | 5 | One equivalent mutant; see below. |
 
 `FLOORS` in `scripts/ci/assert-mutation-score.mjs` is the authority; the table above is a
 copy for readers. `pnpm check:mutation --print` shows measured against floor without
 failing.
 
-**One module is a deliberately small start, and the reason is the reproducibility problem
-below rather than taste.** This is the one file whose mutation score has been measured to be
-the same on two different machines. Extending the scope means establishing that for each new
-file, which is work, not a config edit — and the gate makes the floor table change in the
-same diff either way.
+**The one survivor is an equivalent mutant.** Stryker replaces the options object in
+`new Intl.PluralRules(locale, { type: 'cardinal' })` with `{}`, and `'cardinal'` is that
+constructor's default — so the mutant is the same program. The option is spelled out in the
+source precisely because it is a default worth stating: the other kind, `'ordinal'`, selects
+a different set of categories for the same language and would be a bug with no symptom in
+English. There is nothing observable for a test to assert on, and anything that appeared to
+kill it would be asserting on `Intl`'s defaults rather than on this function. So the floor is
+80 with a written reason, which is the mechanism the gate provides for exactly this case —
+not a lowered bar.
 
 ## What is in scope, and why it is small
 
@@ -54,11 +61,7 @@ section below has the measurements. Three things were tried and dropped:
   and the cause was never established before it was dropped on cost. Its only loop is a
   bounded `for (const key of Object.keys(specs))`, so an infinite loop is not an obvious
   explanation. It is out for cost, not because anything about it was proven.
-- **`plural.ts`, and this is the one that matters.** It measured **80% locally and 0% on a
-  GitHub runner** — four of its five mutants changed verdict between machines. Its specs are
-  ordinary and pass everywhere; it is the *measurement* that is not reproducible, not the
-  module. It is out until that is understood, and it is the concrete lead for anyone picking
-  this up: same config, same commit, two machines, four mutants flipping.
+
 
 Adding a file to `mutate` requires adding a row to `FLOORS` — the gate fails if the two
 disagree, in either direction — so the scope cannot drift from the thing holding it to a
@@ -97,69 +100,59 @@ half, since with `thresholds.break: 0` a job that runs Stryker and not the gate 
 score at all. Forty-six self-tests drive each rule against the failure it names
 (`pnpm check:mutation` runs them before it certifies anything).
 
-## The two settings that are not tuning knobs
+## The setting that made the results reproducible
 
-Both of these were found by measurement, both produce a *greener* result when wrong, and
-`assert-mutation-score.mjs` fails if either is changed.
+**`coverageAnalysis: "off"` is a correctness setting here, not a performance one.** This is
+the single most important line in `stryker.conf.json` and it took the whole item to find.
 
-### `maxTestRunnerReuse: 15`
+`perTest` — the default choice, and the fast one — runs only the specs that cover a mutant.
+On this stack that selection is where every false survivor came from, and the giveaway is
+that the selection was *right*: for a mutant reported `Survived`, the report's own `coveredBy`
+list contained the spec that kills it, and the clear-text reporter printed that spec under
+"Tests ran". The right tests were chosen, were reported as executed, and did not fail — so
+the mutant was not active while they ran.
 
-**The karma worker's verdicts depend on how long it has been alive, and both directions
-hurt.** Three measurements:
+`off` does no selection at all: every mutant gets the whole suite. It is also what the
+original false survivors were confirmed killed against, and what agreed with a mutation
+applied by hand to the real source under plain `pnpm test`. It was the oracle before it was
+the gate.
 
-| Setting | Local (4 cores, 16GB) | GitHub runner (2 cores) |
+The difference, same commit, two machines:
+
+| | local (4 cores, 16GB) | GitHub runner (2 cores) |
 | --- | --- | --- |
-| unset (infinite reuse) | mutants 0–18 `Killed`, 19–28 almost all `Timeout`; worker at 5.5GB | not measured |
-| **15** | `idle-countdown.ts` **100% / 24** | `idle-countdown.ts` **100% / 24** |
-| 5 | survivors and timeouts by the 13th mutant | `idle-countdown.ts` **20.83%** |
+| `perTest` | 96.55% (`plural.ts` 80%) | **`plural.ts` 0%** — gate red |
+| `off` | — | **96.55%** — gate green |
 
-Unset, the verdicts cluster by *position in the run* rather than by which mutant it was —
-the same mutants were reported `Killed` in earlier, shorter runs. A `Timeout` counts as
-detected, so the run still reported 100% with ten mutants unmeasured, which is the worst
-shape this failure can take.
+Two settings were tried before this and are recorded because both were wrong in instructive
+ways. **`concurrency`** above 1 produces false survivors non-deterministically (four runs of
+one 24-mutant file: 24/24 killed twice, then 13/11 and 12/12), so it is pinned to 1 and the
+gate refuses more. **`maxTestRunnerReuse`** was chased hardest and never worked under
+`perTest`: unset, a 29-mutant local run returned `Killed` for mutants 0–18 and `Timeout` for
+19–28 — clustered by *position in the run* rather than by which mutant it was, with the worker
+at 5.5GB, and since a `Timeout` counts as *detected* the score still read 100% with ten
+mutants unmeasured. Lowering it was not the safe direction either: at 5, CI scored
+`idle-countdown.ts` at 20.83%. It is 5 now because that is the value measured green end to
+end alongside `off`, and the gate refuses 0 and anything above 18.
 
-Restarting *more* often is not the safe direction, which is the counter-intuitive part and
-the reason this is pinned rather than tuned: at 5 both machines got dramatically worse. Why
-is not understood. 15 is simply the only value measured to give the same answer twice on
-different hardware, and `assert-mutation-score.mjs` refuses `0` and anything above 18.
-
-### `concurrency: 1`
-
-**With more than one test-runner process the run reports false survivors**,
-non-deterministically. Measured on one 24-mutant file, four runs each:
-
-| `concurrency` | results |
-| --- | --- |
-| 1 | 24 killed ×4 |
-| 2 | 24 killed ×2, **13 killed / 11 survived**, **12 killed / 12 survived** |
-
-Those eleven "survivors" were not survivors. Each was confirmed killed by re-running under
-`coverageAnalysis: "off"`, which runs the whole suite per mutant and does no test selection.
-One was confirmed by hand: applying `whileCounting`'s
-`countdown.status === 'expired' ? …` → `true ? …` mutation to the real source fails six specs
-in `provide-idle-session.spec.ts` under plain `pnpm test`.
-
-What makes it a false survivor rather than a missed test is that the *selection* was right —
-the report's own `coveredBy` list for that mutant contains the spec that kills it, and the
-clear-text reporter printed that spec under "Tests ran". The right tests were chosen, were
-reported as executed, and did not fail, so the mutant was not active while they ran. Beyond
-that the cause is not isolated; the workers share one sandbox and one `.angular/cache` inside
-it, which is a suspect and not a proof. This is a separate fault from the degradation above,
-which is what was wrong with the long runs.
+The lesson is the ordering, not the values: **establish that a score reproduces before
+believing it.** Three different configurations each produced a plausible number that did not
+survive being run on another machine.
 
 ## Cost
 
-About five minutes, in its own job, holding a browser for all of it. The shape of the number
+About seven minutes on a GitHub runner, in its own job, holding a browser for all of it, and
+longer locally. The shape of the number
 matters more than the number, because it decides what can be added to the scope:
 
 - **~2 minutes of setup.** Stryker copies the project into a sandbox and `ng test` builds it
   once (about 90s, and up to 3 minutes from a cold `.angular/cache`). `ignorePatterns` keeps
   the copy to 337 files instead of 1213, which is most of what can be done about this half.
-- **~6s per ordinary mutant.** Only the specs covering the mutant run, so this is almost
-  entirely the karma round trip, not the tests. It means **mutant count is the only lever
-  that matters**, and a module's cost has little to do with its size. The karma overhead is
-  itself machine-dependent and not in the direction you would guess: about 15s locally
-  against 2s on a GitHub runner, where the whole 1248-spec suite runs in 6 seconds.
+- **The whole suite per mutant**, because `coverageAnalysis` is `off` for the reason above.
+  On a GitHub runner that is about 8s — 1248 specs in 6 seconds plus 2 seconds of karma
+  overhead — so **mutant count is the only lever that matters**, and a module's cost has
+  little to do with its size. The overhead is machine-dependent and not in the direction you
+  would guess: about 15s locally against 2s in CI, which is why the local run is the slow one.
 - **~90s per *restart*.** Every 15 mutants by configuration, and additionally whenever a
   mutant run errors or times out, because with the Angular karma builder a test-runner
   restart is a full `ng test` rebuild.
