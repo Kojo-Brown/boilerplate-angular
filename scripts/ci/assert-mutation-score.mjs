@@ -373,17 +373,24 @@ export function checkOnlyDocumentedSpecsAreExcluded(config) {
  * The karma worker is recycled, because it degrades as the run proceeds.
  *
  * Measured on a 29-mutant run with this unset: mutants 0–18 came back `Killed` and 19–28
- * almost all `Timeout`, with the worker at 5.5GB resident. The timeouts cluster by
+ * almost all `Timeout`, with the worker at 5.5GB resident. The verdicts cluster by
  * *position in the run*, not by which mutant it was — the same mutants had been reported
  * `Killed` in earlier, shorter runs. A `Timeout` counts as detected, so the shape of that
  * failure is a score that stays respectable while the back half of the run stops being
  * measured at all.
  *
+ * **How long a worker lasts depends on the machine.** At `15` on a 2-core GitHub runner the
+ * second worker killed nine mutants and then reported all five of `plural.ts`'s as
+ * `Survived` — degradation at its tenth mutant, against beyond its twenty-fourth on a
+ * 4-core box with 16GB. So the bound here is well below the worst case observed, and a
+ * smaller value is always the safer direction: it costs one rebuild and cannot improve a
+ * score.
+ *
  * `0` means infinite reuse, which is Stryker's default and the setting that produced the
- * above, so this rule refuses it as well as refusing a value past where degradation was
- * first seen.
+ * first measurement above, so this rule refuses it as well as refusing a value past the
+ * cap.
  */
-const MAX_TEST_RUNNER_REUSE = 18;
+const MAX_TEST_RUNNER_REUSE = 8;
 
 export function checkTestRunnerIsRecycled(config) {
   const reuse = config.maxTestRunnerReuse;
@@ -590,12 +597,12 @@ const SELF_TESTS = [
       }).length === 0,
   ],
 
-  ['a recycled worker passes', () => checkTestRunnerIsRecycled({ maxTestRunnerReuse: 15 }).length === 0],
+  ['a recycled worker passes', () => checkTestRunnerIsRecycled({ maxTestRunnerReuse: 5 }).length === 0],
   ['infinite reuse fails', () => checkTestRunnerIsRecycled({ maxTestRunnerReuse: 0 }).length === 1],
   ['an unset reuse fails', () => checkTestRunnerIsRecycled({}).length === 1],
   [
     'a reuse past where degradation was seen fails',
-    () => checkTestRunnerIsRecycled({ maxTestRunnerReuse: 40 }).length === 1,
+    () => checkTestRunnerIsRecycled({ maxTestRunnerReuse: 15 }).length === 1,
   ],
 
   ['break 0 passes', () => checkBreakIsDelegated({ thresholds: { break: 0 } }).length === 0],
