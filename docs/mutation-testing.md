@@ -1,43 +1,69 @@
 # Mutation testing
 
 This suite runs 97.17% of the statements in `src/`. That number has stopped being
-interesting. It says every line was reached by something; it does not say anything about
-whether a test would notice if the line changed, and those are different questions with
-different answers. `karma.conf.js`'s coverage thresholds can be satisfied by a spec that
-calls a function and asserts nothing.
+interesting. It says every line was reached by something; it does not say whether a test
+would notice if the line changed, and those are different questions with different answers.
+`karma.conf.js`'s coverage thresholds are satisfied by a spec that calls a function and
+asserts nothing.
 
 Mutation testing asks the second question directly: change the code, and see whether the
 suite objects. Stryker compiles a copy of the project with every mutation behind a runtime
 switch, then for each mutation runs the tests that cover it. A mutant that survives is a
-change to the source that no assertion refused — either a test that is not asserting what
-it looks like it asserts, or behaviour nothing pins at all.
+change to the source that no assertion refused — either a test that is not asserting what it
+appears to assert, or behaviour nothing pins at all.
 
 ```
 pnpm mutation        # run Stryker, write reports/mutation/{mutation.json,mutation.html}
 pnpm check:mutation  # hold every file to its floor; this is the gate
 ```
 
-Both run in the `mutation` CI job and both block a merge.
+Both run in the `mutation` CI job and both block a merge. The current run is **29 mutants
+over two files in about five minutes**, and the score is 96.55% — 28 detected, one surviving
+mutant that is written up below as unkillable.
 
-## What is in scope, and why not everything
+## Per-file floors
 
-`stryker.conf.json`'s `mutate` list is deliberately short. The scope is pure-logic modules
-under `src/app/core/` — decisions over values, no templates, no DOM. Two reasons, and the
-second is the one that decided it.
+| File | Score | Mutants | Notes |
+| --- | --- | --- | --- |
+| `core/auth/idle-session/idle-countdown.ts` | 100% | 24 | The TDD kata's subject. |
+| `core/i18n/plural.ts` | 80% | 5 | One equivalent mutant; see below. |
 
-**Mutants in a template or a component are mostly noise.** Stryker mutates string literals
-and conditionals wherever it finds them, and a component's class is full of both for
-reasons that have nothing to do with behaviour: a `class` attribute, an `aria-label`, a
-`@if` guarding presentation. Killing those mutants means asserting on markup, which is how
-a suite comes to break every time anybody touches a style.
+`FLOORS` in `scripts/ci/assert-mutation-score.mjs` is the authority; the table above is a
+copy for readers. `pnpm check:mutation --print` shows measured against floor without
+failing.
 
-**The run is expensive and the cost is per mutant.** See [Cost](#cost). A scope that takes
-an hour gets disabled; a scope that takes ten minutes gets fixed.
+**The one survivor is an equivalent mutant.** Stryker replaces the options object in
+`new Intl.PluralRules(locale, { type: 'cardinal' })` with `{}`, and `'cardinal'` is that
+constructor's default — so the mutant is the same program. The option is spelled out in the
+source precisely because it is a default worth stating: the other kind, `'ordinal'`, selects
+a different set of categories for the same language and would be a bug with no symptom in
+English. There is nothing observable for a test to assert on, and anything that appeared to
+kill it would be asserting on `Intl`'s defaults rather than on this function. So the floor
+is 80 with a written reason, which is the mechanism the gate provides for exactly this case
+— not a lowered bar.
 
-So the scope is the part of the codebase where a surviving mutant is nearly always a real
-gap. Adding a file to `mutate` requires adding a row to `FLOORS` in
-`scripts/ci/assert-mutation-score.mjs` — the gate fails if the two disagree, in either
-direction — so the scope cannot drift from the thing holding it to a number.
+## What is in scope, and why it is small
+
+Two modules, both self-contained decisions over values: no templates, no DOM, no Angular.
+That is much less than is worth mutating, and the reason is cost rather than taste — the
+section below has the measurements. Three things were tried and dropped:
+
+- **Components and templates.** Stryker mutates string literals and conditionals wherever it
+  finds them, and a component class is full of both for reasons that have nothing to do with
+  behaviour: a `class` attribute, an `aria-label`, an `@if` guarding presentation. Killing
+  those mutants means asserting on markup, which is how a suite comes to break whenever
+  anybody touches a style.
+- **Modules that are mostly a module-level table** — `error-messages.ts`,
+  `api-error-mappers.ts`, `csrf.ts`. Their mutants are *static* (see below) and cost roughly
+  twenty times an ordinary one.
+- **`typed-form.ts`.** Five of the first twenty-five mutants in a three-module run timed out,
+  and the cause was never established before it was dropped on cost. Its only loop is a
+  bounded `for (const key of Object.keys(specs))`, so an infinite loop is not an obvious
+  explanation. It is out for cost, not because anything about it was proven.
+
+Adding a file to `mutate` requires adding a row to `FLOORS` — the gate fails if the two
+disagree, in either direction — so the scope cannot drift from the thing holding it to a
+number. It also requires budgeting the time, honestly: see the cost model.
 
 ## Why the threshold is a separate gate
 
@@ -45,158 +71,180 @@ Stryker can fail its own run: `thresholds.break` exits non-zero below a score. I
 **0** here, which is not "no threshold" — it is the threshold living in one place instead of
 two. `assert-mutation-score.mjs` owns it.
 
-The reason is that `thresholds.break` is one number over the whole run, and **every cheap
-way to make a mutation score go up makes that number go up too**:
+The reason is that `thresholds.break` is one number over the whole run, and **every cheap way
+to make a mutation score go up makes that number go up too**:
 
 1. **Drop a file from `mutate`.** The weakest file is the one holding the aggregate down, so
    removing it *raises* the score. A gate on the aggregate does not merely miss this, it
    rewards it. One line in a config file, and `pnpm test` stays green.
 2. **Keep the file and lose the glob.** A `mutate` entry that matches nothing produces no
-   mutants and no error. Rename a file, leave the entry pointing at the old path, and
-   Stryker logs `Found 9 of 338 files to be mutated` — a line nobody reads — then scores the
-   nine.
-3. **Let one file rot.** With several hundred mutants over ten files, a file can go from
-   100% to 0% and move the aggregate by a few points. Rot is per file, so a floor has to be
-   per file or it is measuring the other nine.
-4. **Make mutants fail to build.** `CompileError` and `RuntimeError` mutants are *invalid*
-   in the report schema and appear in neither half of
-   `detected / (detected + survived + noCoverage)`. A change that stops mutants compiling in
-   the sandbox deletes them from the sum rather than failing it.
+   mutants and no error. Rename a file, leave the entry pointing at the old path, and Stryker
+   logs `Found 1 of 337 files to be mutated` — a line nobody reads — then scores the one.
+3. **Let one file rot.** Rot is per file, and a file can go to 0% while the aggregate moves a
+   few points, so a floor has to be per file or it is measuring the other files.
+4. **Move mutants out of the score.** `CompileError`, `RuntimeError`, `Ignored` and
+   `NoCoverage` all leave `detected / (detected + survived + noCoverage)` or land in the
+   denominator only. One `// Stryker disable next-line all` above an awkward survivor, or
+   `ignoreStatic: true` in the config, turns a red gate green with no number moving.
+5. **Let a mutant be killed by the clock.** A `Timeout` counts as *detected*. The section on
+   worker degradation below is a worked example of a 100% score where ten mutants were not
+   measured at all.
 
-Hence the shape of the gate: a floor per file, each paired with a **mutant count** so a
-file that stopped being mutated has no ratio to pass with, the `mutate` list pinned against
-the table, and any floor below 100 required to carry a `why`. The last one cannot stop
-somebody editing a number, but it makes the edit arrive with a sentence a reviewer can
-disagree with.
+So the floors are per file, each paired with a **mutant count** (a file that stopped being
+mutated has no ratio to fail with), the `mutate` list is pinned against the table and
+required to be literal `.ts` paths, `Ignored` and invalid mutants are refused outright, and
+any floor below 100 must carry a `why`. The gate also fails if `ci.yml` stops running either
+half, since with `thresholds.break: 0` a job that runs Stryker and not the gate passes on any
+score at all. Forty-six self-tests drive each rule against the failure it names
+(`pnpm check:mutation` runs them before it certifies anything).
 
-The gate also fails if `ci.yml` stops running either half. With `thresholds.break: 0`, a job
-that runs Stryker and not the gate passes on any score at all, which is a greener version
-of having no gate — the same reasoning as the `check:*` resolution in
-`assert-owasp-checklist.mjs`.
+## The two settings that are not tuning knobs
 
-## `concurrency` is 1, and it is not a tuning knob
+Both of these were found by measurement, both produce a *greener* result when wrong, and
+`assert-mutation-score.mjs` fails if either is changed.
 
-**With more than one test-runner process this stack reports false survivors,
-non-deterministically.** Measured on one 24-mutant file, four runs each:
+### `maxTestRunnerReuse: 15`
+
+**The karma worker degrades as the run proceeds, and late mutants time out for being late.**
+Ordering a completed 29-mutant run by mutant id, with this unset:
+
+```
+0-18   Killed
+19-28  Timeout (one exception)
+```
+
+The timeouts cluster by *position in the run*, not by which mutant it was. The same mutants —
+`whileCounting`'s ternary, `selectPlural`'s body — were reported `Killed` in earlier, shorter
+runs, and `Survived` in others: three different verdicts for identical mutants under
+identical settings. The worker was at 5.5 GB resident by the end.
+
+A `Timeout` counts as detected, so the run still reported 100%. That is the whole problem: a
+score of 100% where the back half of the run was not measured, and no way to tell from the
+report. Stryker's own note on this option describes it as being for "memory leaks you are
+unable to resolve", which is the situation. Restarting the worker every 15 mutants fixed it
+and made the run **four times faster** (5m05s against 21m13s), because each spurious timeout
+had been costing its full allowance plus a restart.
+
+The gate refuses `0` — Stryker's default, meaning infinite reuse, which is what produced the
+above — and refuses anything past 18, where degradation was first seen.
+
+### `concurrency: 1`
+
+**With more than one test-runner process the run reports false survivors**,
+non-deterministically. Measured on one 24-mutant file, four runs each:
 
 | `concurrency` | results |
 | --- | --- |
-| 1 | 24 killed, 24 killed, 24 killed, 24 killed |
-| 2 | 24 killed, 24 killed, **13 killed / 11 survived**, **12 killed / 12 survived** |
+| 1 | 24 killed ×4 |
+| 2 | 24 killed ×2, **13 killed / 11 survived**, **12 killed / 12 survived** |
 
-The eleven "survivors" in that third run were not survivors. Each was confirmed killed by
-re-running the same file under `coverageAnalysis: "off"`, which runs the whole suite per
-mutant and does no test selection. One was confirmed by hand: applying
-`whileCounting`'s `countdown.status === 'expired' ? …` → `true ? …` mutation to the real
-source fails six specs in `provide-idle-session.spec.ts` under plain `pnpm test`.
+Those eleven "survivors" were not survivors. Each was confirmed killed by re-running under
+`coverageAnalysis: "off"`, which runs the whole suite per mutant and does no test selection.
+One was confirmed by hand: applying `whileCounting`'s
+`countdown.status === 'expired' ? …` → `true ? …` mutation to the real source fails six specs
+in `provide-idle-session.spec.ts` under plain `pnpm test`.
 
-What makes it a false survivor rather than a missed test is that the selection was right:
+What makes it a false survivor rather than a missed test is that the *selection* was right —
 the report's own `coveredBy` list for that mutant contains the spec that kills it, and the
 clear-text reporter printed that spec under "Tests ran". The right tests were chosen, were
-reported as executed, and did not fail — so the mutant was not active while they ran.
-Beyond that the cause is not isolated. The workers share one sandbox and one `.angular/cache`
-inside it, which is the obvious suspect and is not proof.
-
-So it is pinned, and `assert-mutation-score.mjs` fails if it is raised. A false survivor is
-the worst failure available to a merge gate: the score drops with nothing wrong in the
-source, it is indistinguishable from a real gap, and the honest response to one is to go and
-write a test that was never missing. Raising `concurrency` is not safe until somebody roots
-this out; the payoff would be real, because the run is long.
+reported as executed, and did not fail, so the mutant was not active while they ran. Beyond
+that the cause is not isolated; the workers share one sandbox and one `.angular/cache` inside
+it, which is a suspect and not a proof. This is a separate fault from the degradation above,
+which is what was wrong with the long runs.
 
 ## Cost
 
-Roughly twenty minutes, in its own job, holding a browser for all of it. The shape of that
-number matters more than the number:
+About five minutes, in its own job, holding a browser for all of it. The shape of the number
+matters more than the number, because it decides what can be added to the scope:
 
 - **~2 minutes of setup.** Stryker copies the project into a sandbox and `ng test` builds it
-  once. `ignorePatterns` keeps the copy to 338 files instead of 1213, which is most of what
-  can be done about this half.
-- **~2s per ordinary mutant.** Only the specs that cover the mutant run, so this is a
-  handful of specs plus a Karma round trip, and the round trip dominates.
-- **~12s per *static* mutant**, of which there are 71 — 19% of the mutants and the majority
-  of the wall clock. A static mutant is one Stryker saw execute during module evaluation
-  rather than inside a test: a module-level table, a `const` built at import time. Per-test
-  coverage cannot narrow those, because every test loaded the module, so Stryker runs the
-  entire suite for each one.
+  once (about 90s, and up to 3 minutes from a cold `.angular/cache`). `ignorePatterns` keeps
+  the copy to 337 files instead of 1213, which is most of what can be done about this half.
+- **~6s per ordinary mutant.** Only the specs covering the mutant run — 5.9 on average here —
+  so this is almost entirely the karma round trip, not the tests. It means **mutant count is
+  the only lever that matters**, and a module's cost has little to do with its size.
+- **~90s per *restart*.** Every 15 mutants by configuration, and additionally whenever a
+  mutant run errors or times out, because with the Angular karma builder a test-runner
+  restart is a full `ng test` rebuild.
+- **~20s plus a restart per *static* mutant.** A static mutant is one Stryker saw execute
+  during module evaluation rather than inside a test: a module-level table, a `const` built at
+  import time. Per-test coverage cannot narrow those, so the whole suite runs for each one,
+  and the module graph has to be reloaded. A ten-module scope with 71 static mutants did not
+  finish inside 65 minutes before it was stopped. Modules that are mostly a module-level
+  table are therefore the expensive ones, which is the opposite of what their size suggests.
 
-Stryker's own advice when it detects them is to set `ignoreStatic: true`. **Don't**, and the
-gate will not let you: that does not make those mutants cheap, it marks them `Ignored` and
-removes them from the score — 71 unchecked mutants and a number that goes up. The gate fails
-on any `Ignored` mutant for the same reason it fails on a `CompileError` one, and a
-`// Stryker disable` comment above an awkward survivor is the same move at a smaller scale.
-If the job has to get faster, the honest lever is the `mutate` list, with the floor table
-changing in the same diff.
+Stryker's advice when it detects static mutants is to set `ignoreStatic: true`. **Don't**, and
+the gate will not let you: that does not make them cheap, it marks them `Ignored` and removes
+them from the score. If the job has to get faster, the honest lever is the `mutate` list, with
+the floor table changing in the same diff.
 
-`coverageAnalysis` is `perTest` for that 6× difference. `"all"` and `"off"` are both correct
-here and both run the whole suite per mutant; they are what to fall back to if `perTest` is
-ever in doubt, at roughly four times the cost.
+`coverageAnalysis` is `perTest` for the per-mutant saving. `"all"` and `"off"` are both
+correct here and both run the whole suite per mutant; they are what to fall back to if
+`perTest` is ever in doubt, at many times the cost.
+
+`timeoutMS` is 30s rather than the default 5s. Stryker's allowance is
+`netTime * timeoutFactor + timeoutMS`, and `netTime` counts only time spent *inside* the
+tests — 5.9s here against about 15s of karma round trip — so the default gives roughly 14s to
+a run that costs about 21s, and every mutant needing a full-suite run timed out by
+construction, scoring as detected.
 
 ## One spec is excluded from the run
 
 `ignorePatterns` ends with `src/app/core/vitals/subscribe-web-vitals.spec.ts`. That is the
-only entry in the list that removes a **test** rather than weight, and the gate pins it for
-that reason.
+only entry in the list that removes a **test** rather than weight, and the gate pins it by
+name so the exclusion cannot quietly grow into a directory.
 
-Those three specs are the one place `web-vitals` is exercised for real — a dynamic
-`import()` of a lazy chunk, against live `PerformanceObserver` timing. Driven through
-Stryker's karma runner they fail intermittently, and the failure is in the dry run, so it
-takes the whole job with it rather than one mutant. It presents as
-`An error was thrown in afterAll` naming an expectation that "ran after it finished": the
-spec is abandoned and the awaited `expectAsync` settles afterwards. It is not a timeout —
-it reproduces with the spec timeout raised to 90s, failing 26 seconds into a run — and it is
-not caused by `ignorePatterns`, which was tested by removing it. Six dry runs were attempted
-with the file in the sandbox and five of them failed; four in a row have succeeded with it
-excluded.
+Those three specs are the one place `web-vitals` is exercised for real — a dynamic `import()`
+of a lazy chunk, against live `PerformanceObserver` timing. Driven through Stryker's karma
+runner they fail intermittently, and they fail in the *dry run*, so they take the whole job
+with them rather than one mutant. It presents as `An error was thrown in afterAll` naming an
+expectation that "ran after it finished": the spec is abandoned and the awaited `expectAsync`
+settles afterwards. It is **not** a timeout — it reproduces with the spec timeout raised to
+90s, failing 26 seconds into a run — and it is not caused by `ignorePatterns`, which was
+tested by removing it. Six dry runs were attempted with the file in the sandbox and five
+failed; it has not failed since the file was excluded.
 
-What it costs: nothing in the current scope, since no module in `mutate` is reachable from
-those specs, and the direction of error is safe — a mutant that only an excluded spec would
-kill shows up as a *survivor*, so it argues for attention rather than hiding. What it would
-cost is a scope that reached `core/vitals/`, which is why the exclusion is one named file
-and not a directory.
+What it costs: nothing in the current scope, since neither mutated module is reachable from
+those specs, and the direction of error is safe — a mutant only an excluded spec would kill
+shows up as a *survivor*, so it argues for attention rather than hiding. What it would cost is
+a scope reaching `core/vitals/`, which is why the exclusion is one named file.
 
-The same investigation turned up a real caveat about the suite's configuration, which is
-**open, not fixed**. `karma.conf.js` sets `client.jasmine.timeoutInterval: 10000`, and
-Stryker's karma runner **replaces** the whole `client` object rather than merging into it,
-so inside the mutation sandbox every spec runs with Jasmine's 5s default instead of the
-10s this repository asked for. `random: true` is replaced the same way, deliberately —
-Stryker needs a deterministic spec order — so the mutation run also does not exercise the
-spec-order independence the normal run does.
+### An open caveat about the spec timeout
+
+`karma.conf.js` sets `client.jasmine.timeoutInterval: 10000`, and Stryker's karma runner
+**replaces** the whole `client` object rather than merging into it, so inside the sandbox
+every spec runs with Jasmine's 5s default. `random: true` is replaced the same way,
+deliberately — Stryker needs a deterministic spec order — so the mutation run also does not
+exercise the spec-order independence the normal run does.
 
 The obvious fix does not work and was reverted rather than left in: moving the timeout into
-`src/testing/test-main.ts` as
-`jasmine.getEnv().configure({ defaultTimeoutInterval: … })` does not compile, because
-`defaultTimeoutInterval` is not a key of Jasmine's `Env.configure` — the global
-`jasmine.DEFAULT_TIMEOUT_INTERVAL` is a separate mechanism. That mistake is worth recording
-for one reason: **Stryker's sandbox adds `// @ts-nocheck` to every file it copies**
-(`disableTypeChecks`), so the sandbox compiled and ran happily for four dry runs while
-`pnpm test` would not compile at all. A change verified only through a mutation run has not
-been verified. Run `pnpm test`.
+`src/testing/test-main.ts` as `jasmine.getEnv().configure({ defaultTimeoutInterval: … })`
+does not compile, because `defaultTimeoutInterval` is not a key of Jasmine's `Env.configure`
+(the global `jasmine.DEFAULT_TIMEOUT_INTERVAL` is a separate mechanism). That mistake is
+worth recording for one reason: **Stryker's sandbox adds `// @ts-nocheck` to every file it
+copies**, so it compiled and ran happily for four dry runs while `pnpm test` would not
+compile at all. A change verified only through a mutation run has not been verified. Run
+`pnpm test`.
 
 ## Reading a survivor
 
-`reports/mutation/mutation.html` is the only view that shows a mutant in its source
-context, and it is uploaded as a CI artifact on every run including failures. The gate's
-own output lists each survivor as mutator, line and replacement, which is usually enough.
+`reports/mutation/mutation.html` is the only view that shows a mutant in its source context,
+and it is uploaded as a CI artifact on every run including failures. The gate's own output
+lists each survivor as mutator, line and replacement, which is usually enough.
 
 A survivor is a question: *if I made this change for real, what should have broken?* The
 answers, in the order they turn up:
 
-- **The assertion is weaker than it looks.** `expect(result).toBeTruthy()` on an object
-  that is always truthy. Half a boundary tested — "one millisecond short is still running"
-  passes against a function that does nothing, which is a finding the kata already recorded
-  for `settledAt`. The fix is a real assertion.
-- **The behaviour is genuinely unpinned.** No test ever passes the value that makes the
-  branch matter. The fix is a test.
-- **The mutant is equivalent.** Two spellings of the same behaviour, so nothing can tell
-  them apart and nothing should try. This is the one case where a floor below 100 is
-  honest — put the reason in the row's `why` and name the mutant.
+- **The assertion is weaker than it looks.** `expect(result).toBeTruthy()` on an object that
+  is always truthy. Half a boundary tested — "one millisecond short of the window is still
+  running" passes against a function that does nothing, which is a finding
+  `katas/idle-countdown/` already recorded for `settledAt`. The fix is a real assertion.
+- **The behaviour is genuinely unpinned.** No test ever passes the value that makes the branch
+  matter. The fix is a test.
+- **The mutant is equivalent.** Two spellings of the same program, so nothing can tell them
+  apart and nothing should try. `plural.ts`'s one survivor is this. The fix is a floor below
+  100 and a `why` naming the mutant.
 
-What a survivor never justifies is removing its file from `mutate` or lowering its floor to
-clear the gate. That is the specific move `CLAUDE.md` names first, and it is also
-self-defeating: the floors exist because the aggregate rewards it.
-
-## Per-file floors
-
-The measured scores at the time each row was written. `assert-mutation-score.mjs` holds each
-file to both numbers; `pnpm check:mutation --print` prints measured against floor without
-failing.
+What a survivor never justifies is removing its file from `mutate`, excluding a spec, or
+lowering a floor without the third answer above. That is the move `CLAUDE.md` names first, and
+it is also self-defeating: the floors exist because the aggregate rewards it.

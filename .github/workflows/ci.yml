@@ -88,13 +88,19 @@ concurrency:
 #     runs 97% of the statements, so "did the line execute" is settled, and what is left is
 #     whether any assertion would object to the line *changing*. The floors are a separate
 #     gate from Stryker's own `thresholds.break` — which is 0 here — because every cheap way
-#     to raise a mutation score raises the aggregate too: dropping a file from `mutate`
-#     (the weakest file is the one holding the number down, so removing it helps), leaving a
-#     glob pointing at a file that was renamed, letting one file rot behind nine healthy
-#     ones, or making mutants fail to compile, which takes them out of the score's
-#     denominator rather than failing it. So the floors are per file, each paired with a
-#     mutant count, with the mutate list pinned against the table and `concurrency` pinned
-#     to 1. See `docs/mutation-testing.md`.
+#     to raise a mutation score raises the aggregate too: dropping a file from `mutate` (the
+#     weakest file is the one holding the number down, so removing it helps), leaving a glob
+#     pointing at a file that was renamed, letting one file rot behind the others, or moving
+#     mutants out of the score entirely, which `CompileError`, `Ignored` and `Timeout` all
+#     do. So the floors are per file, each paired with a mutant count, with the mutate list
+#     pinned against the table.
+#     Two settings in `stryker.conf.json` are load-bearing and the gate refuses changes to
+#     both. `maxTestRunnerReuse: 15` recycles the karma worker, which otherwise degrades
+#     over a run: unset, a 29-mutant run returned `Killed` for mutants 0-18 and `Timeout`
+#     for 19-28, clustered by position in the run rather than by mutant, with the worker at
+#     5.5GB — and because a `Timeout` counts as detected, the score still read 100% with ten
+#     mutants unmeasured. `concurrency: 1` is pinned because above it the run reports false
+#     survivors non-deterministically. See `docs/mutation-testing.md`.
 #   - `scripts/ci/assert-logical-properties.mjs` fails on a physical-direction Tailwind
 #     utility. `dir="rtl"` moves only what is written logically, so a layout on `ml-`,
 #     `left-` or `border-r` mirrors into a consistent, plausible, wrong version of itself

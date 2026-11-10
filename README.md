@@ -69,7 +69,7 @@ NG_ALLOWED_HOSTS=localhost pnpm serve:ssr  # http://localhost:4000
 | `pnpm check:routes` | Fails when a route exceeds its bundle budget, and prints the audit      |
 | `pnpm check:ssr`    | Starts the built server and checks what each route answers              |
 | `pnpm check:tokens` | Fails when shipped source persists an auth token anywhere readable      |
-| `pnpm mutation`     | Stryker mutation run over the pure-logic core modules (~20 min)         |
+| `pnpm mutation`     | Stryker mutation run over the pure-logic core modules (~5 min)          |
 | `pnpm check:mutation` | Holds every mutated file to its recorded score and mutant-count floor |
 
 CI runs lint, typecheck, format, tests, and the accessibility audit in parallel
@@ -950,12 +950,23 @@ other two times, against 24/24 four times out of four at `concurrency: 1`. Each
 false survivor was confirmed killed under `coverageAnalysis: "off"`, and one by
 hand against `pnpm test`.
 
-**It is the slowest gate here**, about twenty minutes in its own job, and 19% of
-the mutants account for most of that: a *static* mutant — one that runs during
-module evaluation rather than inside a test — cannot be narrowed by per-test
-coverage, so Stryker runs the whole suite for each one. Stryker suggests
-`ignoreStatic: true`; that does not make them cheap, it deletes 71 mutants from
-the score.
+**Two settings are not tuning knobs, and the gate refuses changes to both.**
+`maxTestRunnerReuse: 15` restarts the karma worker, because it degrades as a
+run proceeds: with it unset, a 29-mutant run came back `Killed` for mutants
+0-18 and `Timeout` for 19-28 — clustered by *position in the run*, not by
+which mutant it was, with the worker at 5.5 GB. A `Timeout` counts as
+detected, so the score still read 100% while ten mutants went unmeasured.
+Recycling the worker fixed it and made the run four times faster.
+`concurrency: 1` is pinned because above it the run reports false survivors
+non-deterministically — four runs of one 24-mutant file returned 24/24 killed
+twice and 13/11 and 12/12 the other two times, each false survivor confirmed
+killed under `coverageAnalysis: "off"` and one by hand against `pnpm test`.
+
+**The scope is deliberately small**: two self-contained decision modules, 29
+mutants, about five minutes. Cost is almost entirely per-mutant karma round
+trip, so mutant count is the only lever that matters and a module's cost has
+little to do with its size — a module that is mostly a module-level table is
+the expensive kind.
 
 See [docs/mutation-testing.md](./docs/mutation-testing.md) for the per-file
 floors, how to read a survivor, the one spec excluded from the run and why, and
